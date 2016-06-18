@@ -24,12 +24,14 @@ sudo make install
 ### Synopsis
 
 ```
-usage: timg [options] <image>
+usage: ./timg [options] <image>
 Options:
         -g<w>x<h>  : Output pixel geometry. Default from terminal 132x88
         -s[<ms>]   : Scroll horizontally (optionally: delay ms (60)).
         -t<timeout>: Animation or scrolling: only display for this number of seconds.
+        -c<num>    : Animation or scrolling: number of runs through a full cycle.
         -v         : Print version and exit.
+If both -c and -t are given, whatever comes first stops.
 ```
 
 ### Examples
