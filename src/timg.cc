@@ -252,7 +252,7 @@ int main(int argc, char *argv[]) {
 
     if (do_scroll && frames.size() > 1) {
         fprintf(stderr, "This is an animated image format, "
-                "scrolling does not make sense\n");
+                "scrolling on top of that is not supported.\n");
         return 1;
     }
 
