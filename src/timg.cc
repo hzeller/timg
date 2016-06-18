@@ -34,6 +34,8 @@
 
 #include <vector>
 
+#define TIMG_VERSION "0.9.0"
+
 volatile bool interrupt_received = false;
 static void InterruptHandler(int signo) {
   interrupt_received = true;
@@ -176,7 +178,8 @@ static int usage(const char *progname, int w, int h) {
     fprintf(stderr, "Options:\n"
             "\t-g<w>x<h>  : Output pixel geometry. Default from terminal %dx%d\n"
             "\t-s[<ms>]   : Scroll horizontally (optionally: delay ms (60)).\n"
-            "\t-t<timeout>: Animation or scrolling: only display for this number of seconds.\n",
+            "\t-t<timeout>: Animation or scrolling: only display for this number of seconds.\n"
+            "\t-v         : Print version and exit.\n",
             w, h);
     return 1;
 }
@@ -196,7 +199,7 @@ int main(int argc, char *argv[]) {
     int timeout = 1000000;
     
     int opt;
-    while ((opt = getopt(argc, argv, "g:s::t:h")) != -1) {
+    while ((opt = getopt(argc, argv, "vg:s::t:h")) != -1) {
         switch (opt) {
         case 'g':
             if (sscanf(optarg, "%dx%d", &width, &height) < 2) {
@@ -215,6 +218,12 @@ int main(int argc, char *argv[]) {
                 if (scroll_delay_ms > 999) scroll_delay_ms = 999;
             }
             break;
+        case 'v':
+            fprintf(stderr, "timg " TIMG_VERSION
+                    " <https://github.com/hzeller/timg>\n"
+                    "Copyright (c) 2016 Henner Zeller. "
+                    "This program is free software; license GPL 2.0.\n");
+            return 0;
         case 'h':
         default:
             return usage(argv[0], term_width, term_height);

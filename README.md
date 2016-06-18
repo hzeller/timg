@@ -29,6 +29,7 @@ Options:
         -g<w>x<h>  : Output pixel geometry. Default from terminal 132x88
         -s[<ms>]   : Scroll horizontally (optionally: delay ms (60)).
         -t<timeout>: Animation or scrolling: only display for this number of seconds.
+        -v         : Print version and exit.
 ```
 
 ### Examples
