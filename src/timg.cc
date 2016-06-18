@@ -122,37 +122,40 @@ static bool LoadImageAndScale(const char *filename,
 }
 
 void DisplayAnimation(const std::vector<Magick::Image> &image_sequence,
-                      time_t end_time, int w, int h, int fd) {
+                      time_t end_time, int loops, int w, int h, int fd) {
     std::vector<PreprocessedFrame*> frames;
     // Convert to preprocessed frames.
     for (size_t i = 0; i < image_sequence.size(); ++i) {
         frames.push_back(new PreprocessedFrame(image_sequence[i], w, h));
     }
 
-    for (unsigned int i = 0; !interrupt_received; ++i) {
-        if (time(NULL) > end_time)
-            break;
-        if (i == frames.size()) i = 0;
-        PreprocessedFrame *frame = frames[i];
-        frame->Send(fd);  // Simple. just send it.
-        if (frames.size() == 1) {
-            return;  // We are done.
-        } else {
-            usleep(frame->delay_micros());
+    for (int k = 0; k < loops && !interrupt_received && time(NULL) < end_time;
+         ++k) {
+        for (unsigned int i = 0; i < frames.size() && !interrupt_received; ++i) {
+            if (time(NULL) > end_time)
+                break;
+            PreprocessedFrame *frame = frames[i];
+            frame->Send(fd);  // Simple. just send it.
+            if (frames.size() == 1) {
+                return;  // Single image. We are done.
+            } else {
+                usleep(frame->delay_micros());
+            }
         }
     }
     // Leaking PreprocessedFrames. Don't care.
 }
 
 void DisplayScrolling(const Magick::Image &img, int scroll_delay_ms,
-                      time_t end_time, TerminalCanvas *display,
+                      time_t end_time, int loops, TerminalCanvas *display,
                       int fd) {
     const int scroll_dir = scroll_delay_ms < 0 ? -1 : 1;
     const int initial_pos = scroll_dir < 0 ? img.columns()-display->width() : 0;
     if (scroll_delay_ms < 0)
         scroll_delay_ms = -scroll_delay_ms;
     const uint64_t scroll_time_usec = 1000LL * scroll_delay_ms;
-    while (!interrupt_received && time(NULL) <= end_time) {
+    for (int k = 0; k < loops && !interrupt_received && time(NULL) <= end_time;
+         ++k) {
         for (size_t start = 0; start < img.columns(); ++start) {
             if (interrupt_received) break;
             const int64_t start_time = GetTimeInUsec();
@@ -184,7 +187,9 @@ static int usage(const char *progname, int w, int h) {
             "\t-g<w>x<h>  : Output pixel geometry. Default from terminal %dx%d\n"
             "\t-s[<ms>]   : Scroll horizontally (optionally: delay ms (60)).\n"
             "\t-t<timeout>: Animation or scrolling: only display for this number of seconds.\n"
-            "\t-v         : Print version and exit.\n",
+            "\t-c<num>    : Animation or scrolling: number of runs through a full cycle.\n"
+            "\t-v         : Print version and exit.\n"
+            "If both -c and -t are given, whatever comes first stops.\n",
             w, h);
     return 1;
 }
@@ -201,10 +206,11 @@ int main(int argc, char *argv[]) {
     int width = term_width;
     int height = term_height;
     int scroll_delay_ms = 50;
-    int timeout = 1000000;
-    
+    time_t  timeout = 100000000;  // "infinity"; make sure end fits in 32bit
+    int loops       = 100000000;  // "infinity"
+
     int opt;
-    while ((opt = getopt(argc, argv, "vg:s::t:h")) != -1) {
+    while ((opt = getopt(argc, argv, "vg:s::t:c:h")) != -1) {
         switch (opt) {
         case 'g':
             if (sscanf(optarg, "%dx%d", &width, &height) < 2) {
@@ -214,6 +220,9 @@ int main(int argc, char *argv[]) {
             break;
         case 't':
             timeout = atoi(optarg);
+            break;
+        case 'c':
+            loops = atoi(optarg);
             break;
         case 's':
             do_scroll = true;
@@ -267,10 +276,10 @@ int main(int argc, char *argv[]) {
     TerminalCanvas::GlobalInit(STDOUT_FILENO);
     const time_t end_time = time(NULL) + timeout;
     if (do_scroll) {
-        DisplayScrolling(frames[0], scroll_delay_ms, end_time, &display,
+        DisplayScrolling(frames[0], scroll_delay_ms, end_time, loops, &display,
                          STDOUT_FILENO);
     } else {
-        DisplayAnimation(frames, end_time, width, height, STDOUT_FILENO);
+        DisplayAnimation(frames, end_time, loops, width, height, STDOUT_FILENO);
     }
 
     TerminalCanvas::GlobalFinish(STDOUT_FILENO);
