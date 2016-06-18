@@ -1,12 +1,12 @@
 timg - Terminal Image Viewer
 ============================
 
-An image viewer that uses the 24-Bit color capabilities and character blocks
-as pixels to display images in a terminal.
+A viewer that uses 24-Bit color capabilities and unicode character blocks
+to display images in the terminal.
 
 ![](./img/sunflower-term.png)
 
-Displays regular images, shows animated gifs or allows to scroll static images.
+Displays regular images, plays animated gifs or allows to scroll static images.
 
 Very useful for if you want to have a quick visual check without starting a
 bulky image viewer ... and don't care about resolution.
@@ -32,7 +32,7 @@ Options:
 ```
 
 ### Examples
-```
+```bash
 timg some-image.jpg         # display a static image
 
 timg some-animated.gif      # show an animated gif (stop with Ctrl-C)
@@ -52,7 +52,10 @@ show anything or it is garbage.
 
 Tested terminals: `konsole` >= 2.14.1, `gnome-terminal` >= 3.6.2 look good,
 recent xterms also seem to work (albeit with less color richness).
+
 Linux console seems to be limited in colors and does not show the block
 character - if you know how to enable the unicode character or full color
 there, please let me know.
 
+For Mac users, the iTerm2 >= 3.x should work, please confirm if you have this
+setup.
