@@ -16,7 +16,7 @@ bulky image viewer ... and don't care about resolution.
 ```bash
 git clone https://github.com/hzeller/timg.git
 cd timg/src
-sudo apt-get install libgraphicsmagick++-dev     # required library.
+sudo apt-get install libwebp-dev libgraphicsmagick++-dev    # required libs.
 make
 sudo make install
 ```
