@@ -14,13 +14,14 @@ bulky image viewer ... and don't care about resolution.
 ### Install
 
 ```bash
+git clone https://github.com/hzeller/timg.git
+cd timg/src
 sudo apt-get install libgraphicsmagick++-dev     # required library.
-cd src
 make
 sudo make install
 ```
 
-###Synopsis
+### Synopsis
 
 ```
 usage: timg [options] <image>
@@ -30,7 +31,7 @@ Options:
         -t<timeout>: Animation or scrolling: only display for this number of seconds.
 ```
 
-###Examples
+### Examples
 ```
 timg some-image.jpg         # display a static image
 
