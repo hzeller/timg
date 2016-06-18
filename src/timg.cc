@@ -148,7 +148,7 @@ void DisplayScrolling(const Magick::Image &img, int scroll_delay_ms,
                       time_t end_time, TerminalCanvas *display,
                       int fd) {
     const int scroll_dir = scroll_delay_ms < 0 ? -1 : 1;
-    const int initial_pos = scroll_dir < 0 ? -display->width() : 0;
+    const int initial_pos = scroll_dir < 0 ? img.columns()-display->width() : 0;
     if (scroll_delay_ms < 0)
         scroll_delay_ms = -scroll_delay_ms;
     const uint64_t scroll_time_usec = 1000LL * scroll_delay_ms;
@@ -158,9 +158,9 @@ void DisplayScrolling(const Magick::Image &img, int scroll_delay_ms,
             const int64_t start_time = GetTimeInUsec();
             for (int y = 0; y < display->height(); ++y) {
                 for (int x = 0; x < display->width(); ++x) {
-                    const Magick::Color &c =
-                        img.pixelColor((x + scroll_dir*start + initial_pos
-                                        + img.columns()) % img.columns(), y);
+                    int x_source = (x + scroll_dir*start + initial_pos
+                                    + img.columns()) % img.columns();
+                    const Magick::Color &c = img.pixelColor(x_source, y);
                     if (c.alphaQuantum() >= 255)
                         continue;
                     display->SetPixel(x, y,
