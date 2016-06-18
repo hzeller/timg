@@ -49,6 +49,12 @@ timg -s-100 some-image.jpg  # negative scroll delay scrolls left to right
 timg some-image.jpg > /tmp/imageout.txt
 cat /tmp/imageout.txt
 
+# Of course, you can go really crazy by storing a cycle of an animation. Use xz
+# for compression as it seems to deal with this kind of stuff really well:
+timg nyan.gif -g60x30 -c1 | xz > /tmp/nyan.term.xz
+# ..now, replay that cycle in a loop. Latch on the frame marker with awk to delay
+while : ; do xzcat /tmp/nyan.term.xz | gawk '/\[[0-9]+A/ { system("sleep 0.1"); } { print $0 }' ; done
+# (If you ctrl-c that loop, you might need to use 'reset' for terminal sanity)
 ```
 
 Note, this requires that your terminal can display 24 bit colors and is able
