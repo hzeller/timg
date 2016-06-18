@@ -21,7 +21,6 @@
 #include <unistd.h>
 
 #define SCREEN_CLEAR    "\033c"
-#define SCREEN_PREFIX   "\033[48;2;0;0;0m"  // set black background
 #define SCREEN_POSTFIX  "\033[0m"           // reset terminal settings
 #define SCREEN_CURSOR_UP_FORMAT "\033[%dA"  // Move cursor up given lines.
 #define CURSOR_OFF      "\033[?25l"
@@ -48,9 +47,10 @@ static void reliable_write(int fd, const char *buf, size_t size) {
 TerminalCanvas::TerminalCanvas(int w, int h)
     // Height is rounded up to the next even number.
     : width_(w), height_((h+1) & ~0x1) {
-    buffer_.append(SCREEN_PREFIX);
-    initial_offset_ = buffer_.size();
     char scratch[64];
+    snprintf(scratch, sizeof(scratch), SCREEN_CURSOR_UP_FORMAT, height_/2);
+    buffer_.append(scratch);
+    initial_offset_ = buffer_.size();
     snprintf(scratch, sizeof(scratch),
              TOP_PIXEL_COLOR    ESCAPE_COLOR_FORMAT "m"
              BOTTOM_PIXEL_COLOR ESCAPE_COLOR_FORMAT "m"
@@ -89,7 +89,6 @@ void TerminalCanvas::SetPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b) {
 }
 
 void TerminalCanvas::Send(int fd) {
-    dprintf(fd, SCREEN_CURSOR_UP_FORMAT, height_/2);
     reliable_write(fd, buffer_.data(), buffer_.size());
 }
 

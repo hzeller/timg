@@ -22,7 +22,6 @@
 
 #include <assert.h>
 #include <math.h>
-#include <netdb.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,8 +29,9 @@
 #include <sys/ioctl.h>
 #include <sys/time.h>
 #include <unistd.h>
+
 #include <Magick++.h>
-#include <magick/image.h>
+
 #include <vector>
 
 volatile bool interrupt_received = false;
