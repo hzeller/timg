@@ -50,7 +50,9 @@ Note, this requires that your terminal can display 24 bit colors and is able
 to display the character ▀ (U+2580, 'Upper Half Block'). If not, it doesn't
 show anything or it is garbage.
 
-Tested terminals: `konsole` and `gnome-terminal` look good, recent xterms
-also seem to work (albeit with less color richness). Linux console seems to
-be limited in colors and the block character.
+Tested terminals: `konsole` >= 2.14.1, `gnome-terminal` >= 3.6.2 look good,
+recent xterms also seem to work (albeit with less color richness).
+Linux console seems to be limited in colors and does not show the block
+character - if you know how to enable the unicode character or full color
+there, please let me know.
 
