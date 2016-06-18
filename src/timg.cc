@@ -147,6 +147,10 @@ void DisplayAnimation(const std::vector<Magick::Image> &image_sequence,
 void DisplayScrolling(const Magick::Image &img, int scroll_delay_ms,
                       time_t end_time, TerminalCanvas *display,
                       int fd) {
+    const int scroll_dir = scroll_delay_ms < 0 ? -1 : 1;
+    const int initial_pos = scroll_dir < 0 ? -display->width() : 0;
+    if (scroll_delay_ms < 0)
+        scroll_delay_ms = -scroll_delay_ms;
     const uint64_t scroll_time_usec = 1000LL * scroll_delay_ms;
     while (!interrupt_received && time(NULL) <= end_time) {
         for (size_t start = 0; start < img.columns(); ++start) {
@@ -155,7 +159,8 @@ void DisplayScrolling(const Magick::Image &img, int scroll_delay_ms,
             for (int y = 0; y < display->height(); ++y) {
                 for (int x = 0; x < display->width(); ++x) {
                     const Magick::Color &c =
-                        img.pixelColor((x + start) % img.columns(), y);
+                        img.pixelColor((x + scroll_dir*start + initial_pos
+                                        + img.columns()) % img.columns(), y);
                     if (c.alphaQuantum() >= 255)
                         continue;
                     display->SetPixel(x, y,
@@ -214,8 +219,6 @@ int main(int argc, char *argv[]) {
             do_scroll = true;
             if (optarg != NULL) {
                 scroll_delay_ms = atoi(optarg);
-                if (scroll_delay_ms < 5) scroll_delay_ms = 5;
-                if (scroll_delay_ms > 999) scroll_delay_ms = 999;
             }
             break;
         case 'v':

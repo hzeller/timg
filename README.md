@@ -40,6 +40,8 @@ timg some-animated.gif      # show an animated gif (stop with Ctrl-C)
 timg -t5 some-animated.gif  # show animated gif for 5 seconds
 
 timg -s some-image.jpg      # scroll a static image as banner (stop with Ctrl-C)
+timg -s100 some-image.jpg   # scroll with 100ms delay right to left
+timg -s-100 some-image.jpg  # negative scroll delay scrolls left to right
 
 # Also, you could store the output and cat later to your terminal...
 timg some-image.jpg > /tmp/imageout.txt
