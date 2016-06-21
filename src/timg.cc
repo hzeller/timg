@@ -68,8 +68,8 @@ void CopyToCanvas(const Magick::Image &img, TerminalCanvas *result) {
 // animation delay.
 class PreprocessedFrame {
 public:
-    PreprocessedFrame(const Magick::Image &img, int w, int h)
-        : content_(new TerminalCanvas(w, h)) {
+    PreprocessedFrame(const Magick::Image &img, int w, int h, bool dont_clear)
+        : content_(new TerminalCanvas(w, h, dont_clear)) {
         int delay_time = img.animationDelay();  // in 1/100s of a second.
         if (delay_time < 1) delay_time = 1;
         delay_micros_ = delay_time * 10000;
@@ -122,11 +122,11 @@ static bool LoadImageAndScale(const char *filename,
 }
 
 void DisplayAnimation(const std::vector<Magick::Image> &image_sequence,
-                      time_t end_time, int loops, int w, int h, int fd) {
+                      time_t end_time, int loops, int w, int h, int fd, bool dont_clear) {
     std::vector<PreprocessedFrame*> frames;
     // Convert to preprocessed frames.
     for (size_t i = 0; i < image_sequence.size(); ++i) {
-        frames.push_back(new PreprocessedFrame(image_sequence[i], w, h));
+        frames.push_back(new PreprocessedFrame(image_sequence[i], w, h, dont_clear));
     }
 
     for (int k = 0; k < loops && !interrupt_received && time(NULL) < end_time;
@@ -188,6 +188,7 @@ static int usage(const char *progname, int w, int h) {
             "\t-s[<ms>]   : Scroll horizontally (optionally: delay ms (60)).\n"
             "\t-t<timeout>: Animation or scrolling: only display for this number of seconds.\n"
             "\t-c<num>    : Animation or scrolling: number of runs through a full cycle.\n"
+            "\t-C         : Don't clear the terminal buffer.\n"
             "\t-v         : Print version and exit.\n"
             "If both -c and -t are given, whatever comes first stops.\n",
             w, h);
@@ -203,6 +204,7 @@ int main(int argc, char *argv[]) {
     const int term_height = 2 * (w.ws_row-1);  // double number of pixels high.
 
     bool do_scroll = false;
+    bool dont_clear = false;
     int width = term_width;
     int height = term_height;
     int scroll_delay_ms = 50;
@@ -210,7 +212,7 @@ int main(int argc, char *argv[]) {
     int loops       = 100000000;  // "infinity"
 
     int opt;
-    while ((opt = getopt(argc, argv, "vg:s::t:c:h")) != -1) {
+    while ((opt = getopt(argc, argv, "vg:s::t:c:h:C")) != -1) {
         switch (opt) {
         case 'g':
             if (sscanf(optarg, "%dx%d", &width, &height) < 2) {
@@ -223,6 +225,9 @@ int main(int argc, char *argv[]) {
             break;
         case 'c':
             loops = atoi(optarg);
+            break;
+        case 'C':
+            dont_clear = true;
             break;
         case 's':
             do_scroll = true;
@@ -271,15 +276,15 @@ int main(int argc, char *argv[]) {
     // Adjust width/height after scaling.
     width = std::min(width, (int)frames[0].columns());
     height = std::min(height, (int)frames[0].rows());
-    TerminalCanvas display(width, height);
+    TerminalCanvas display(width, height, dont_clear);
 
-    TerminalCanvas::GlobalInit(STDOUT_FILENO);
+    TerminalCanvas::GlobalInit(STDOUT_FILENO, dont_clear);
     const time_t end_time = time(NULL) + timeout;
     if (do_scroll) {
         DisplayScrolling(frames[0], scroll_delay_ms, end_time, loops, &display,
                          STDOUT_FILENO);
     } else {
-        DisplayAnimation(frames, end_time, loops, width, height, STDOUT_FILENO);
+        DisplayAnimation(frames, end_time, loops, width, height, STDOUT_FILENO, dont_clear);
     }
 
     TerminalCanvas::GlobalFinish(STDOUT_FILENO);
