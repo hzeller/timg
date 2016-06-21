@@ -44,11 +44,11 @@ static void reliable_write(int fd, const char *buf, size_t size) {
     }
 }
 
-TerminalCanvas::TerminalCanvas(int w, int h)
+TerminalCanvas::TerminalCanvas(int w, int h, bool dont_clear)
     // Height is rounded up to the next even number.
-    : width_(w), height_((h+1) & ~0x1) {
+    : width_(w), height_((h+1) & ~0x1), dont_clear_(dont_clear) {
     char scratch[64];
-    snprintf(scratch, sizeof(scratch), SCREEN_CURSOR_UP_FORMAT, height_/2);
+    if (!dont_clear_) snprintf(scratch, sizeof(scratch), SCREEN_CURSOR_UP_FORMAT, height_/2);
     buffer_.append(scratch);
     initial_offset_ = buffer_.size();
     snprintf(scratch, sizeof(scratch),
@@ -92,8 +92,10 @@ void TerminalCanvas::Send(int fd) {
     reliable_write(fd, buffer_.data(), buffer_.size());
 }
 
-void TerminalCanvas::GlobalInit(int fd) {
-    reliable_write(fd, SCREEN_CLEAR, strlen(SCREEN_CLEAR));
+void TerminalCanvas::GlobalInit(int fd, bool dont_clear) {
+    if (!dont_clear) {
+         reliable_write(fd, SCREEN_CLEAR, strlen(SCREEN_CLEAR));
+    }
     reliable_write(fd, CURSOR_OFF, strlen(CURSOR_OFF));
 }
 void TerminalCanvas::GlobalFinish(int fd) {

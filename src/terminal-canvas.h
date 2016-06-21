@@ -21,7 +21,7 @@
 
 class TerminalCanvas {
 public:
-    TerminalCanvas(int width, int heigh);
+    TerminalCanvas(int width, int heigh, bool dont_clear);
 
     int width() const { return width_; }
     int height() const { return height_; }
@@ -30,7 +30,7 @@ public:
     void Send(int fd);
 
     // To be called once
-    static void GlobalInit(int fd);
+    static void GlobalInit(int fd, bool dont_clear);
     static void GlobalFinish(int fd);
 
 private:
@@ -41,6 +41,7 @@ private:
     size_t lower_row_pixel_offset_;
     size_t color_fmt_length_;
     std::string buffer_;
+    bool dont_clear_;
 };
 
 #endif // TERMINAL_CANVAS_H_
