@@ -24,6 +24,11 @@
 #define SCREEN_POSTFIX  "\033[0m"           // reset terminal settings
 #define SCREEN_CURSOR_UP_FORMAT "\033[%dA"  // Move cursor up given lines.
 #define CURSOR_OFF      "\033[?25l"
+
+// Interestingly, cursor-on does not take effect until the next newline on
+// the tested terminals. Not sure why that is, but adding a newline sounds
+// like waste of vertical space, so let's not do it here but rather try
+// to understand the actual reason why this is happening and fix it then.
 #define CURSOR_ON       "\033[?25h"
 
 // Each character on the screen is divided in a top pixel and bottom pixel.
@@ -45,11 +50,11 @@ static void reliable_write(int fd, const char *buf, size_t size) {
 }
 
 TerminalCanvas::TerminalCanvas(int w, int h)
+    // Internal width is one pixel wider to have a black right edge, otherwise
+    //   terminals generate strange artifacts when they start scrolling.
     // Height is rounded up to the next even number.
-    : width_(w), height_((h+1) & ~0x1) {
+    : internal_width_(w+1), height_((h+1) & ~0x1) {
     char scratch[64];
-    snprintf(scratch, sizeof(scratch), SCREEN_CURSOR_UP_FORMAT, height_/2);
-    buffer_.append(scratch);
     initial_offset_ = buffer_.size();
     snprintf(scratch, sizeof(scratch),
              TOP_PIXEL_COLOR    ESCAPE_COLOR_FORMAT "m"
@@ -58,7 +63,7 @@ TerminalCanvas::TerminalCanvas(int w, int h)
              0, 0, 0, 0, 0, 0); // black.
     pixel_offset_ = strlen(scratch);
     for (int y = 0; y < height_ / 2; ++y) {
-        for (int x = 0; x < width_; ++x) {
+        for (int x = 0; x < internal_width_; ++x) {
             buffer_.append(scratch);
         }
         buffer_.append("\n");
@@ -76,10 +81,10 @@ TerminalCanvas::TerminalCanvas(int w, int h)
 }
 
 void TerminalCanvas::SetPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b) {
-    if (x < 0 || x >= width_ || y < 0 || y >= height_) return;
+    if (x < 0 || x >= width() || y < 0 || y >= height()) return;
     const int double_row = y/2;
     const int pos = initial_offset_
-        + (width_ * double_row + x) * pixel_offset_
+        + (internal_width_ * double_row + x) * pixel_offset_
         + strlen(TOP_PIXEL_COLOR)            // go where the color fmt starts
         + (y % 2) * lower_row_pixel_offset_  // offset for odd-row y-pixels
         + double_row;                        // 1 newline per double row
@@ -88,14 +93,19 @@ void TerminalCanvas::SetPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b) {
     buf[color_fmt_length_] = 'm';   // overwrite \0-byte with closing 'm' again.
 }
 
-void TerminalCanvas::Send(int fd) {
+void TerminalCanvas::Send(int fd, bool jump_back_first) {
+    if (jump_back_first) dprintf(fd, SCREEN_CURSOR_UP_FORMAT, height_/2);
     reliable_write(fd, buffer_.data(), buffer_.size());
 }
 
-void TerminalCanvas::GlobalInit(int fd) {
+void TerminalCanvas::ClearScreen(int fd) {
     reliable_write(fd, SCREEN_CLEAR, strlen(SCREEN_CLEAR));
+}
+
+void TerminalCanvas::GlobalInit(int fd) {
     reliable_write(fd, CURSOR_OFF, strlen(CURSOR_OFF));
 }
+
 void TerminalCanvas::GlobalFinish(int fd) {
     reliable_write(fd, CURSOR_ON, strlen(CURSOR_ON));
 }

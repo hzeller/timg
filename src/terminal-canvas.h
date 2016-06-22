@@ -23,18 +23,23 @@ class TerminalCanvas {
 public:
     TerminalCanvas(int width, int heigh);
 
-    int width() const { return width_; }
+    int width() const { return internal_width_ - 1; }
     int height() const { return height_; }
 
     void SetPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b);
-    void Send(int fd);
+
+    // Send image to terminal. If jump_back_first is set, jump up the
+    // number of rows first.
+    void Send(int fd, bool jump_back_first);
+
+    static void ClearScreen(int fd);
 
     // To be called once
     static void GlobalInit(int fd);
     static void GlobalFinish(int fd);
 
 private:
-    const int width_;
+    const int internal_width_;
     const int height_;
     size_t initial_offset_;
     size_t pixel_offset_;

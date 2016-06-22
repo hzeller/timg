@@ -77,7 +77,7 @@ public:
     }
     ~PreprocessedFrame() { delete content_; }
 
-    void Send(int fd) { content_->Send(fd); }
+    void Send(int fd, bool jump_back) { content_->Send(fd, jump_back); }
     int delay_micros() const { return delay_micros_; }
 
 private:
@@ -129,13 +129,15 @@ void DisplayAnimation(const std::vector<Magick::Image> &image_sequence,
         frames.push_back(new PreprocessedFrame(image_sequence[i], w, h));
     }
 
+    bool is_first = true;
     for (int k = 0; k < loops && !interrupt_received && time(NULL) < end_time;
          ++k) {
         for (unsigned int i = 0; i < frames.size() && !interrupt_received; ++i) {
             if (time(NULL) > end_time)
                 break;
             PreprocessedFrame *frame = frames[i];
-            frame->Send(fd);  // Simple. just send it.
+            frame->Send(fd, !is_first);  // Simple. just send it.
+            is_first = false;
             if (frames.size() == 1) {
                 return;  // Single image. We are done.
             } else {
@@ -153,6 +155,7 @@ void DisplayScrolling(const Magick::Image &img, int scroll_delay_ms,
     const int initial_pos = scroll_dir < 0 ? img.columns()-display->width() : 0;
     if (scroll_delay_ms < 0)
         scroll_delay_ms = -scroll_delay_ms;
+    bool is_first = true;
     const uint64_t scroll_time_usec = 1000LL * scroll_delay_ms;
     for (int k = 0; k < loops && !interrupt_received && time(NULL) <= end_time;
          ++k) {
@@ -172,7 +175,8 @@ void DisplayScrolling(const Magick::Image &img, int scroll_delay_ms,
                                       ScaleQuantumToChar(c.blueQuantum()));
                 }
             }
-            display->Send(fd);
+            display->Send(fd, !is_first);
+            is_first = false;
             const int64_t elapsed = GetTimeInUsec() - start_time;
             int64_t remaining_wait = scroll_time_usec - elapsed;
             if (remaining_wait > 0) usleep(remaining_wait);
@@ -188,6 +192,7 @@ static int usage(const char *progname, int w, int h) {
             "\t-s[<ms>]   : Scroll horizontally (optionally: delay ms (60)).\n"
             "\t-t<timeout>: Animation or scrolling: only display for this number of seconds.\n"
             "\t-c<num>    : Animation or scrolling: number of runs through a full cycle.\n"
+            "\t-C         : Clear screen first before display\n"
             "\t-v         : Print version and exit.\n"
             "If both -c and -t are given, whatever comes first stops.\n",
             w, h);
@@ -199,7 +204,7 @@ int main(int argc, char *argv[]) {
 
     struct winsize w;
     ioctl(0, TIOCGWINSZ, &w);
-    const int term_width = w.ws_col;
+    const int term_width = w.ws_col - 1;       // Keep right black edge.
     const int term_height = 2 * (w.ws_row-1);  // double number of pixels high.
 
     bool do_scroll = false;
@@ -210,7 +215,7 @@ int main(int argc, char *argv[]) {
     int loops       = 100000000;  // "infinity"
 
     int opt;
-    while ((opt = getopt(argc, argv, "vg:s::t:c:h")) != -1) {
+    while ((opt = getopt(argc, argv, "vg:s::t:c:hC")) != -1) {
         switch (opt) {
         case 'g':
             if (sscanf(optarg, "%dx%d", &width, &height) < 2) {
@@ -229,6 +234,9 @@ int main(int argc, char *argv[]) {
             if (optarg != NULL) {
                 scroll_delay_ms = atoi(optarg);
             }
+            break;
+        case 'C':
+            TerminalCanvas::ClearScreen(STDOUT_FILENO);
             break;
         case 'v':
             fprintf(stderr, "timg " TIMG_VERSION
