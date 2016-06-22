@@ -80,6 +80,17 @@ TerminalCanvas::TerminalCanvas(int w, int h)
     lower_row_pixel_offset_ = strlen(scratch);
 }
 
+static void WriteByteDecimal(char *buf, uint8_t val) {
+    buf[2] = (val % 10) + '0'; val /= 10;
+    buf[1] = (val % 10) + '0'; val /= 10;
+    buf[0] = (val % 10) + '0';
+}
+static void WriteColors(char *buf, uint8_t r, uint8_t g, uint8_t b) {
+    WriteByteDecimal(buf, r);
+    WriteByteDecimal(buf + 4, g);
+    WriteByteDecimal(buf + 8, b);
+}
+
 void TerminalCanvas::SetPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b) {
     if (x < 0 || x >= width() || y < 0 || y >= height()) return;
     const int double_row = y/2;
@@ -89,8 +100,7 @@ void TerminalCanvas::SetPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b) {
         + (y % 2) * lower_row_pixel_offset_  // offset for odd-row y-pixels
         + double_row;                        // 1 newline per double row
     char *buf = const_cast<char*>(buffer_.data()) + pos;  // Living on the edge
-    snprintf(buf, color_fmt_length_+1, ESCAPE_COLOR_FORMAT, r, g, b);
-    buf[color_fmt_length_] = 'm';   // overwrite \0-byte with closing 'm' again.
+    WriteColors(buf, r, g, b);
 }
 
 void TerminalCanvas::Send(int fd, bool jump_back_first) {
