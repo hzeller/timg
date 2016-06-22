@@ -24,12 +24,14 @@ sudo make install
 ### Synopsis
 
 ```
-usage: ./timg [options] <image>
+usage: timg [options] <image> [<image>...]
 Options:
-        -g<w>x<h>  : Output pixel geometry. Default from terminal 132x88
+        -g<w>x<h>  : Output pixel geometry. Default from terminal 223x114
         -s[<ms>]   : Scroll horizontally (optionally: delay ms (60)).
         -t<timeout>: Animation or scrolling: only display for this number of seconds.
         -c<num>    : Animation or scrolling: number of runs through a full cycle.
+        -C         : Clear screen first before display
+        -F         : Print filename before showing picture.
         -v         : Print version and exit.
 If both -c and -t are given, whatever comes first stops.
 ```
@@ -37,6 +39,8 @@ If both -c and -t are given, whatever comes first stops.
 ### Examples
 ```bash
 timg some-image.jpg         # display a static image
+
+timg *.jpg                  # display all *.jpg images
 
 timg some-animated.gif      # show an animated gif (stop with Ctrl-C)
 timg -t5 some-animated.gif  # show animated gif for 5 seconds
