@@ -166,8 +166,8 @@ void DisplayScrolling(const Magick::Image &img, int scroll_delay_ms,
     // access, so we preprocess this first.
     struct RGBCol { RGBCol() : r(0), g(0), b(0){} uint8_t r, g, b; };
     RGBCol *fast_image = new RGBCol[ img.columns() * img.rows() ];
-    for (int y = 0; y < img.rows(); ++y) {
-        for (int x = 0; x < img.columns(); ++x) {
+    for (size_t y = 0; y < img.rows(); ++y) {
+        for (size_t x = 0; x < img.columns(); ++x) {
             const Magick::Color &src = img.pixelColor(x, y);
             if (src.alphaQuantum() >= 255)
                 continue;
