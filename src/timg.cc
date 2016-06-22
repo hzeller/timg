@@ -92,7 +92,12 @@ static bool LoadImageAndScale(const char *filename,
                               bool fit_height,
                               std::vector<Magick::Image> *result) {
     std::vector<Magick::Image> frames;
-    readImages(&frames, filename);
+    try {
+        readImages(&frames, filename);
+    } catch (std::exception& e) {
+        fprintf(stderr, "Trouble loading %s (%s)\n", filename, e.what());
+        return false;
+    }
     if (frames.size() == 0) {
         fprintf(stderr, "No image found.");
         return false;
@@ -101,8 +106,6 @@ static bool LoadImageAndScale(const char *filename,
     // Put together the animation from single frames. GIFs can have nasty
     // disposal modes, but they are handled nicely by coalesceImages()
     if (frames.size() > 1) {
-        fprintf(stderr, "Assembling animation with %d frames.\n",
-                (int)frames.size());
         Magick::coalesceImages(result, frames.begin(), frames.end());
     } else {
         result->push_back(frames[0]);   // just a single still image.
@@ -145,14 +148,16 @@ void DisplayAnimation(const std::vector<Magick::Image> &image_sequence,
             }
         }
     }
-    // Leaking PreprocessedFrames. Don't care.
+    for (size_t i = 0; i < frames.size(); ++i) {
+        delete frames[i];
+    }
 }
 
 void DisplayScrolling(const Magick::Image &img, int scroll_delay_ms,
-                      time_t end_time, int loops, TerminalCanvas *display,
-                      int fd) {
+                      time_t end_time, int loops, int w, int h, int fd) {
+    TerminalCanvas display(w, h);
     const int scroll_dir = scroll_delay_ms < 0 ? -1 : 1;
-    const int initial_pos = scroll_dir < 0 ? img.columns()-display->width() : 0;
+    const int initial_pos = scroll_dir < 0 ? img.columns()-display.width() : 0;
     if (scroll_delay_ms < 0)
         scroll_delay_ms = -scroll_delay_ms;
     bool is_first = true;
@@ -162,20 +167,20 @@ void DisplayScrolling(const Magick::Image &img, int scroll_delay_ms,
         for (size_t start = 0; start < img.columns(); ++start) {
             if (interrupt_received) break;
             const int64_t start_time = GetTimeInUsec();
-            for (int y = 0; y < display->height(); ++y) {
-                for (int x = 0; x < display->width(); ++x) {
+            for (int y = 0; y < display.height(); ++y) {
+                for (int x = 0; x < display.width(); ++x) {
                     int x_source = (x + scroll_dir*start + initial_pos
                                     + img.columns()) % img.columns();
                     const Magick::Color &c = img.pixelColor(x_source, y);
                     if (c.alphaQuantum() >= 255)
                         continue;
-                    display->SetPixel(x, y,
+                    display.SetPixel(x, y,
                                       ScaleQuantumToChar(c.redQuantum()),
                                       ScaleQuantumToChar(c.greenQuantum()),
                                       ScaleQuantumToChar(c.blueQuantum()));
                 }
             }
-            display->Send(fd, !is_first);
+            display.Send(fd, !is_first);
             is_first = false;
             const int64_t elapsed = GetTimeInUsec() - start_time;
             int64_t remaining_wait = scroll_time_usec - elapsed;
@@ -186,13 +191,14 @@ void DisplayScrolling(const Magick::Image &img, int scroll_delay_ms,
 
 
 static int usage(const char *progname, int w, int h) {
-    fprintf(stderr, "usage: %s [options] <image>\n", progname);
+    fprintf(stderr, "usage: %s [options] <image> [<image>...]\n", progname);
     fprintf(stderr, "Options:\n"
             "\t-g<w>x<h>  : Output pixel geometry. Default from terminal %dx%d\n"
             "\t-s[<ms>]   : Scroll horizontally (optionally: delay ms (60)).\n"
             "\t-t<timeout>: Animation or scrolling: only display for this number of seconds.\n"
             "\t-c<num>    : Animation or scrolling: number of runs through a full cycle.\n"
             "\t-C         : Clear screen first before display\n"
+            "\t-F         : Print filename before showing picture.\n"
             "\t-v         : Print version and exit.\n"
             "If both -c and -t are given, whatever comes first stops.\n",
             w, h);
@@ -208,6 +214,7 @@ int main(int argc, char *argv[]) {
     const int term_height = 2 * (w.ws_row-1);  // double number of pixels high.
 
     bool do_scroll = false;
+    bool show_filename = false;
     int width = term_width;
     int height = term_height;
     int scroll_delay_ms = 50;
@@ -215,7 +222,7 @@ int main(int argc, char *argv[]) {
     int loops       = 100000000;  // "infinity"
 
     int opt;
-    while ((opt = getopt(argc, argv, "vg:s::t:c:hC")) != -1) {
+    while ((opt = getopt(argc, argv, "vg:s::t:c:hCF")) != -1) {
         switch (opt) {
         case 'g':
             if (sscanf(optarg, "%dx%d", &width, &height) < 2) {
@@ -237,6 +244,9 @@ int main(int argc, char *argv[]) {
             break;
         case 'C':
             TerminalCanvas::ClearScreen(STDOUT_FILENO);
+            break;
+        case 'F':
+            show_filename = !show_filename;
             break;
         case 'v':
             fprintf(stderr, "timg " TIMG_VERSION
@@ -260,37 +270,43 @@ int main(int argc, char *argv[]) {
         return usage(argv[0], term_width, term_height);
     }
 
-    const char *filename = argv[optind];
-
-    std::vector<Magick::Image> frames;
-    if (!LoadImageAndScale(filename, width, height, do_scroll, &frames)) {
-        return 1;
-    }
-
-    if (do_scroll && frames.size() > 1) {
-        fprintf(stderr, "This is an animated image format, "
-                "scrolling on top of that is not supported.\n");
-        return 1;
-    }
-
     signal(SIGTERM, InterruptHandler);
     signal(SIGINT, InterruptHandler);
 
-    // Adjust width/height after scaling.
-    width = std::min(width, (int)frames[0].columns());
-    height = std::min(height, (int)frames[0].rows());
-    TerminalCanvas display(width, height);
+    for (int imgarg = optind; imgarg < argc && !interrupt_received; ++imgarg) {
+        const char *filename = argv[imgarg];
+        if (show_filename) {
+            printf("%s\n", filename);
+        }
 
-    TerminalCanvas::GlobalInit(STDOUT_FILENO);
-    const time_t end_time = time(NULL) + timeout;
-    if (do_scroll) {
-        DisplayScrolling(frames[0], scroll_delay_ms, end_time, loops, &display,
-                         STDOUT_FILENO);
-    } else {
-        DisplayAnimation(frames, end_time, loops, width, height, STDOUT_FILENO);
+        std::vector<Magick::Image> frames;
+        if (!LoadImageAndScale(filename, width, height, do_scroll, &frames)) {
+            continue;
+        }
+
+        if (do_scroll && frames.size() > 1) {
+            fprintf(stderr, "This is an animated image format, "
+                    "scrolling on top of that is not supported.\n");
+            continue;
+        }
+
+        // Adjust width/height after scaling.
+        const int display_width = std::min(width, (int)frames[0].columns());
+        const int display_height = std::min(height, (int)frames[0].rows());
+
+        TerminalCanvas::GlobalInit(STDOUT_FILENO);
+        const time_t end_time = time(NULL) + timeout;
+        if (do_scroll) {
+            DisplayScrolling(frames[0], scroll_delay_ms,
+                             end_time, loops, display_width, display_height,
+                             STDOUT_FILENO);
+        } else {
+            DisplayAnimation(frames, end_time, loops,
+                             display_width, display_height, STDOUT_FILENO);
+        }
+        TerminalCanvas::GlobalFinish(STDOUT_FILENO);
+
     }
-
-    TerminalCanvas::GlobalFinish(STDOUT_FILENO);
 
     if (interrupt_received)   // Make 'Ctrl-C' appear on new line.
         printf("\n");
