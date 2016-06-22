@@ -30,7 +30,7 @@ Options:
         -s[<ms>]   : Scroll horizontally (optionally: delay ms (60)).
         -t<timeout>: Animation or scrolling: only display for this number of seconds.
         -c<num>    : Animation or scrolling: number of runs through a full cycle.
-        -C         : Clear screen first before display
+        -C         : Clear screen first before display.
         -F         : Print filename before showing picture.
         -v         : Print version and exit.
 If both -c and -t are given, whatever comes first stops.

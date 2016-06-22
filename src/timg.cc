@@ -161,6 +161,23 @@ void DisplayScrolling(const Magick::Image &img, int scroll_delay_ms,
     if (scroll_delay_ms < 0)
         scroll_delay_ms = -scroll_delay_ms;
     bool is_first = true;
+
+    // Accessing the original image in a loop is very slow with the ImageMagic
+    // access, so we preprocess this first.
+    struct RGBCol { RGBCol() : r(0), g(0), b(0){} uint8_t r, g, b; };
+    RGBCol *fast_image = new RGBCol[ img.columns() * img.rows() ];
+    for (int y = 0; y < img.rows(); ++y) {
+        for (int x = 0; x < img.columns(); ++x) {
+            const Magick::Color &src = img.pixelColor(x, y);
+            if (src.alphaQuantum() >= 255)
+                continue;
+            RGBCol &dest = fast_image[y * img.columns() + x];
+            dest.r = ScaleQuantumToChar(src.redQuantum());
+            dest.g = ScaleQuantumToChar(src.greenQuantum());
+            dest.b = ScaleQuantumToChar(src.blueQuantum());
+        }
+    }
+
     const uint64_t scroll_time_usec = 1000LL * scroll_delay_ms;
     for (int k = 0; k < loops && !interrupt_received && time(NULL) <= end_time;
          ++k) {
@@ -169,15 +186,10 @@ void DisplayScrolling(const Magick::Image &img, int scroll_delay_ms,
             const int64_t start_time = GetTimeInUsec();
             for (int y = 0; y < display.height(); ++y) {
                 for (int x = 0; x < display.width(); ++x) {
-                    int x_source = (x + scroll_dir*start + initial_pos
-                                    + img.columns()) % img.columns();
-                    const Magick::Color &c = img.pixelColor(x_source, y);
-                    if (c.alphaQuantum() >= 255)
-                        continue;
-                    display.SetPixel(x, y,
-                                      ScaleQuantumToChar(c.redQuantum()),
-                                      ScaleQuantumToChar(c.greenQuantum()),
-                                      ScaleQuantumToChar(c.blueQuantum()));
+                    const int x_source = (x + scroll_dir*start + initial_pos
+                                          + img.columns()) % img.columns();
+                    const RGBCol &c = fast_image[y * img.columns() + x_source];
+                    display.SetPixel(x, y, c.r, c.g, c.b);
                 }
             }
             display.Send(fd, !is_first);
@@ -187,6 +199,8 @@ void DisplayScrolling(const Magick::Image &img, int scroll_delay_ms,
             if (remaining_wait > 0) usleep(remaining_wait);
         }
     }
+
+    delete [] fast_image;
 }
 
 
@@ -197,7 +211,7 @@ static int usage(const char *progname, int w, int h) {
             "\t-s[<ms>]   : Scroll horizontally (optionally: delay ms (60)).\n"
             "\t-t<timeout>: Animation or scrolling: only display for this number of seconds.\n"
             "\t-c<num>    : Animation or scrolling: number of runs through a full cycle.\n"
-            "\t-C         : Clear screen first before display\n"
+            "\t-C         : Clear screen first before display.\n"
             "\t-F         : Print filename before showing picture.\n"
             "\t-v         : Print version and exit.\n"
             "If both -c and -t are given, whatever comes first stops.\n",
