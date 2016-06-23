@@ -53,7 +53,7 @@ TerminalCanvas::TerminalCanvas(int w, int h)
     // Internal width is one pixel wider to have a black right edge, otherwise
     //   terminals generate strange artifacts when they start scrolling.
     // Height is rounded up to the next even number.
-    : internal_width_(w+1), height_((h+1) & ~0x1) {
+    : internal_width_(w+1), height_(h) {
     char scratch[64];
     initial_offset_ = buffer_.size();
     snprintf(scratch, sizeof(scratch),
@@ -62,7 +62,8 @@ TerminalCanvas::TerminalCanvas(int w, int h)
              PIXEL_CHARACTER,
              0, 0, 0, 0, 0, 0); // black.
     pixel_offset_ = strlen(scratch);
-    for (int y = 0; y < height_ / 2; ++y) {
+    const int vertical_characters = (height_+1) / 2;  // two pixels, one glyph
+    for (int y = 0; y < vertical_characters; ++y) {
         for (int x = 0; x < internal_width_; ++x) {
             buffer_.append(scratch);
         }
@@ -98,7 +99,7 @@ void TerminalCanvas::SetPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b) {
 }
 
 void TerminalCanvas::Send(int fd, bool jump_back_first) {
-    if (jump_back_first) dprintf(fd, SCREEN_CURSOR_UP_FORMAT, height_/2);
+    if (jump_back_first) dprintf(fd, SCREEN_CURSOR_UP_FORMAT, (height_+1)/2);
     reliable_write(fd, buffer_.data(), buffer_.size());
 }
 
