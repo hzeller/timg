@@ -107,10 +107,10 @@ void TerminalCanvas::ClearScreen(int fd) {
     reliable_write(fd, SCREEN_CLEAR, strlen(SCREEN_CLEAR));
 }
 
-void TerminalCanvas::GlobalInit(int fd) {
+void TerminalCanvas::CursorOff(int fd) {
     reliable_write(fd, CURSOR_OFF, strlen(CURSOR_OFF));
 }
 
-void TerminalCanvas::GlobalFinish(int fd) {
+void TerminalCanvas::CursorOn(int fd) {
     reliable_write(fd, CURSOR_ON, strlen(CURSOR_ON));
 }

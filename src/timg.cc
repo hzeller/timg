@@ -41,10 +41,17 @@ static void InterruptHandler(int signo) {
   interrupt_received = true;
 }
 
-static int64_t GetTimeInUsec() {
+static int64_t GetTimeInMillis() {
     struct timeval tp;
     gettimeofday(&tp, NULL);
-    return tp.tv_sec * 1000000 + tp.tv_usec;
+    return tp.tv_sec * 1000 + tp.tv_usec / 1000;
+}
+
+static void SleepMillis(long milli_seconds) {
+    struct timespec ts;
+    ts.tv_sec = milli_seconds / 1000;
+    ts.tv_nsec = (milli_seconds % 1000) * 1000000;
+    nanosleep(&ts, NULL);
 }
 
 void CopyToCanvas(const Magick::Image &img, TerminalCanvas *result) {
@@ -72,17 +79,17 @@ public:
         : content_(new TerminalCanvas(w, h)) {
         int delay_time = img.animationDelay();  // in 1/100s of a second.
         if (delay_time < 1) delay_time = 1;
-        delay_micros_ = delay_time * 10000;
+        delay_millis_ = delay_time * 10;
         CopyToCanvas(img, content_);
     }
     ~PreprocessedFrame() { delete content_; }
 
     void Send(int fd, bool jump_back) { content_->Send(fd, jump_back); }
-    int delay_micros() const { return delay_micros_; }
+    int delay_millis() const { return delay_millis_; }
 
 private:
     TerminalCanvas *content_;
-    int delay_micros_;
+    int delay_millis_;
 };
 
 // Load still image or animation.
@@ -133,6 +140,8 @@ void DisplayAnimation(const std::vector<Magick::Image> &image_sequence,
     }
 
     bool is_first = true;
+    if (frames.size() == 1)
+        loops = 1;   // If there is no animation, nothing to repeat.
     for (int k = 0; k < loops && !interrupt_received && time(NULL) < end_time;
          ++k) {
         for (unsigned int i = 0; i < frames.size() && !interrupt_received; ++i) {
@@ -141,11 +150,7 @@ void DisplayAnimation(const std::vector<Magick::Image> &image_sequence,
             PreprocessedFrame *frame = frames[i];
             frame->Send(fd, !is_first);  // Simple. just send it.
             is_first = false;
-            if (frames.size() == 1) {
-                return;  // Single image. We are done.
-            } else {
-                usleep(frame->delay_micros());
-            }
+            SleepMillis(frame->delay_millis());
         }
     }
     for (size_t i = 0; i < frames.size(); ++i) {
@@ -178,12 +183,11 @@ void DisplayScrolling(const Magick::Image &img, int scroll_delay_ms,
         }
     }
 
-    const uint64_t scroll_time_usec = 1000LL * scroll_delay_ms;
     for (int k = 0; k < loops && !interrupt_received && time(NULL) <= end_time;
          ++k) {
         for (size_t start = 0; start < img.columns(); ++start) {
             if (interrupt_received) break;
-            const int64_t start_time = GetTimeInUsec();
+            const int64_t start_time = GetTimeInMillis();
             for (int y = 0; y < display.height(); ++y) {
                 for (int x = 0; x < display.width(); ++x) {
                     const int x_source = (x + scroll_dir*start + initial_pos
@@ -194,9 +198,9 @@ void DisplayScrolling(const Magick::Image &img, int scroll_delay_ms,
             }
             display.Send(fd, !is_first);
             is_first = false;
-            const int64_t elapsed = GetTimeInUsec() - start_time;
-            int64_t remaining_wait = scroll_time_usec - elapsed;
-            if (remaining_wait > 0) usleep(remaining_wait);
+            const int64_t elapsed = GetTimeInMillis() - start_time;
+            const int64_t remaining_wait_ms = scroll_delay_ms - elapsed;
+            if (remaining_wait_ms > 0) SleepMillis(remaining_wait_ms);
         }
     }
 
@@ -308,7 +312,7 @@ int main(int argc, char *argv[]) {
         const int display_width = std::min(width, (int)frames[0].columns());
         const int display_height = std::min(height, (int)frames[0].rows());
 
-        TerminalCanvas::GlobalInit(STDOUT_FILENO);
+        TerminalCanvas::CursorOff(STDOUT_FILENO);
         const time_t end_time = time(NULL) + timeout;
         if (do_scroll) {
             DisplayScrolling(frames[0], scroll_delay_ms,
@@ -318,7 +322,7 @@ int main(int argc, char *argv[]) {
             DisplayAnimation(frames, end_time, loops,
                              display_width, display_height, STDOUT_FILENO);
         }
-        TerminalCanvas::GlobalFinish(STDOUT_FILENO);
+        TerminalCanvas::CursorOn(STDOUT_FILENO);
 
     }
 

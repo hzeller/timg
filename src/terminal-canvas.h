@@ -33,10 +33,8 @@ public:
     void Send(int fd, bool jump_back_first);
 
     static void ClearScreen(int fd);
-
-    // To be called once
-    static void GlobalInit(int fd);
-    static void GlobalFinish(int fd);
+    static void CursorOff(int fd);
+    static void CursorOn(int fd);
 
 private:
     const int internal_width_;
