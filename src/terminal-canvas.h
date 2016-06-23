@@ -44,7 +44,6 @@ private:
     size_t initial_offset_;
     size_t pixel_offset_;
     size_t lower_row_pixel_offset_;
-    size_t color_fmt_length_;
     std::string buffer_;
 };
 

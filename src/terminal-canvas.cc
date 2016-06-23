@@ -71,10 +71,7 @@ TerminalCanvas::TerminalCanvas(int w, int h)
 
     buffer_.append(SCREEN_POSTFIX);
 
-    // Some useful precalculated lengths.
-    snprintf(scratch, sizeof(scratch), ESCAPE_COLOR_FORMAT, 0, 0, 0);
-    color_fmt_length_ = strlen(scratch);
-
+    // Some useful precalculated length.
     snprintf(scratch, sizeof(scratch),
              ESCAPE_COLOR_FORMAT "m" BOTTOM_PIXEL_COLOR, 0, 0, 0);
     lower_row_pixel_offset_ = strlen(scratch);
@@ -83,12 +80,7 @@ TerminalCanvas::TerminalCanvas(int w, int h)
 static void WriteByteDecimal(char *buf, uint8_t val) {
     buf[2] = (val % 10) + '0'; val /= 10;
     buf[1] = (val % 10) + '0'; val /= 10;
-    buf[0] = (val % 10) + '0';
-}
-static void WriteColors(char *buf, uint8_t r, uint8_t g, uint8_t b) {
-    WriteByteDecimal(buf, r);
-    WriteByteDecimal(buf + 4, g);
-    WriteByteDecimal(buf + 8, b);
+    buf[0] = val + '0';
 }
 
 void TerminalCanvas::SetPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b) {
@@ -100,7 +92,9 @@ void TerminalCanvas::SetPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b) {
         + (y % 2) * lower_row_pixel_offset_  // offset for odd-row y-pixels
         + double_row;                        // 1 newline per double row
     char *buf = const_cast<char*>(buffer_.data()) + pos;  // Living on the edge
-    WriteColors(buf, r, g, b);
+    WriteByteDecimal(buf, r);      // rrr;___;___
+    WriteByteDecimal(buf + 4, g);  // ___;ggg;___
+    WriteByteDecimal(buf + 8, b);  // ___;___;bbb
 }
 
 void TerminalCanvas::Send(int fd, bool jump_back_first) {

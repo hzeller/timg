@@ -39,6 +39,7 @@ If both -c and -t are given, whatever comes first stops.
 ### Examples
 ```bash
 timg some-image.jpg         # display a static image
+timg -g50x50 some-image.jpg # display image fitting in box of 50x50 pixel
 
 timg *.jpg                  # display all *.jpg images
 
