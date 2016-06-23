@@ -41,13 +41,16 @@ static void InterruptHandler(int signo) {
   interrupt_received = true;
 }
 
-static int64_t GetTimeInMillis() {
+typedef int64_t tmillis_t;
+
+static tmillis_t GetTimeInMillis() {
     struct timeval tp;
     gettimeofday(&tp, NULL);
     return tp.tv_sec * 1000 + tp.tv_usec / 1000;
 }
 
-static void SleepMillis(long milli_seconds) {
+static void SleepMillis(tmillis_t milli_seconds) {
+    if (milli_seconds < 0) return;
     struct timespec ts;
     ts.tv_sec = milli_seconds / 1000;
     ts.tv_nsec = (milli_seconds % 1000) * 1000000;
@@ -132,20 +135,24 @@ static bool LoadImageAndScale(const char *filename,
 }
 
 void DisplayAnimation(const std::vector<Magick::Image> &image_sequence,
-                      time_t end_time, int loops, int w, int h, int fd) {
+                      tmillis_t duration, int loops, int w, int h, int fd) {
     std::vector<PreprocessedFrame*> frames;
     // Convert to preprocessed frames.
     for (size_t i = 0; i < image_sequence.size(); ++i) {
         frames.push_back(new PreprocessedFrame(image_sequence[i], w, h));
     }
 
+    const tmillis_t end_time_ms = GetTimeInMillis() + duration;
     bool is_first = true;
     if (frames.size() == 1)
         loops = 1;   // If there is no animation, nothing to repeat.
-    for (int k = 0; k < loops && !interrupt_received && time(NULL) < end_time;
+    for (int k = 0;
+         (loops < 0 || k < loops)
+             && !interrupt_received
+             && GetTimeInMillis() < end_time_ms;
          ++k) {
         for (unsigned int i = 0; i < frames.size() && !interrupt_received; ++i) {
-            if (time(NULL) > end_time)
+            if (GetTimeInMillis() > end_time_ms)
                 break;
             PreprocessedFrame *frame = frames[i];
             frame->Send(fd, !is_first);  // Simple. just send it.
@@ -159,7 +166,7 @@ void DisplayAnimation(const std::vector<Magick::Image> &image_sequence,
 }
 
 void DisplayScrolling(const Magick::Image &img, int scroll_delay_ms,
-                      time_t end_time, int loops, int w, int h, int fd) {
+                      tmillis_t duration, int loops, int w, int h, int fd) {
     TerminalCanvas display(w, h);
     const int scroll_dir = scroll_delay_ms < 0 ? -1 : 1;
     const int initial_pos = scroll_dir < 0 ? img.columns()-display.width() : 0;
@@ -183,11 +190,14 @@ void DisplayScrolling(const Magick::Image &img, int scroll_delay_ms,
         }
     }
 
-    for (int k = 0; k < loops && !interrupt_received && time(NULL) <= end_time;
+    const tmillis_t end_time_ms = GetTimeInMillis() + duration;
+    for (int k = 0;
+         (loops < 0 || k < loops)
+             && !interrupt_received
+             && GetTimeInMillis() < end_time_ms;
          ++k) {
         for (size_t start = 0; start < img.columns(); ++start) {
             if (interrupt_received) break;
-            const int64_t start_time = GetTimeInMillis();
             for (int y = 0; y < display.height(); ++y) {
                 for (int x = 0; x < display.width(); ++x) {
                     const int x_source = (x + scroll_dir*start + initial_pos
@@ -198,9 +208,7 @@ void DisplayScrolling(const Magick::Image &img, int scroll_delay_ms,
             }
             display.Send(fd, !is_first);
             is_first = false;
-            const int64_t elapsed = GetTimeInMillis() - start_time;
-            const int64_t remaining_wait_ms = scroll_delay_ms - elapsed;
-            if (remaining_wait_ms > 0) SleepMillis(remaining_wait_ms);
+            SleepMillis(scroll_delay_ms);
         }
     }
 
@@ -213,12 +221,15 @@ static int usage(const char *progname, int w, int h) {
     fprintf(stderr, "Options:\n"
             "\t-g<w>x<h>  : Output pixel geometry. Default from terminal %dx%d\n"
             "\t-s[<ms>]   : Scroll horizontally (optionally: delay ms (60)).\n"
-            "\t-t<timeout>: Animation or scrolling: only display for this number of seconds.\n"
-            "\t-c<num>    : Animation or scrolling: number of runs through a full cycle.\n"
+            "\t-w<seconds>: If multiple images given: Wait time between (default: 0.0).\n"
+            "\t-t<seconds>: Only animation or scrolling: stop after this time.\n"
+            "\t-c<num>    : Only Animation or scrolling: number of runs through a full cycle.\n"
             "\t-C         : Clear screen first before display.\n"
             "\t-F         : Print filename before showing picture.\n"
             "\t-v         : Print version and exit.\n"
-            "If both -c and -t are given, whatever comes first stops.\n",
+            "If both -c and -t are given, whatever comes first stops.\n"
+            "If both -w and -t are given for some animation/scroll, -t "
+            "takes precedence\n",
             w, h);
     return 1;
 }
@@ -236,11 +247,12 @@ int main(int argc, char *argv[]) {
     int width = term_width;
     int height = term_height;
     int scroll_delay_ms = 50;
-    time_t  timeout = 100000000;  // "infinity"; make sure end fits in 32bit
-    int loops       = 100000000;  // "infinity"
+    tmillis_t duration_ms = (1LL<<40);  // that is a while.
+    tmillis_t wait_ms = 0;
+    int loops  = -1;
 
     int opt;
-    while ((opt = getopt(argc, argv, "vg:s::t:c:hCF")) != -1) {
+    while ((opt = getopt(argc, argv, "vg:s::w:t:c:hCF")) != -1) {
         switch (opt) {
         case 'g':
             if (sscanf(optarg, "%dx%d", &width, &height) < 2) {
@@ -248,8 +260,11 @@ int main(int argc, char *argv[]) {
                 return usage(argv[0], term_width, term_height);
             }
             break;
+        case 'w':
+            wait_ms = roundf(atof(optarg) * 1000.0f);
+            break;
         case 't':
-            timeout = atoi(optarg);
+            duration_ms = roundf(atof(optarg) * 1000.0f);
             break;
         case 'c':
             loops = atoi(optarg);
@@ -313,14 +328,15 @@ int main(int argc, char *argv[]) {
         const int display_height = std::min(height, (int)frames[0].rows());
 
         TerminalCanvas::CursorOff(STDOUT_FILENO);
-        const time_t end_time = time(NULL) + timeout;
         if (do_scroll) {
             DisplayScrolling(frames[0], scroll_delay_ms,
-                             end_time, loops, display_width, display_height,
+                             duration_ms, loops, display_width, display_height,
                              STDOUT_FILENO);
         } else {
-            DisplayAnimation(frames, end_time, loops,
+            DisplayAnimation(frames, duration_ms, loops,
                              display_width, display_height, STDOUT_FILENO);
+            if (frames.size() == 1 && wait_ms > 0)
+                SleepMillis(wait_ms);
         }
         TerminalCanvas::CursorOn(STDOUT_FILENO);
 
