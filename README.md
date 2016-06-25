@@ -26,14 +26,17 @@ sudo make install
 ```
 usage: timg [options] <image> [<image>...]
 Options:
-        -g<w>x<h>  : Output pixel geometry. Default from terminal 223x114
+        -g<w>x<h>  : Output pixel geometry. Default from terminal 144x88
         -s[<ms>]   : Scroll horizontally (optionally: delay ms (60)).
-        -t<timeout>: Animation or scrolling: only display for this number of seconds.
-        -c<num>    : Animation or scrolling: number of runs through a full cycle.
+        -d<dx:dy>  : delta x and delta y when scrolling. Default -1:0
+        -w<seconds>: If multiple images given: Wait time between (default: 0.0).
+        -t<seconds>: Only animation or scrolling: stop after this time.
+        -c<num>    : Only Animation or scrolling: number of runs through a full cycle.
         -C         : Clear screen first before display.
         -F         : Print filename before showing picture.
         -v         : Print version and exit.
 If both -c and -t are given, whatever comes first stops.
+If both -w and -t are given for some animation/scroll, -t takes precedence
 ```
 
 ### Examples
