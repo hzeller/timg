@@ -28,7 +28,7 @@ usage: timg [options] <image> [<image>...]
 Options:
         -g<w>x<h>  : Output pixel geometry. Default from terminal 144x88
         -s[<ms>]   : Scroll horizontally (optionally: delay ms (60)).
-        -d<dx:dy>  : delta x and delta y when scrolling. Default -1:0
+        -d<dx:dy>  : delta x and delta y when scrolling (default: 1:0).
         -w<seconds>: If multiple images given: Wait time between (default: 0.0).
         -t<seconds>: Only animation or scrolling: stop after this time.
         -c<num>    : Only Animation or scrolling: number of runs through a full cycle.

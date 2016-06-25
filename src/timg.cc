@@ -263,7 +263,7 @@ static int usage(const char *progname, int w, int h) {
     fprintf(stderr, "Options:\n"
             "\t-g<w>x<h>  : Output pixel geometry. Default from terminal %dx%d\n"
             "\t-s[<ms>]   : Scroll horizontally (optionally: delay ms (60)).\n"
-            "\t-d<dx:dy>  : delta x and delta y when scrolling. Default -1:0\n"
+            "\t-d<dx:dy>  : delta x and delta y when scrolling (default: 1:0).\n"
             "\t-w<seconds>: If multiple images given: Wait time between (default: 0.0).\n"
             "\t-t<seconds>: Only animation or scrolling: stop after this time.\n"
             "\t-c<num>    : Only Animation or scrolling: number of runs through a full cycle.\n"
