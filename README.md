@@ -43,12 +43,19 @@ timg -g50x50 some-image.jpg # display image fitting in box of 50x50 pixel
 
 timg *.jpg                  # display all *.jpg images
 
+# Show animated gif with timeout.
 timg some-animated.gif      # show an animated gif (stop with Ctrl-C)
 timg -t5 some-animated.gif  # show animated gif for 5 seconds
 
+# Scroll
 timg -s some-image.jpg      # scroll a static image as banner (stop with Ctrl-C)
-timg -s100 some-image.jpg   # scroll with 100ms delay right to left
-timg -s-100 some-image.jpg  # negative scroll delay scrolls left to right
+timg -s100 some-image.jpg   # scroll with 100ms delay
+
+# Scroll direction. Horizontally, vertically; how about diagonally ?
+timg -s -d1:0 some-image.jpg  # scroll with dx=1 and dy=0, so horizontally.
+timg -s -d-1:0 some-image.jpg # scroll horizontally in reverse direction.
+timg -s -d0:2 some-image.jpg  # vertical, two pixels per step.
+timg -s -d1:1 some-image.jpg  # diagonal, dx=1, dy=1
 
 # Also, you could store the output and cat later to your terminal...
 timg some-image.jpg > /tmp/imageout.txt

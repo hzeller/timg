@@ -7,7 +7,7 @@ timg : timg.o terminal-canvas.o
 	$(CXX) -o $@ $^ $(MAGICK_LDFLAGS)
 
 timg.o: timg.cc
-	$(CXX) $(CXXFLAGS) $(MAGICK_CXXFLAGS) -c -o $@ $^
+	$(CXX) $(MAGICK_CXXFLAGS) $(CXXFLAGS) -c -o $@ $^
 
 install: timg
 	install $^ $(PREFIX)/bin
