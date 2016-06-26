@@ -34,7 +34,7 @@
 
 #include <vector>
 
-#define TIMG_VERSION "0.9.0"
+#define TIMG_VERSION "0.9.1beta"
 
 volatile bool interrupt_received = false;
 static void InterruptHandler(int signo) {
@@ -73,9 +73,8 @@ void CopyToCanvas(const Magick::Image &img, TerminalCanvas *result) {
     }
 }
 
-// Frame already prepared as the buffer to be sent over so that animation
-// and re-sizing operations don't have to be done online. Also knows about the
-// animation delay.
+// Frame already prepared as the buffer to be sent, so copy to terminal-buffer
+// does not have to be done online. Also knows about the animation delay.
 class PreprocessedFrame {
 public:
     PreprocessedFrame(const Magick::Image &img, int w, int h)
@@ -206,14 +205,16 @@ void DisplayScrolling(const Magick::Image &img, int scroll_delay_ms,
     const int64_t cycle_steps =  x_steps * y_steps / gcd(x_steps, y_steps);
 
     // Depending if we go forward or backward, we want to start out aligned
-    // right or left. Also add enough that we never run into modulo problems.
-    const int64_t c_mult = img_width * img_height;
-    const int64_t x_init = (dx < 0 ? img_width-display.width() : 0) + c_mult;
-    const int64_t y_init = (dy < 0 ? img_height-display.height() : 0) + c_mult;
+    // right or left.
+    // For negative direction, guarantee that we never run into negative numbers.
+    const int64_t x_init = (dx < 0)
+        ? (img_width - display.width() - dx*cycle_steps) : 0;
+    const int64_t y_init = (dy < 0)
+        ? (img_height - display.height() - dy*cycle_steps) : 0;
     bool is_first = true;
 
-    // Accessing the original image in a loop is very slow with the ImageMagic
-    // access, so we preprocess this first and copy in our own copy.
+    // Accessing the original image in a loop is very slow with ImageMagic, so
+    // we preprocess this first and create our own fast copy.
     struct RGBCol { RGBCol() : r(0), g(0), b(0){} uint8_t r, g, b; };
     RGBCol *fast_image = new RGBCol[ img_width * img_height ];
     for (int y = 0; y < img_height; ++y) {
@@ -239,7 +240,6 @@ void DisplayScrolling(const Magick::Image &img, int scroll_delay_ms,
                 break;
             const int64_t x_cycle_pos = dx*cycle_pos;
             const int64_t y_cycle_pos = dy*cycle_pos;
-            if (interrupt_received) break;
             for (int y = 0; y < display.height(); ++y) {
                 for (int x = 0; x < display.width(); ++x) {
                     const int x_src = (x_init + x_cycle_pos + x) % img_width;
@@ -267,7 +267,7 @@ static int usage(const char *progname, int w, int h) {
             "\t-w<seconds>: If multiple images given: Wait time between (default: 0.0).\n"
             "\t-t<seconds>: Only animation or scrolling: stop after this time.\n"
             "\t-c<num>    : Only Animation or scrolling: number of runs through a full cycle.\n"
-            "\t-C         : Clear screen first before display.\n"
+            "\t-C         : Clear screen before showing image.\n"
             "\t-F         : Print filename before showing picture.\n"
             "\t-v         : Print version and exit.\n"
             "If both -c and -t are given, whatever comes first stops.\n"
@@ -282,7 +282,7 @@ int main(int argc, char *argv[]) {
 
     struct winsize w;
     ioctl(0, TIOCGWINSZ, &w);
-    const int term_width = w.ws_col - 1;       // Keep right black edge.
+    const int term_width = w.ws_col - 1;       // Space for right black edge.
     const int term_height = 2 * (w.ws_row-1);  // double number of pixels high.
 
     bool do_scroll = false;
@@ -359,7 +359,7 @@ int main(int argc, char *argv[]) {
     // There is no scroll if there is no movement.
     if (dx == 0 && dy == 0) {
         fprintf(stderr, "Scrolling chosen, but dx:dy = 0:0. "
-                "Just output image as-is.\n");
+                "Just showing image, no scroll.\n");
         do_scroll = false;
     }
 
@@ -399,9 +399,8 @@ int main(int argc, char *argv[]) {
         }
         TerminalCanvas::CursorOff(STDOUT_FILENO);
         if (do_scroll) {
-            DisplayScrolling(frames[0], scroll_delay_ms,
-                             duration_ms, loops, display_width, display_height,
-                             dx, dy,
+            DisplayScrolling(frames[0], scroll_delay_ms, duration_ms, loops,
+                             display_width, display_height, dx, dy,
                              STDOUT_FILENO);
         } else {
             DisplayAnimation(frames, duration_ms, loops,
@@ -410,7 +409,6 @@ int main(int argc, char *argv[]) {
                 SleepMillis(wait_ms);
         }
         TerminalCanvas::CursorOn(STDOUT_FILENO);
-
     }
 
     if (interrupt_received)   // Make 'Ctrl-C' appear on new line.

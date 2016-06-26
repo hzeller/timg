@@ -32,7 +32,7 @@ Options:
         -w<seconds>: If multiple images given: Wait time between (default: 0.0).
         -t<seconds>: Only animation or scrolling: stop after this time.
         -c<num>    : Only Animation or scrolling: number of runs through a full cycle.
-        -C         : Clear screen first before display.
+        -C         : Clear screen before showing image.
         -F         : Print filename before showing picture.
         -v         : Print version and exit.
 If both -c and -t are given, whatever comes first stops.
@@ -66,17 +66,18 @@ cat /tmp/imageout.txt
 
 # Of course, you can go really crazy by storing a cycle of an animation. Use xz
 # for compression as it seems to deal with this kind of stuff really well:
-timg nyan.gif -g60x30 -c1 | xz > /tmp/nyan.term.xz
+timg -g60x30 -C -c1 nyan.gif | xz > /tmp/nyan.term.xz
 # ..now, replay that cycle in a loop. Latch on the frame marker with awk to delay
 while : ; do xzcat /tmp/nyan.term.xz | gawk '/\[[0-9]+A/ { system("sleep 0.1"); } { print $0 }' ; done
 # (If you ctrl-c that loop, you might need to use 'reset' for terminal sanity)
 ```
 
-Note, this requires that your terminal can display 24 bit colors and is able
-to display the character ▀ (U+2580, 'Upper Half Block'). If not, it doesn't
-show anything or it is garbage.
+Note, this requires that your terminal can display
+[24 bit true color][24-bit-term] and is able to display the unicode
+character ▀ (U+2580, 'Upper Half Block').
+If not, it doesn't show anything or it is garbage.
 
-Tested terminals: `konsole` >= 2.14.1, `gnome-terminal` >= 3.6.2 look good,
+Tested terminals: `konsole` >= 2.14.1, `gnome-terminal` > 3.6.2 look good,
 recent xterms also seem to work (albeit with less color richness).
 
 Linux console seems to be limited in colors and does not show the block
@@ -85,3 +86,5 @@ there, please let me know.
 
 For Mac users, the iTerm2 >= 3.x should work, please confirm if you have this
 setup.
+
+[24-bit-term]: https://gist.github.com/XVilka/8346728
