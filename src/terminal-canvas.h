@@ -43,6 +43,7 @@ private:
     size_t pixel_offset_;
     size_t lower_row_pixel_offset_;
     std::string buffer_;
+    std::string goto_top_;
 };
 
 #endif // TERMINAL_CANVAS_H_

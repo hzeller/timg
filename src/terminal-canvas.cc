@@ -76,6 +76,9 @@ TerminalCanvas::TerminalCanvas(int w, int h)
     snprintf(scratch, sizeof(scratch),
              ESCAPE_COLOR_FORMAT "m" BOTTOM_PIXEL_COLOR, 0, 0, 0);
     lower_row_pixel_offset_ = strlen(scratch);
+
+    snprintf(scratch, sizeof(scratch), SCREEN_CURSOR_UP_FORMAT, (height_+1)/2);
+    goto_top_ = scratch;
 }
 
 static void WriteByteDecimal(char *buf, uint8_t val) {
@@ -99,7 +102,7 @@ void TerminalCanvas::SetPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b) {
 }
 
 void TerminalCanvas::Send(int fd, bool jump_back_first) {
-    if (jump_back_first) dprintf(fd, SCREEN_CURSOR_UP_FORMAT, (height_+1)/2);
+    if (jump_back_first) reliable_write(fd, goto_top_.data(), goto_top_.size());
     reliable_write(fd, buffer_.data(), buffer_.size());
 }
 

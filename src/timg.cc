@@ -50,7 +50,7 @@ static tmillis_t GetTimeInMillis() {
 }
 
 static void SleepMillis(tmillis_t milli_seconds) {
-    if (milli_seconds < 0) return;
+    if (milli_seconds <= 0) return;
     struct timespec ts;
     ts.tv_sec = milli_seconds / 1000;
     ts.tv_nsec = (milli_seconds % 1000) * 1000000;
@@ -80,7 +80,6 @@ public:
     PreprocessedFrame(const Magick::Image &img, int w, int h)
         : content_(new TerminalCanvas(w, h)) {
         int delay_time = img.animationDelay();  // in 1/100s of a second.
-        if (delay_time < 1) delay_time = 1;
         delay_millis_ = delay_time * 10;
         CopyToCanvas(img, content_);
     }
