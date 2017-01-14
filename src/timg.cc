@@ -80,6 +80,7 @@ public:
     PreprocessedFrame(const Magick::Image &img, int w, int h)
         : content_(new TerminalCanvas(w, h)) {
         int delay_time = img.animationDelay();  // in 1/100s of a second.
+        if (delay_time < 1) delay_time = 10;
         delay_millis_ = delay_time * 10;
         CopyToCanvas(img, content_);
     }
