@@ -17,7 +17,7 @@ graphicsmagickplusplusconfig(MAGICK++_INCLUDE_DIR MAGICK++_LINK_DIR
     MAGICK++_LINK_LIBS MAGICK++_CFLAGS)
 
 # Set a variable called ${SOURCE_FILES}, which has the names of the two source files.
-set(SOURCE_FILES src/timg.cc src/terminal-canvas.cc)
+set(SOURCE_FILES timg.cc terminal-canvas.cc)
 # Specify that the executable is called "timg" and it is depending on ${SOURCE_FILES}.
 add_executable(timg ${SOURCE_FILES})
 # Set the include (-I) directories to the result that the macro gave us earlier.
