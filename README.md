@@ -4,7 +4,7 @@ timg - Terminal Image Viewer
 A viewer that uses 24-Bit color capabilities and unicode character blocks
 to display images in the terminal.
 
-![](./img/sunflower-term.png)
+![](./examples/sunflower-term.png)
 
 Displays regular images, plays animated gifs or allows to scroll static images.
 
@@ -15,8 +15,10 @@ bulky image viewer ... and don't care about resolution.
 
 ```bash
 git clone https://github.com/hzeller/timg.git
-cd timg/src
-sudo apt-get install libwebp-dev libgraphicsmagick++-dev    # required libs.
+cd timg
+sudo apt install build-essential cmake libgraphicsmagick++-dev    # required libs.
+mkdir build
+cmake ..
 make
 sudo make install
 ```
