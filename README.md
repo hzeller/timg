@@ -4,7 +4,7 @@ timg - Terminal Image Viewer
 A viewer that uses 24-Bit color capabilities and unicode character blocks
 to display images in the terminal.
 
-![](./img/sunflower-term.png)
+![](./examples/sunflower-term.png)
 
 Displays regular images, plays animated gifs or allows to scroll static images.
 
