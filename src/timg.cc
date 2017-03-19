@@ -280,8 +280,8 @@ static int usage(const char *progname, int w, int h) {
 int main(int argc, char *argv[]) {
     Magick::InitializeMagick(*argv);
 
-    struct winsize w;
-    ioctl(1, TIOCGWINSZ, &w);
+    struct winsize w = {0, 0};
+    const bool winsize_success = (ioctl(1, TIOCGWINSZ, &w) == 0);
     const int term_width = w.ws_col - 1;       // Space for right black edge.
     const int term_height = 2 * (w.ws_row-1);  // double number of pixels high.
 
@@ -347,12 +347,12 @@ int main(int argc, char *argv[]) {
     }
 
     if (width < 1 || height < 1) {
-        if (term_height < 1 || term_width < 1) {
-            fprintf(stderr, "Failed to read size from terminal (%dx%d); "
-                    "Please supply -g<width>x<height> directly.\n",
-                    term_width, term_height);
+        if (!winsize_success || term_height < 0 || term_width < 0) {
+            fprintf(stderr, "Failed to read size from terminal; "
+                    "Please supply -g<width>x<height> directly.\n");
+        } else {
+            fprintf(stderr, "%dx%d is a rather unusual size\n", width, height);
         }
-        fprintf(stderr, "%dx%d is a rather unusual size\n", width, height);
         return usage(argv[0], term_width, term_height);
     }
 
