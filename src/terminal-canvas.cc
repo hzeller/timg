@@ -38,8 +38,8 @@
 // Now, pixels on the even row will get the foreground color changed, pixels
 // on odd rows the background color. Two pixels one stone. Or something.
 #define ESCAPE_COLOR_FORMAT   "%03d;%03d;%03d"
-#define TOP_PIXEL_COLOR       "\033[38;2;"
-#define BOTTOM_PIXEL_COLOR    "\033[48;2;"
+#define TOP_PIXEL_COLOR       "38;2;"
+#define BOTTOM_PIXEL_COLOR    "48;2;"
 
 static void reliable_write(int fd, const char *buf, size_t size) {
     int written;
@@ -57,8 +57,10 @@ TerminalCanvas::TerminalCanvas(int w, int h)
     char scratch[64];
     initial_offset_ = buffer_.size();
     snprintf(scratch, sizeof(scratch),
-             TOP_PIXEL_COLOR    ESCAPE_COLOR_FORMAT "m"
-             BOTTOM_PIXEL_COLOR ESCAPE_COLOR_FORMAT "m"
+             "\033["
+             TOP_PIXEL_COLOR    ESCAPE_COLOR_FORMAT ";"
+             BOTTOM_PIXEL_COLOR ESCAPE_COLOR_FORMAT
+             "m"
              PIXEL_CHARACTER,
              0, 0, 0, 0, 0, 0); // black.
     pixel_offset_ = strlen(scratch);
@@ -74,7 +76,7 @@ TerminalCanvas::TerminalCanvas(int w, int h)
 
     // Some useful precalculated length.
     snprintf(scratch, sizeof(scratch),
-             ESCAPE_COLOR_FORMAT "m" BOTTOM_PIXEL_COLOR, 0, 0, 0);
+             ESCAPE_COLOR_FORMAT ";" BOTTOM_PIXEL_COLOR, 0, 0, 0);
     lower_row_pixel_offset_ = strlen(scratch);
 
     snprintf(scratch, sizeof(scratch), SCREEN_CURSOR_UP_FORMAT, (height_+1)/2);
@@ -92,7 +94,7 @@ void TerminalCanvas::SetPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b) {
     const int double_row = y/2;
     const int pos = initial_offset_
         + (internal_width_ * double_row + x) * pixel_offset_
-        + strlen(TOP_PIXEL_COLOR)            // go where the color fmt starts
+        + strlen("\033[" TOP_PIXEL_COLOR)    // go where the color fmt starts
         + (y % 2) * lower_row_pixel_offset_  // offset for odd-row y-pixels
         + double_row;                        // 1 newline per double row
     char *buf = const_cast<char*>(buffer_.data()) + pos;  // Living on the edge
