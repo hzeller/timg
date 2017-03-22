@@ -61,7 +61,7 @@ timg -s -d0:2 some-image.jpg  # vertical, two pixels per step.
 timg -s -d1:1 some-image.jpg  # diagonal, dx=1, dy=1
 
 # Also, you could store the output and cat later to your terminal...
-timg some-image.jpg > /tmp/imageout.txt
+timg -g80x40 some-image.jpg > /tmp/imageout.txt
 cat /tmp/imageout.txt
 
 # Of course, you can go really crazy by storing a cycle of an animation. Use xz

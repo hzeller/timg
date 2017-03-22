@@ -22,6 +22,7 @@
 class TerminalCanvas {
 public:
     TerminalCanvas(int width, int heigh);
+    ~TerminalCanvas();
 
     int width() const { return internal_width_ - 1; }
     int height() const { return height_; }
@@ -39,10 +40,10 @@ public:
 private:
     const int internal_width_;
     const int height_;
-    size_t initial_offset_;
-    size_t pixel_offset_;
-    size_t lower_row_pixel_offset_;
-    std::string buffer_;
+    bool any_change_;
+    uint32_t *pixels_;
+    char *ansi_text_buffer_;
+    const char *end_ansi_;
     std::string goto_top_;
 };
 
