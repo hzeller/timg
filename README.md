@@ -79,6 +79,9 @@ If not, it doesn't show anything or it is garbage.
 
 Tested terminals: `konsole` >= 2.14.1, `gnome-terminal` > 3.6.2 look good,
 recent xterms also seem to work (albeit with less color richness).
+Like gnome-terminal, libvte based terminals in general should work, such as
+Xfte or termite.
+Also QTerminal is confirmed working.
 
 Linux console seems to be limited in colors and does not show the block
 character - if you know how to enable the unicode character or full color
