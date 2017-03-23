@@ -36,9 +36,9 @@
 
 #define TIMG_VERSION "0.9.1beta"
 
-volatile bool interrupt_received = false;
+volatile sig_atomic_t interrupt_received = 0;
 static void InterruptHandler(int signo) {
-  interrupt_received = true;
+  interrupt_received = 1;
 }
 
 typedef int64_t tmillis_t;
