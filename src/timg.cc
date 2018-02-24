@@ -98,6 +98,7 @@ private:
 // Scale, so that it fits in "width" and "height" and store in "result".
 static bool LoadImageAndScale(const char *filename,
                               int target_width, int target_height,
+                              bool do_upscale,
                               bool fill_width, bool fill_height,
                               std::vector<Magick::Image> *result) {
     std::vector<Magick::Image> frames;
@@ -124,6 +125,10 @@ static bool LoadImageAndScale(const char *filename,
     const int img_height = (*result)[0].rows();
     const float width_fraction = (float)target_width / img_width;
     const float height_fraction = (float)target_height / img_height;
+
+    if (width_fraction > 1.0 && height_fraction > 1.0 && !do_upscale)
+        return true;  // No upscaling requested, we're done.
+
     if (fill_width && fill_height) {
         // Scrolling diagonally. Fill as much as we can get in available space.
         // Largest scale fraction determines that.
@@ -262,6 +267,8 @@ static int usage(const char *progname, int w, int h) {
     fprintf(stderr, "usage: %s [options] <image> [<image>...]\n", progname);
     fprintf(stderr, "Options:\n"
             "\t-g<w>x<h>  : Output pixel geometry. Default from terminal %dx%d\n"
+            "\t-U         : Toggle Upscale. If an image is smaller than\n"
+            "\t             the terminal size, scale it up to full size.\n"
             "\t-s[<ms>]   : Scroll horizontally (optionally: delay ms (60)).\n"
             "\t-d<dx:dy>  : delta x and delta y when scrolling (default: 1:0).\n"
             "\t-w<seconds>: If multiple images given: Wait time between (default: 0.0).\n"
@@ -287,6 +294,7 @@ int main(int argc, char *argv[]) {
 
     bool do_scroll = false;
     bool do_clear = false;
+    bool do_upscale = false;
     bool show_filename = false;
     int width = term_width;
     int height = term_height;
@@ -298,7 +306,7 @@ int main(int argc, char *argv[]) {
     int dy = 0;
 
     int opt;
-    while ((opt = getopt(argc, argv, "vg:s::w:t:c:hCFd:")) != -1) {
+    while ((opt = getopt(argc, argv, "vg:s::w:t:c:hCFd:U")) != -1) {
         switch (opt) {
         case 'g':
             if (sscanf(optarg, "%dx%d", &width, &height) < 2) {
@@ -330,6 +338,9 @@ int main(int argc, char *argv[]) {
             break;
         case 'C':
             do_clear = true;
+            break;
+        case 'U':
+            do_upscale = !do_upscale;
             break;
         case 'F':
             show_filename = !show_filename;
@@ -383,7 +394,7 @@ int main(int argc, char *argv[]) {
         }
 
         std::vector<Magick::Image> frames;
-        if (!LoadImageAndScale(filename, width, height,
+        if (!LoadImageAndScale(filename, width, height, do_upscale,
                                fill_width, fill_height, &frames)) {
             continue;
         }

@@ -27,6 +27,8 @@ sudo make install
 usage: timg [options] <image> [<image>...]
 Options:
         -g<w>x<h>  : Output pixel geometry. Default from terminal 144x88
+        -U         : Toggle Upscale. If an image is smaller than
+                     the terminal size, scale it up to full size.
         -s[<ms>]   : Scroll horizontally (optionally: delay ms (60)).
         -d<dx:dy>  : delta x and delta y when scrolling (default: 1:0).
         -w<seconds>: If multiple images given: Wait time between (default: 0.0).
