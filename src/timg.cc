@@ -126,8 +126,11 @@ static bool LoadImageAndScale(const char *filename,
     const float width_fraction = (float)target_width / img_width;
     const float height_fraction = (float)target_height / img_height;
 
-    if (width_fraction > 1.0 && height_fraction > 1.0 && !do_upscale)
+    if (!do_upscale &&
+        (fill_height || width_fraction > 1.0) &&
+        (fill_width || height_fraction > 1.0)) {
         return true;  // No upscaling requested, we're done.
+    }
 
     if (fill_width && fill_height) {
         // Scrolling diagonally. Fill as much as we can get in available space.
