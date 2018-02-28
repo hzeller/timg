@@ -9,5 +9,8 @@ timg : timg.o terminal-canvas.o
 install: timg
 	install $^ $(PREFIX)/bin
 
+uninstall:
+	rm -f $(PREFIX)/bin/timg
+
 clean:
 	rm -f timg timg.o terminal-canvas.o
