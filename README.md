@@ -33,9 +33,9 @@ Options:
         -d<dx:dy>  : delta x and delta y when scrolling (default: 1:0).
         -w<seconds>: If multiple images given: Wait time between (default: 0.0).
         -t<seconds>: Only animation or scrolling: stop after this time.
-        -c<num>    : Only Animation or scrolling: number of runs through a full cycle.
-        -C         : Clear screen before showing image.
-        -F         : Print filename before showing picture.
+        -c<num>    : Only animation or scrolling: number of runs through a full cycle.
+        -C         : Clear screen before showing images.
+        -F         : Print filename before showing images.
         -v         : Print version and exit.
 If both -c and -t are given, whatever comes first stops.
 If both -w and -t are given for some animation/scroll, -t takes precedence
