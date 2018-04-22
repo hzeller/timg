@@ -68,6 +68,9 @@ timg -s -d1:1 some-image.jpg  # diagonal, dx=1, dy=1
 timg -g80x40 some-image.jpg > /tmp/imageout.txt
 cat /tmp/imageout.txt
 
+# You can run use this in a fzf preview window:
+echo some-image.jpg | fzf --preview='timg -E -f1 -c1 -g $(( $COLUMNS / 2 - 4 ))x$(( $FZF_PREVIEW_HEIGHT * 2 )) {}'
+
 # Of course, you can go really crazy by storing a cycle of an animation. Use xz
 # for compression as it seems to deal with this kind of stuff really well:
 timg -g60x30 -C -c1 nyan.gif | xz > /tmp/nyan.term.xz
