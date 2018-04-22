@@ -124,12 +124,12 @@ void TerminalCanvas::Send(int fd, bool jump_back_first) {
                     pos = WriteAnsiColor(pos, fg);
                     prefix = ";";
                 }
-                if (bg != last_bg) {
+                if (bg != last_bg && y + 1 != height_) {
                     pos = str_append(pos, prefix);
                     pos = str_append(pos, BOTTOM_PIXEL_COLOR);
                     pos = WriteAnsiColor(pos, bg);
                 }
-                if (fg != last_fg || bg != last_bg) {
+                if (fg != last_fg || (bg != last_bg && y + 1 != height_)) {
                     *pos++ = 'm';
                 }
                 last_fg = fg;
