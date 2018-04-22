@@ -33,9 +33,11 @@ Options:
         -d<dx:dy>  : delta x and delta y when scrolling (default: 1:0).
         -w<seconds>: If multiple images given: Wait time between (default: 0.0).
         -t<seconds>: Only animation or scrolling: stop after this time.
-        -c<num>    : Only Animation or scrolling: number of runs through a full cycle.
-        -C         : Clear screen before showing image.
-        -F         : Print filename before showing picture.
+        -c<num>    : Only animation or scrolling: number of runs through a full cycle.
+        -f<num>    : Only animation: number of frames to render.
+        -C         : Clear screen before showing images.
+        -F         : Print filename before showing images.
+        -E         : Don't hide the cursor while showing images.
         -v         : Print version and exit.
 If both -c and -t are given, whatever comes first stops.
 If both -w and -t are given for some animation/scroll, -t takes precedence
@@ -65,6 +67,9 @@ timg -s -d1:1 some-image.jpg  # diagonal, dx=1, dy=1
 # Also, you could store the output and cat later to your terminal...
 timg -g80x40 some-image.jpg > /tmp/imageout.txt
 cat /tmp/imageout.txt
+
+# You can run use this in a fzf preview window:
+echo some-image.jpg | fzf --preview='timg -E -f1 -c1 -g $(( $COLUMNS / 2 - 4 ))x$(( $FZF_PREVIEW_HEIGHT * 2 )) {}'
 
 # Of course, you can go really crazy by storing a cycle of an animation. Use xz
 # for compression as it seems to deal with this kind of stuff really well:
