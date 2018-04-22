@@ -36,6 +36,7 @@ Options:
         -c<num>    : Only animation or scrolling: number of runs through a full cycle.
         -C         : Clear screen before showing images.
         -F         : Print filename before showing images.
+        -E         : Don't hide the cursor while showing images.
         -v         : Print version and exit.
 If both -c and -t are given, whatever comes first stops.
 If both -w and -t are given for some animation/scroll, -t takes precedence

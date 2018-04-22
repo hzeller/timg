@@ -279,6 +279,7 @@ static int usage(const char *progname, int w, int h) {
             "\t-c<num>    : Only animation or scrolling: number of runs through a full cycle.\n"
             "\t-C         : Clear screen before showing images.\n"
             "\t-F         : Print filename before showing images.\n"
+            "\t-E         : Don't hide the cursor while showing images.\n"
             "\t-v         : Print version and exit.\n"
             "If both -c and -t are given, whatever comes first stops.\n"
             "If both -w and -t are given for some animation/scroll, -t "
@@ -299,6 +300,7 @@ int main(int argc, char *argv[]) {
     bool do_clear = false;
     bool do_upscale = false;
     bool show_filename = false;
+    bool hide_cursor = true;
     int width = term_width;
     int height = term_height;
     int scroll_delay_ms = 50;
@@ -309,7 +311,7 @@ int main(int argc, char *argv[]) {
     int dy = 0;
 
     int opt;
-    while ((opt = getopt(argc, argv, "vg:s::w:t:c:hCFd:U")) != -1) {
+    while ((opt = getopt(argc, argv, "vg:s::w:t:c:hCFEd:U")) != -1) {
         switch (opt) {
         case 'g':
             if (sscanf(optarg, "%dx%d", &width, &height) < 2) {
@@ -347,6 +349,9 @@ int main(int argc, char *argv[]) {
             break;
         case 'F':
             show_filename = !show_filename;
+            break;
+        case 'E':
+            hide_cursor = false;
             break;
         case 'v':
             fprintf(stderr, "timg " TIMG_VERSION
@@ -416,7 +421,9 @@ int main(int argc, char *argv[]) {
         if (do_clear) {
             TerminalCanvas::ClearScreen(STDOUT_FILENO);
         }
-        TerminalCanvas::CursorOff(STDOUT_FILENO);
+        if (hide_cursor) {
+            TerminalCanvas::CursorOff(STDOUT_FILENO);
+        }
         if (do_scroll) {
             DisplayScrolling(frames[0], scroll_delay_ms, duration_ms, loops,
                              display_width, display_height, dx, dy,
@@ -427,7 +434,9 @@ int main(int argc, char *argv[]) {
             if (frames.size() == 1 && wait_ms > 0)
                 SleepMillis(wait_ms);
         }
-        TerminalCanvas::CursorOn(STDOUT_FILENO);
+        if (hide_cursor) {
+            TerminalCanvas::CursorOn(STDOUT_FILENO);
+        }
     }
 
     if (interrupt_received)   // Make 'Ctrl-C' appear on new line.
