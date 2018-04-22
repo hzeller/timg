@@ -94,12 +94,29 @@ private:
     int delay_millis_;
 };
 
+static Magick::Image RenderBackground(int width, int height,
+                                      const char *bg, const char *pattern) {
+    Magick::Image image(Magick::Geometry(width, height), Magick::Color(bg));
+    if (strlen(pattern)) {
+        image.fillColor(pattern);
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                if ((x + y) % 2 == 0) {
+                    image.draw(Magick::DrawablePoint(x, y));
+                }
+            }
+        }
+    }
+    return image;
+}
+
 // Load still image or animation.
 // Scale, so that it fits in "width" and "height" and store in "result".
 static bool LoadImageAndScale(const char *filename,
                               int target_width, int target_height,
                               bool do_upscale,
                               bool fill_width, bool fill_height,
+                              const char *bg_color, const char *pattern_color,
                               std::vector<Magick::Image> *result) {
     std::vector<Magick::Image> frames;
     try {
@@ -152,8 +169,20 @@ static bool LoadImageAndScale(const char *filename,
         target_height = (int) roundf(width_fraction * img_height);
     }
 
+    // Scale image and set background
     for (size_t i = 0; i < result->size(); ++i) {
-        (*result)[i].scale(Magick::Geometry(target_width, target_height));
+        Magick::Image *img = &(*result)[i];
+        (*img).scale(Magick::Geometry(target_width, target_height));
+        Magick::Image target;
+        try {
+            target = RenderBackground((*img).columns(), (*img).rows(),
+                                      bg_color, pattern_color);
+        } catch (std::exception& e) {
+            fprintf(stderr, "Trouble rendering background (%s)\n", e.what());
+            return false;
+        }
+        target.composite(*img, 0, 0, Magick::OverCompositeOp);
+        (*result)[i] = target;
     }
 
     return true;
@@ -285,6 +314,8 @@ static int usage(const char *progname, int w, int h) {
             "\t-t<seconds>: Only animation or scrolling: stop after this time.\n"
             "\t-c<num>    : Only animation or scrolling: number of runs through a full cycle.\n"
             "\t-f<num>    : Only animation: number of frames to render.\n"
+            "\t-b<str>    : Background color to use on transparent images (default 'black').\n"
+            "\t-B<str>    : Checkerboard pattern color to use on transparent images (default '').\n"
             "\t-C         : Clear screen before showing images.\n"
             "\t-F         : Print filename before showing images.\n"
             "\t-E         : Don't hide the cursor while showing images.\n"
@@ -313,6 +344,8 @@ int main(int argc, char *argv[]) {
     int height = term_height;
     int max_frames = -1;
     int scroll_delay_ms = 50;
+    char *bg_color = (char *)"black";
+    char *pattern_color = (char *)"";
     tmillis_t duration_ms = (1LL<<40);  // that is a while.
     tmillis_t wait_ms = 0;
     int loops  = -1;
@@ -320,7 +353,7 @@ int main(int argc, char *argv[]) {
     int dy = 0;
 
     int opt;
-    while ((opt = getopt(argc, argv, "vg:s::w:t:c:f:hCFEd:U")) != -1) {
+    while ((opt = getopt(argc, argv, "vg:s::w:t:c:f:b:B:hCFEd:U")) != -1) {
         switch (opt) {
         case 'g':
             if (sscanf(optarg, "%dx%d", &width, &height) < 2) {
@@ -339,6 +372,12 @@ int main(int argc, char *argv[]) {
             break;
         case 'f':
             max_frames = atoi(optarg);
+            break;
+        case 'b':
+            bg_color = optarg;
+            break;
+        case 'B':
+            pattern_color = optarg;
             break;
         case 's':
             do_scroll = true;
@@ -416,7 +455,8 @@ int main(int argc, char *argv[]) {
 
         std::vector<Magick::Image> frames;
         if (!LoadImageAndScale(filename, width, height, do_upscale,
-                               fill_width, fill_height, &frames)) {
+                               fill_width, fill_height, bg_color, pattern_color,
+                               &frames)) {
             exit_code = 1;
             continue;
         }
