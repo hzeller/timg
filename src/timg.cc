@@ -301,7 +301,7 @@ int main(int argc, char *argv[]) {
 
     struct winsize w = {0, 0};
     const bool winsize_success = (ioctl(1, TIOCGWINSZ, &w) == 0);
-    const int term_width = w.ws_col - 1;       // Space for right black edge.
+    const int term_width = w.ws_col;
     const int term_height = 2 * (w.ws_row-1);  // double number of pixels high.
 
     bool do_scroll = false;

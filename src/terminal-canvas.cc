@@ -21,7 +21,7 @@
 #include <unistd.h>
 
 #define SCREEN_CLEAR    "\033c"
-#define SCREEN_POSTFIX  "\033[0m"           // reset terminal settings
+#define SCREEN_RESET    "\033[0m"           // reset terminal settings
 #define SCREEN_CURSOR_UP_FORMAT "\033[%dA"  // Move cursor up given lines.
 #define CURSOR_OFF      "\033[?25l"
 
@@ -50,12 +50,10 @@ static void reliable_write(int fd, const char *buf, size_t size) {
 }
 
 TerminalCanvas::TerminalCanvas(int w, int h)
-    // Internal width is one pixel wider to have a black right edge, otherwise
-    //   terminals generate strange artifacts when they start scrolling.
     // Height is rounded up to the next even number.
-    : internal_width_(w+1), height_(h), any_change_(true) {
-    pixels_ = new uint32_t [ internal_width_ * (height_ + 1)];
-    memset(pixels_, 0, sizeof(uint32_t) * internal_width_ * (height_ + 1));
+    : width_(w), height_(h), any_change_(true) {
+    pixels_ = new uint32_t [ width_ * (height_ + 1)];
+    memset(pixels_, 0, sizeof(uint32_t) * width_ * (height_ + 1));
 
     // Preallocate buffer that we use to assemble the output before writing.
     const int max_pixel_size = strlen("\033[")
@@ -63,13 +61,12 @@ TerminalCanvas::TerminalCanvas(int w, int h)
         + 1 /* ; */
         + strlen(BOTTOM_PIXEL_COLOR) + strlen(ESCAPE_COLOR_TEMPLATE)
         + 1 /* m */
-        + strlen(PIXEL_CHARACTER);
+        + strlen(PIXEL_CHARACTER)
+        + strlen(SCREEN_RESET);
     const int vertical_characters = (height_+1) / 2;  // two pixels, one glyph
     int buffer_size =
-        vertical_characters * internal_width_ * max_pixel_size  // pixel count
+        vertical_characters * width_ * max_pixel_size  // pixel count
         + vertical_characters;  // one \n per line
-
-    buffer_size += strlen(SCREEN_POSTFIX);
 
     char scratch[64];
     snprintf(scratch, sizeof(scratch), SCREEN_CURSOR_UP_FORMAT, (height_+1)/2);
@@ -106,7 +103,7 @@ static char *WriteAnsiColor(char *buf, uint32_t col) {
 void TerminalCanvas::SetPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b) {
     if (x < 0 || x >= width() || y < 0 || y >= height()) return;
     any_change_ = true;
-    pixels_[internal_width_ * y + x] = (r << 16) | (g << 8) | b;
+    pixels_[width_ * y + x] = (r << 16) | (g << 8) | b;
 }
 
 void TerminalCanvas::Send(int fd, bool jump_back_first) {
@@ -114,12 +111,12 @@ void TerminalCanvas::Send(int fd, bool jump_back_first) {
         char *pos = ansi_text_buffer_;
         memcpy(pos, goto_top_.data(), goto_top_.size());
         pos += goto_top_.size();
-        uint32_t last_fg = 0xff000000;  // Guaranteed != first color
-        uint32_t last_bg = 0xff000000;
         for (int y = 0; y < height_; y+=2) {
-            for (int x = 0; x < internal_width_; ++x) {
-                const uint32_t fg = pixels_[internal_width_ * y + x];
-                const uint32_t bg = pixels_[internal_width_ * (y+1) + x];
+            uint32_t last_fg = 0xff000000;  // Guaranteed != first color
+            uint32_t last_bg = 0xff000000;
+            for (int x = 0; x < width_; ++x) {
+                const uint32_t fg = pixels_[width_ * y + x];
+                const uint32_t bg = pixels_[width_ * (y+1) + x];
                 const char *prefix = "\033[";
                 if (fg != last_fg) {
                     pos = str_append(pos, prefix);
@@ -140,9 +137,9 @@ void TerminalCanvas::Send(int fd, bool jump_back_first) {
                 memcpy(pos, PIXEL_CHARACTER, strlen(PIXEL_CHARACTER));
                 pos += strlen(PIXEL_CHARACTER);
             }
+            pos = str_append(pos, SCREEN_RESET);
             *pos++ = '\n';
         }
-        pos = str_append(pos, SCREEN_POSTFIX);
         end_ansi_ = pos;
         any_change_ = false;
     }

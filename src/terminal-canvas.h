@@ -24,7 +24,7 @@ public:
     TerminalCanvas(int width, int heigh);
     ~TerminalCanvas();
 
-    int width() const { return internal_width_ - 1; }
+    int width() const { return width_; }
     int height() const { return height_; }
 
     void SetPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b);
@@ -38,7 +38,7 @@ public:
     static void CursorOn(int fd);
 
 private:
-    const int internal_width_;
+    const int width_;
     const int height_;
     bool any_change_;
     uint32_t *pixels_;
