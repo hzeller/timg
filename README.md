@@ -34,6 +34,7 @@ Options:
         -w<seconds>: If multiple images given: Wait time between (default: 0.0).
         -t<seconds>: Only animation or scrolling: stop after this time.
         -c<num>    : Only animation or scrolling: number of runs through a full cycle.
+        -f<num>    : Only animation: number of frames to render.
         -C         : Clear screen before showing images.
         -F         : Print filename before showing images.
         -E         : Don't hide the cursor while showing images.

@@ -160,10 +160,17 @@ static bool LoadImageAndScale(const char *filename,
 }
 
 void DisplayAnimation(const std::vector<Magick::Image> &image_sequence,
-                      tmillis_t duration_ms, int loops, int w, int h, int fd) {
+                      tmillis_t duration_ms, int max_frames, int loops,
+                      int w, int h, int fd) {
     std::vector<PreprocessedFrame*> frames;
+    if (max_frames == -1) {
+        max_frames = image_sequence.size();
+    } else {
+        max_frames = std::min(max_frames, (int)image_sequence.size());
+    }
+
     // Convert to preprocessed frames.
-    for (size_t i = 0; i < image_sequence.size(); ++i) {
+    for (int i = 0; i < max_frames; ++i) {
         frames.push_back(new PreprocessedFrame(image_sequence[i], w, h));
     }
 
@@ -277,6 +284,7 @@ static int usage(const char *progname, int w, int h) {
             "\t-w<seconds>: If multiple images given: Wait time between (default: 0.0).\n"
             "\t-t<seconds>: Only animation or scrolling: stop after this time.\n"
             "\t-c<num>    : Only animation or scrolling: number of runs through a full cycle.\n"
+            "\t-f<num>    : Only animation: number of frames to render.\n"
             "\t-C         : Clear screen before showing images.\n"
             "\t-F         : Print filename before showing images.\n"
             "\t-E         : Don't hide the cursor while showing images.\n"
@@ -303,6 +311,7 @@ int main(int argc, char *argv[]) {
     bool hide_cursor = true;
     int width = term_width;
     int height = term_height;
+    int max_frames = -1;
     int scroll_delay_ms = 50;
     tmillis_t duration_ms = (1LL<<40);  // that is a while.
     tmillis_t wait_ms = 0;
@@ -311,7 +320,7 @@ int main(int argc, char *argv[]) {
     int dy = 0;
 
     int opt;
-    while ((opt = getopt(argc, argv, "vg:s::w:t:c:hCFEd:U")) != -1) {
+    while ((opt = getopt(argc, argv, "vg:s::w:t:c:f:hCFEd:U")) != -1) {
         switch (opt) {
         case 'g':
             if (sscanf(optarg, "%dx%d", &width, &height) < 2) {
@@ -327,6 +336,9 @@ int main(int argc, char *argv[]) {
             break;
         case 'c':
             loops = atoi(optarg);
+            break;
+        case 'f':
+            max_frames = atoi(optarg);
             break;
         case 's':
             do_scroll = true;
@@ -429,7 +441,7 @@ int main(int argc, char *argv[]) {
                              display_width, display_height, dx, dy,
                              STDOUT_FILENO);
         } else {
-            DisplayAnimation(frames, duration_ms, loops,
+            DisplayAnimation(frames, duration_ms, max_frames, loops,
                              display_width, display_height, STDOUT_FILENO);
             if (frames.size() == 1 && wait_ms > 0)
                 SleepMillis(wait_ms);
