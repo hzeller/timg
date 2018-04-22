@@ -403,6 +403,7 @@ int main(int argc, char *argv[]) {
     // the available screen space fully in the other direction.
     const bool fill_width  = do_scroll && dy != 0; // scroll vert, fill hor
     const bool fill_height = do_scroll && dx != 0; // scroll hor, fill vert
+    int exit_code = 0;
 
     signal(SIGTERM, InterruptHandler);
     signal(SIGINT, InterruptHandler);
@@ -416,6 +417,7 @@ int main(int argc, char *argv[]) {
         std::vector<Magick::Image> frames;
         if (!LoadImageAndScale(filename, width, height, do_upscale,
                                fill_width, fill_height, &frames)) {
+            exit_code = 1;
             continue;
         }
 
@@ -454,5 +456,5 @@ int main(int argc, char *argv[]) {
     if (interrupt_received)   // Make 'Ctrl-C' appear on new line.
         printf("\n");
 
-    return 0;
+    return exit_code;
 }
