@@ -35,6 +35,8 @@ Options:
         -t<seconds>: Only animation or scrolling: stop after this time.
         -c<num>    : Only animation or scrolling: number of runs through a full cycle.
         -f<num>    : Only animation: number of frames to render.
+        -b<str>    : Background color to use on transparent images (default 'black').
+        -B<str>    : Checkerboard pattern color to use on transparent images (default '').
         -C         : Clear screen before showing images.
         -F         : Print filename before showing images.
         -E         : Don't hide the cursor while showing images.
@@ -63,6 +65,14 @@ timg -s -d1:0 some-image.jpg  # scroll with dx=1 and dy=0, so horizontally.
 timg -s -d-1:0 some-image.jpg # scroll horizontally in reverse direction.
 timg -s -d0:2 some-image.jpg  # vertical, two pixels per step.
 timg -s -d1:1 some-image.jpg  # diagonal, dx=1, dy=1
+
+# Background color for transparent images (SVG-compatible strings are supported)
+timg -b 'red' some-transparent-image.png
+timg -b 'rgb(0, 255, 0)' some-transparent-image.png
+timg -b '#0000ff' some-transparent-image.png
+
+# Checkerboard/Photoshop-like background on transparent images
+timg -b white -B gray some-transparent-image.png
 
 # Also, you could store the output and cat later to your terminal...
 timg -g80x40 some-image.jpg > /tmp/imageout.txt

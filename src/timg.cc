@@ -94,12 +94,30 @@ private:
     int delay_millis_;
 };
 
+static void RenderBackground(int width, int height,
+                             const char *bg, const char *pattern,
+                             Magick::Image *bgimage) {
+    *bgimage = Magick::Image(Magick::Geometry(width, height),
+                             Magick::Color(bg ? bg : "black"));
+    if (pattern && strlen(pattern)) {
+        bgimage->fillColor(pattern);
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                if ((x + y) % 2 == 0) {
+                    bgimage->draw(Magick::DrawablePoint(x, y));
+                }
+            }
+        }
+    }
+}
+
 // Load still image or animation.
 // Scale, so that it fits in "width" and "height" and store in "result".
 static bool LoadImageAndScale(const char *filename,
                               int target_width, int target_height,
                               bool do_upscale,
                               bool fill_width, bool fill_height,
+                              const char *bg_color, const char *pattern_color,
                               std::vector<Magick::Image> *result) {
     std::vector<Magick::Image> frames;
     try {
@@ -152,8 +170,24 @@ static bool LoadImageAndScale(const char *filename,
         target_height = (int) roundf(width_fraction * img_height);
     }
 
+    // Scale image to terminal size and set background if requested.
     for (size_t i = 0; i < result->size(); ++i) {
-        (*result)[i].scale(Magick::Geometry(target_width, target_height));
+        Magick::Image *const img = &(*result)[i];
+        img->scale(Magick::Geometry(target_width, target_height));
+        if (bg_color || pattern_color) {
+            Magick::Image target;
+            try {
+                RenderBackground(img->columns(), img->rows(),
+                                 bg_color, pattern_color, &target);
+            } catch (std::exception& e) {
+                fprintf(stderr, "Trouble rendering background (%s)\n",
+                        e.what());
+                return false;
+            }
+            target.composite(*img, 0, 0, Magick::OverCompositeOp);
+            target.animationDelay(img->animationDelay());
+            *img = target;
+        }
     }
 
     return true;
@@ -173,7 +207,6 @@ void DisplayAnimation(const std::vector<Magick::Image> &image_sequence,
     for (int i = 0; i < max_frames; ++i) {
         frames.push_back(new PreprocessedFrame(image_sequence[i], w, h));
     }
-
     const tmillis_t end_time_ms = GetTimeInMillis() + duration_ms;
     bool is_first = true;
     if (frames.size() == 1)
@@ -285,6 +318,8 @@ static int usage(const char *progname, int w, int h) {
             "\t-t<seconds>: Only animation or scrolling: stop after this time.\n"
             "\t-c<num>    : Only animation or scrolling: number of runs through a full cycle.\n"
             "\t-f<num>    : Only animation: number of frames to render.\n"
+            "\t-b<str>    : Background color to use on transparent images (default 'black').\n"
+            "\t-B<str>    : Checkerboard pattern color to use on transparent images (default '').\n"
             "\t-C         : Clear screen before showing images.\n"
             "\t-F         : Print filename before showing images.\n"
             "\t-E         : Don't hide the cursor while showing images.\n"
@@ -301,7 +336,7 @@ int main(int argc, char *argv[]) {
 
     struct winsize w = {0, 0};
     const bool winsize_success = (ioctl(1, TIOCGWINSZ, &w) == 0);
-    const int term_width = w.ws_col - 1;       // Space for right black edge.
+    const int term_width = w.ws_col;
     const int term_height = 2 * (w.ws_row-1);  // double number of pixels high.
 
     bool do_scroll = false;
@@ -313,6 +348,8 @@ int main(int argc, char *argv[]) {
     int height = term_height;
     int max_frames = -1;
     int scroll_delay_ms = 50;
+    const char *bg_color = nullptr;
+    const char *pattern_color = nullptr;
     tmillis_t duration_ms = (1LL<<40);  // that is a while.
     tmillis_t wait_ms = 0;
     int loops  = -1;
@@ -320,7 +357,7 @@ int main(int argc, char *argv[]) {
     int dy = 0;
 
     int opt;
-    while ((opt = getopt(argc, argv, "vg:s::w:t:c:f:hCFEd:U")) != -1) {
+    while ((opt = getopt(argc, argv, "vg:s::w:t:c:f:b:B:hCFEd:U")) != -1) {
         switch (opt) {
         case 'g':
             if (sscanf(optarg, "%dx%d", &width, &height) < 2) {
@@ -339,6 +376,12 @@ int main(int argc, char *argv[]) {
             break;
         case 'f':
             max_frames = atoi(optarg);
+            break;
+        case 'b':
+            bg_color = strdup(optarg);
+            break;
+        case 'B':
+            pattern_color = strdup(optarg);
             break;
         case 's':
             do_scroll = true;
@@ -416,7 +459,8 @@ int main(int argc, char *argv[]) {
 
         std::vector<Magick::Image> frames;
         if (!LoadImageAndScale(filename, width, height, do_upscale,
-                               fill_width, fill_height, &frames)) {
+                               fill_width, fill_height, bg_color, pattern_color,
+                               &frames)) {
             exit_code = 1;
             continue;
         }
