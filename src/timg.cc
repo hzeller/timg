@@ -78,7 +78,7 @@ void CopyToCanvas(const Magick::Image &img, TerminalCanvas *result) {
 class PreprocessedFrame {
 public:
     PreprocessedFrame(const Magick::Image &img, int w, int h)
-        : content_(new TerminalCanvas(w, h)) {
+        : content_(new TerminalCanvas(img.columns(), img.rows())) {
         int delay_time = img.animationDelay();  // in 1/100s of a second.
         if (delay_time < 1) delay_time = 10;
         delay_millis_ = delay_time * 10;
@@ -111,14 +111,23 @@ static void RenderBackground(int width, int height,
     }
 }
 
-// Load still image or animation.
+static bool EndsWith(const char *filename, const char *suffix) {
+    size_t flen = strlen(filename);
+    size_t slen = strlen(suffix);
+    if (flen < slen) return false;
+    return strcasecmp(filename + flen - slen, suffix) == 0;
+}
+
+// Load still image or animation. If this is a multi-image container, try
+// to guess if this is an animation or just a sequence of images.
 // Scale, so that it fits in "width" and "height" and store in "result".
 static bool LoadImageAndScale(const char *filename,
                               int target_width, int target_height,
                               bool do_upscale,
                               bool fill_width, bool fill_height,
                               const char *bg_color, const char *pattern_color,
-                              std::vector<Magick::Image> *result) {
+                              std::vector<Magick::Image> *result,
+                              bool *is_animation) {
     std::vector<Magick::Image> frames;
     try {
         readImages(&frames, filename);
@@ -131,12 +140,20 @@ static bool LoadImageAndScale(const char *filename,
         return false;
     }
 
+    // We don't really know if something is an animation from the frames we
+    // got back (or is there ?), so we use a blacklist approach here: filenames
+    // that are known to be containers for multiple independent images are
+    // considered not an animation.
+    const bool could_be_animation =
+        !EndsWith(filename, "ico") && !EndsWith(filename, "pdf");
     // Put together the animation from single frames. GIFs can have nasty
     // disposal modes, but they are handled nicely by coalesceImages()
-    if (frames.size() > 1) {
+    if (frames.size() > 1 && could_be_animation) {
         Magick::coalesceImages(result, frames.begin(), frames.end());
+        *is_animation = true;
     } else {
-        result->push_back(frames[0]);   // just a single still image.
+        result->insert(result->end(), frames.begin(), frames.end());
+        *is_animation = false;
     }
 
     const int img_width = (*result)[0].columns();
@@ -193,9 +210,10 @@ static bool LoadImageAndScale(const char *filename,
     return true;
 }
 
-void DisplayAnimation(const std::vector<Magick::Image> &image_sequence,
-                      tmillis_t duration_ms, int max_frames, int loops,
-                      int w, int h, int fd) {
+void DisplayImageSequence(const std::vector<Magick::Image> &image_sequence,
+                          bool is_animation,
+                          tmillis_t duration_ms, int max_frames, int loops,
+                          int w, int h, int fd) {
     std::vector<PreprocessedFrame*> frames;
     if (max_frames == -1) {
         max_frames = image_sequence.size();
@@ -207,9 +225,10 @@ void DisplayAnimation(const std::vector<Magick::Image> &image_sequence,
     for (int i = 0; i < max_frames; ++i) {
         frames.push_back(new PreprocessedFrame(image_sequence[i], w, h));
     }
+
     const tmillis_t end_time_ms = GetTimeInMillis() + duration_ms;
     bool is_first = true;
-    if (frames.size() == 1)
+    if (frames.size() == 1 || !is_animation)
         loops = 1;   // If there is no animation, nothing to repeat.
     for (int k = 0;
          (loops < 0 || k < loops)
@@ -220,7 +239,8 @@ void DisplayAnimation(const std::vector<Magick::Image> &image_sequence,
             if (interrupt_received || GetTimeInMillis() > end_time_ms)
                 break;
             PreprocessedFrame *frame = frames[i];
-            frame->Send(fd, !is_first);  // Simple. just send it.
+            const bool jump_back_to_top = is_animation && !is_first;
+            frame->Send(fd, jump_back_to_top);  // Simple. just send it.
             is_first = false;
             SleepMillis(frame->delay_millis());
         }
@@ -458,9 +478,10 @@ int main(int argc, char *argv[]) {
         }
 
         std::vector<Magick::Image> frames;
+        bool is_animation = false;
         if (!LoadImageAndScale(filename, width, height, do_upscale,
                                fill_width, fill_height, bg_color, pattern_color,
-                               &frames)) {
+                               &frames, &is_animation)) {
             exit_code = 1;
             continue;
         }
@@ -487,8 +508,9 @@ int main(int argc, char *argv[]) {
                              display_width, display_height, dx, dy,
                              STDOUT_FILENO);
         } else {
-            DisplayAnimation(frames, duration_ms, max_frames, loops,
-                             display_width, display_height, STDOUT_FILENO);
+            DisplayImageSequence(frames, is_animation,
+                                 duration_ms, max_frames, loops,
+                                 display_width, display_height, STDOUT_FILENO);
             if (frames.size() == 1 && wait_ms > 0)
                 SleepMillis(wait_ms);
         }
