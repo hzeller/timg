@@ -106,13 +106,63 @@ static bool EndsWith(const char *filename, const char *suffix) {
     return strcasecmp(filename + flen - slen, suffix) == 0;
 }
 
+struct ScaleOptions {
+    // If image is smaller than screen, only upscale if do_upscale is set.
+    bool do_upscale;
+    bool fill_width;   // Fill screen width, allow overflow height.
+    bool fill_height;  // Fill screen height, allow overflow width.
+};
+
+// Returns 'true' if anything is to do to the picture.
+static bool ScaleWithOptions(int img_width, int img_height,
+                             const int screen_width, const int screen_height,
+                             const ScaleOptions &options,
+                             int *target_width, int *target_height) {
+    const float width_fraction = (float)screen_width / img_width;
+    const float height_fraction = (float)screen_height / img_height;
+
+    // If the image < screen, only upscale if do_upscale requested
+    if (!options.do_upscale &&
+        (options.fill_height || width_fraction > 1.0) &&
+        (options.fill_width || height_fraction > 1.0)) {
+        *target_width = img_width;
+        *target_height = img_height;
+        return false;
+    }
+
+    *target_width = screen_width;
+    *target_height = screen_height;
+
+    if (options.fill_width && options.fill_height) {
+        // Fill as much as we can get in available space.
+        // Largest scale fraction determines that.
+        const float larger_fraction = (width_fraction > height_fraction)
+            ? width_fraction
+            : height_fraction;
+        *target_width = (int) roundf(larger_fraction * img_width);
+        *target_height = (int) roundf(larger_fraction * img_height);
+    }
+    else if (options.fill_height) {
+        // Make things fit in vertical space.
+        // While the height constraint stays the same, we can expand width to
+        // wider than screen.
+        *target_width = (int) roundf(height_fraction * img_width);
+    }
+    else if (options.fill_width) {
+        // dito, vertical. Make things fit in horizontal, overflow vertical.
+        *target_height = (int) roundf(width_fraction * img_height);
+    }
+
+    return true;
+}
+
 // Load still image or animation. If this is a multi-image container, try
 // to guess if this is an animation or just a sequence of images.
-// Scale, so that it fits in "width" and "height" and store in "result".
+// Scale, to fit "screen_width" and "screen_height"; store in "result".
 static bool LoadImageAndScale(const char *filename,
-                              int target_width, int target_height,
-                              bool do_upscale, bool do_antialias,
-                              bool fill_width, bool fill_height,
+                              int screen_width, int screen_height,
+                              const ScaleOptions &scale_options,
+                              bool do_antialias,
                               const char *bg_color, const char *pattern_color,
                               std::vector<Magick::Image> *result,
                               bool *is_animation) {
@@ -144,54 +194,20 @@ static bool LoadImageAndScale(const char *filename,
         *is_animation = false;
     }
 
-    const int img_width = (*result)[0].columns();
-    const int img_height = (*result)[0].rows();
-    const float width_fraction = (float)target_width / img_width;
-    const float height_fraction = (float)target_height / img_height;
-
-    bool do_scale = true;
-
-    if (!do_upscale &&
-        (fill_height || width_fraction > 1.0) &&
-        (fill_width || height_fraction > 1.0)) {
-        do_scale = false;
-    }
-
-    if (fill_width && fill_height) {
-        // Scrolling diagonally. Fill as much as we can get in available space.
-        // Largest scale fraction determines that.
-        const float larger_fraction = (width_fraction > height_fraction)
-            ? width_fraction
-            : height_fraction;
-        target_width = (int) roundf(larger_fraction * img_width);
-        target_height = (int) roundf(larger_fraction * img_height);
-    }
-    else if (fill_height) {
-        // Horizontal scrolling: Make things fit in vertical space.
-        // While the height constraint stays the same, we can expand to full
-        // width as we scroll along that axis.
-        target_width = (int) roundf(height_fraction * img_width);
-    }
-    else if (fill_width) {
-        // dito, vertical. Make things fit in horizontal space.
-        target_height = (int) roundf(width_fraction * img_height);
-    }
-
-    const bool do_add_background = (bg_color || pattern_color);
-    if (!do_scale && !do_add_background)
-        return true;  // We're done.
-
-    // If requested either of Scale image to terminal size and set
-    // background if requested.
     for (size_t i = 0; i < result->size(); ++i) {
         Magick::Image *const img = &(*result)[i];
-        if (do_scale) {
+        int target_width = 0, target_height = 0;
+        if (ScaleWithOptions(img->columns(), img->rows(),
+                             screen_width, screen_height,
+                             scale_options,
+                             &target_width, &target_height)) {
             if (do_antialias)
                 img->scale(Magick::Geometry(target_width, target_height));
             else
                 img->sample(Magick::Geometry(target_width, target_height));
         }
-        if (do_add_background) {
+
+        if (bg_color || pattern_color) {
             Magick::Image target;
             try {
                 RenderBackground(img->columns(), img->rows(),
@@ -371,9 +387,13 @@ int main(int argc, char *argv[]) {
     const int term_width = w.ws_col;
     const int term_height = 2 * (w.ws_row-1);  // double number of pixels high.
 
+    ScaleOptions scale_options;
+    scale_options.do_upscale = false;
+    scale_options.fill_width = false;
+    scale_options.fill_height = false;
+
     bool do_scroll = false;
     bool do_clear = false;
-    bool do_upscale = false;
     bool do_antialias = true;
     bool show_filename = false;
     bool hide_cursor = true;
@@ -437,7 +457,7 @@ int main(int argc, char *argv[]) {
             do_clear = true;
             break;
         case 'U':
-            do_upscale = !do_upscale;
+            scale_options.do_upscale = !scale_options.do_upscale;
             break;
         case 'F':
             show_filename = !show_filename;
@@ -484,8 +504,8 @@ int main(int argc, char *argv[]) {
 
     // If we scroll in one direction (so have 'infinite' space) we want fill
     // the available screen space fully in the other direction.
-    const bool fill_width  = fit_width || (do_scroll && dy != 0);
-    const bool fill_height = do_scroll && dx != 0; // scroll hor, fill vert
+    scale_options.fill_width  = fit_width || (do_scroll && dy != 0);
+    scale_options.fill_height = do_scroll && dx != 0; // scroll hor, fill vert
     int exit_code = 0;
 
     signal(SIGTERM, InterruptHandler);
@@ -500,17 +520,19 @@ int main(int argc, char *argv[]) {
         std::vector<Magick::Image> frames;
         bool is_animation = false;
         if (!LoadImageAndScale(filename, width, height,
-                               do_upscale, do_antialias,
-                               fill_width, fill_height, bg_color, pattern_color,
+                               scale_options,
+                               do_antialias,
+                               bg_color, pattern_color,
                                &frames, &is_animation)) {
             exit_code = 1;
             continue;
         }
 
         if (do_scroll && frames.size() > 1) {
-            fprintf(stderr, "This is an animated image format, "
+            fprintf(stderr, "This is an %simage format, "
                     "scrolling on top of that is not supported. "
-                    "Just doing the scrolling of the first frame.\n");
+                    "Just doing the scrolling of the first frame.\n",
+                    is_animation ? "animated " : "multi-");
             // TODO: do both.
         }
 
