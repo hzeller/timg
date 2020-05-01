@@ -318,7 +318,7 @@ static int usage(const char *progname, int w, int h) {
             "\t-t<seconds>: Only animation or scrolling: stop after this time.\n"
             "\t-c<num>    : Only animation or scrolling: number of runs through a full cycle.\n"
             "\t-f<num>    : Only animation: number of frames to render.\n"
-            "\t-b<str>    : Background color to use on transparent images (default 'black').\n"
+            "\t-b<str>    : Background color to use on transparent images (default '').\n"
             "\t-B<str>    : Checkerboard pattern color to use on transparent images (default '').\n"
             "\t-C         : Clear screen before showing images.\n"
             "\t-F         : Print filename before showing images.\n"
@@ -334,8 +334,8 @@ static int usage(const char *progname, int w, int h) {
 int main(int argc, char *argv[]) {
     Magick::InitializeMagick(*argv);
 
-    struct winsize w = {0, 0};
-    const bool winsize_success = (ioctl(1, TIOCGWINSZ, &w) == 0);
+    struct winsize w = {};
+    const bool winsize_success = (ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == 0);
     const int term_width = w.ws_col;
     const int term_height = 2 * (w.ws_row-1);  // double number of pixels high.
 

@@ -23,13 +23,13 @@
 #define SCREEN_CLEAR    "\033c"
 #define SCREEN_RESET    "\033[0m"           // reset terminal settings
 #define SCREEN_CURSOR_UP_FORMAT "\033[%dA"  // Move cursor up given lines.
-#define CURSOR_OFF      "\033[?25l"
 
 // Interestingly, cursor-on does not take effect until the next newline on
 // the tested terminals. Not sure why that is, but adding a newline sounds
 // like waste of vertical space, so let's not do it here but rather try
 // to understand the actual reason why this is happening and fix it then.
 #define CURSOR_ON       "\033[?25h"
+#define CURSOR_OFF      "\033[?25l"
 
 // Each character on the screen is divided in a top pixel and bottom pixel.
 // We use the following character which fills the top block:
@@ -50,33 +50,44 @@ static void reliable_write(int fd, const char *buf, size_t size) {
 }
 
 TerminalCanvas::TerminalCanvas(int w, int h)
-    // Height is rounded up to the next even number.
-    : width_(w), height_(h), any_change_(true) {
-    pixels_ = new uint32_t [ width_ * (height_ + 1)];
-    memset(pixels_, 0, sizeof(uint32_t) * width_ * (height_ + 1));
+    // Height is rounded up to the next even number as we output two vertical
+    // pixels with one glyph.
+    : width_(w), height_(h), pixels_(new uint32_t [ width_ * (height_ + 1)]),
+      any_change_(true) {
+    memset(pixels_, 0, sizeof(uint32_t) * width_ * (height_ + 1));  // black.
 
     // Preallocate buffer that we use to assemble the output before writing.
+
+    // Pixels will be variable size depending on if we need to change colors
+    // between two adjacent pixels. This is the maximum size they can be.
     const int max_pixel_size = strlen("\033[")
         + strlen(TOP_PIXEL_COLOR) + strlen(ESCAPE_COLOR_TEMPLATE)
         + 1 /* ; */
         + strlen(BOTTOM_PIXEL_COLOR) + strlen(ESCAPE_COLOR_TEMPLATE)
         + 1 /* m */
         + strlen(PIXEL_CHARACTER);
-    const int vertical_characters = (height_+1) / 2;  // two pixels, one glyph
-    int buffer_size =
-        vertical_characters * width_ * max_pixel_size  // pixel count
-        + vertical_characters * strlen(SCREEN_RESET)  // Reset at each EOL
-        + vertical_characters;   // one \n per line
 
-    char scratch[64];
-    snprintf(scratch, sizeof(scratch), SCREEN_CURSOR_UP_FORMAT, (height_+1)/2);
-    goto_top_ = scratch;
+    const int vertical_characters = (height_+1) / 2;   // two pixels, one glyph
+    const int character_buffer_size = vertical_characters *
+        (width_ * max_pixel_size           // pixels in one row
+         + strlen(SCREEN_RESET)            // Reset at each EOL
+         + 1);                             // one \n per line
 
-    ansi_text_buffer_ = new char [ buffer_size + goto_top_.size() ];
+    // Piece of ESC-snippet to emit to go back to the top of the screen.
+    char goto_top[64];
+    const int goto_top_len = snprintf(goto_top, sizeof(goto_top),
+                                      SCREEN_CURSOR_UP_FORMAT, (height_+1)/2);
+
+    // The 'goto top' part of the buffer is prefixed the text content, and
+    // is chosen at emit time if it is needed.
+    content_buffer_ = new char [ goto_top_len + character_buffer_size ];
+    memcpy(content_buffer_, goto_top, goto_top_len);
+    goto_top_prefix_ = content_buffer_;
+    ansi_text_buffer_start_ = content_buffer_ + goto_top_len;
 }
 
 TerminalCanvas::~TerminalCanvas() {
-    delete [] ansi_text_buffer_;
+    delete [] content_buffer_;
     delete [] pixels_;
 }
 
@@ -107,46 +118,45 @@ void TerminalCanvas::SetPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b) {
 }
 
 void TerminalCanvas::Send(int fd, bool jump_back_first) {
+    static constexpr char kStartEscape[] = "\033[";
     if (any_change_) {
-        char *pos = ansi_text_buffer_;
-        memcpy(pos, goto_top_.data(), goto_top_.size());
-        pos += goto_top_.size();
+        char *pos = ansi_text_buffer_start_;
         for (int y = 0; y < height_; y+=2) {
             uint32_t last_fg = 0xff000000;  // Guaranteed != first color
             uint32_t last_bg = 0xff000000;
             for (int x = 0; x < width_; ++x) {
                 const uint32_t fg = pixels_[width_ * y + x];
                 const uint32_t bg = pixels_[width_ * (y+1) + x];
-                const char *prefix = "\033[";
+                const char *prefix = kStartEscape;
                 if (fg != last_fg) {
                     pos = str_append(pos, prefix);
                     pos = str_append(pos, TOP_PIXEL_COLOR);
                     pos = WriteAnsiColor(pos, fg);
+                    last_fg = fg;
                     prefix = ";";
                 }
                 if (bg != last_bg && y + 1 != height_) {
                     pos = str_append(pos, prefix);
                     pos = str_append(pos, BOTTOM_PIXEL_COLOR);
                     pos = WriteAnsiColor(pos, bg);
+                    last_bg = bg;
+                    prefix = nullptr;   // Sentinel for next if()
                 }
-                if (fg != last_fg || (bg != last_bg && y + 1 != height_)) {
-                    *pos++ = 'm';
+                if (prefix != kStartEscape) {
+                    *pos++ = 'm';   // We emitted color; need to finish ESC seq
                 }
-                last_fg = fg;
-                last_bg = bg;
-                memcpy(pos, PIXEL_CHARACTER, strlen(PIXEL_CHARACTER));
-                pos += strlen(PIXEL_CHARACTER);
+                pos = str_append(pos, PIXEL_CHARACTER);
             }
-            pos = str_append(pos, SCREEN_RESET);
+            pos = str_append(pos, SCREEN_RESET); // end-of-line
             *pos++ = '\n';
         }
-        end_ansi_ = pos;
+        ansi_text_end_ = pos;
         any_change_ = false;
     }
     const char *start_buf = (jump_back_first
-                             ? ansi_text_buffer_
-                             : ansi_text_buffer_ + goto_top_.size());
-    reliable_write(fd, start_buf, end_ansi_ - start_buf);
+                             ? goto_top_prefix_
+                             : ansi_text_buffer_start_);
+    reliable_write(fd, start_buf, ansi_text_end_ - start_buf);
 }
 
 void TerminalCanvas::ClearScreen(int fd) {

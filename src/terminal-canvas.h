@@ -24,8 +24,8 @@ public:
     TerminalCanvas(int width, int heigh);
     ~TerminalCanvas();
 
-    int width() const { return width_; }
-    int height() const { return height_; }
+    inline int width() const { return width_; }
+    inline int height() const { return height_; }
 
     void SetPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b);
 
@@ -40,11 +40,16 @@ public:
 private:
     const int width_;
     const int height_;
-    bool any_change_;
-    uint32_t *pixels_;
-    char *ansi_text_buffer_;
-    const char *end_ansi_;
-    std::string goto_top_;
+    uint32_t *const pixels_;
+    bool any_change_;             // any SetPixel() since last Send() ?
+
+    char *content_buffer_;        // Buffer containing content to write out
+
+    // Pointing to different places in the content buffer.
+    const char *goto_top_prefix_;
+    char *ansi_text_buffer_start_;
+
+    const char *ansi_text_end_;     // end of generated ansi-pixel text.
 };
 
 #endif // TERMINAL_CANVAS_H_
