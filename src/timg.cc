@@ -161,10 +161,12 @@ static bool LoadImageAndScale(const char *filename,
     const float width_fraction = (float)target_width / img_width;
     const float height_fraction = (float)target_height / img_height;
 
+    bool do_scale = true;
+
     if (!do_upscale &&
         (fill_height || width_fraction > 1.0) &&
         (fill_width || height_fraction > 1.0)) {
-        return true;  // No upscaling requested, we're done.
+        do_scale = false;
     }
 
     if (fill_width && fill_height) {
@@ -187,11 +189,18 @@ static bool LoadImageAndScale(const char *filename,
         target_height = (int) roundf(width_fraction * img_height);
     }
 
-    // Scale image to terminal size and set background if requested.
+    const bool do_add_background = (bg_color || pattern_color);
+    if (!do_scale && !do_add_background)
+        return true;  // We're done.
+
+    // If requested either of Scale image to terminal size and set
+    // background if requested.
     for (size_t i = 0; i < result->size(); ++i) {
         Magick::Image *const img = &(*result)[i];
-        img->scale(Magick::Geometry(target_width, target_height));
-        if (bg_color || pattern_color) {
+        if (do_scale) {
+            img->scale(Magick::Geometry(target_width, target_height));
+        }
+        if (do_add_background) {
             Magick::Image target;
             try {
                 RenderBackground(img->columns(), img->rows(),
@@ -332,6 +341,8 @@ static int usage(const char *progname, int w, int h) {
             "\t-g<w>x<h>  : Output pixel geometry. Default from terminal %dx%d\n"
             "\t-U         : Toggle Upscale. If an image is smaller than\n"
             "\t             the terminal size, scale it up to full size.\n"
+            "\t-W         : Scale to fit width of terminal (default: "
+            "fit terminal width and height)\n"
             "\t-s[<ms>]   : Scroll horizontally (optionally: delay ms (60)).\n"
             "\t-d<dx:dy>  : delta x and delta y when scrolling (default: 1:0).\n"
             "\t-w<seconds>: If multiple images given: Wait time between (default: 0.0).\n"
@@ -375,9 +386,10 @@ int main(int argc, char *argv[]) {
     int loops  = -1;
     int dx = 1;
     int dy = 0;
+    bool fit_width = false;
 
     int opt;
-    while ((opt = getopt(argc, argv, "vg:s::w:t:c:f:b:B:hCFEd:U")) != -1) {
+    while ((opt = getopt(argc, argv, "vg:s::w:t:c:f:b:B:hCFEd:UW")) != -1) {
         switch (opt) {
         case 'g':
             if (sscanf(optarg, "%dx%d", &width, &height) < 2) {
@@ -428,6 +440,9 @@ int main(int argc, char *argv[]) {
         case 'E':
             hide_cursor = false;
             break;
+        case 'W':
+            fit_width = true;
+            break;
         case 'v':
             fprintf(stderr, "timg " TIMG_VERSION
                     " <https://github.com/hzeller/timg>\n"
@@ -464,7 +479,7 @@ int main(int argc, char *argv[]) {
 
     // If we scroll in one direction (so have 'infinite' space) we want fill
     // the available screen space fully in the other direction.
-    const bool fill_width  = do_scroll && dy != 0; // scroll vert, fill hor
+    const bool fill_width  = fit_width || (do_scroll && dy != 0);
     const bool fill_height = do_scroll && dx != 0; // scroll hor, fill vert
     int exit_code = 0;
 

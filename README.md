@@ -24,18 +24,19 @@ sudo make install
 ### Synopsis
 
 ```
-usage: timg [options] <image> [<image>...]
+usage: ./timg [options] <image> [<image>...]
 Options:
         -g<w>x<h>  : Output pixel geometry. Default from terminal 144x88
         -U         : Toggle Upscale. If an image is smaller than
                      the terminal size, scale it up to full size.
+        -W         : Scale to fit width of terminal (default: fit terminal width and height)
         -s[<ms>]   : Scroll horizontally (optionally: delay ms (60)).
         -d<dx:dy>  : delta x and delta y when scrolling (default: 1:0).
         -w<seconds>: If multiple images given: Wait time between (default: 0.0).
         -t<seconds>: Only animation or scrolling: stop after this time.
         -c<num>    : Only animation or scrolling: number of runs through a full cycle.
         -f<num>    : Only animation: number of frames to render.
-        -b<str>    : Background color to use on transparent images (default 'black').
+        -b<str>    : Background color to use on transparent images (default '').
         -B<str>    : Checkerboard pattern color to use on transparent images (default '').
         -C         : Clear screen before showing images.
         -F         : Print filename before showing images.
@@ -51,6 +52,8 @@ timg some-image.jpg         # display a static image
 timg -g50x50 some-image.jpg # display image fitting in box of 50x50 pixel
 
 timg *.jpg                  # display all *.jpg images
+
+timg multi-resolution.ico   # See all the bitmaps in multi-resolution icons-file
 
 # Show animated gif with timeout.
 timg some-animated.gif      # show an animated gif (stop with Ctrl-C)
@@ -73,6 +76,9 @@ timg -b '#0000ff' some-transparent-image.png
 
 # Checkerboard/Photoshop-like background on transparent images
 timg -b white -B gray some-transparent-image.png
+
+# Look at a PDF file, scale it to the width of the terminal
+timg -W foo.pdf
 
 # Also, you could store the output and cat later to your terminal...
 timg -g80x40 some-image.jpg > /tmp/imageout.txt
