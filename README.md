@@ -30,6 +30,7 @@ Options:
         -U         : Toggle Upscale. If an image is smaller than
                      the terminal size, scale it up to full size.
         -W         : Scale to fit width of terminal (default: fit terminal width and height)
+        -a         : Switch off antialiasing (default: on)
         -s[<ms>]   : Scroll horizontally (optionally: delay ms (60)).
         -d<dx:dy>  : delta x and delta y when scrolling (default: 1:0).
         -w<seconds>: If multiple images given: Wait time between (default: 0.0).

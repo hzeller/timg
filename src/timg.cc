@@ -123,7 +123,7 @@ static bool EndsWith(const char *filename, const char *suffix) {
 // Scale, so that it fits in "width" and "height" and store in "result".
 static bool LoadImageAndScale(const char *filename,
                               int target_width, int target_height,
-                              bool do_upscale,
+                              bool do_upscale, bool do_antialias,
                               bool fill_width, bool fill_height,
                               const char *bg_color, const char *pattern_color,
                               std::vector<Magick::Image> *result,
@@ -198,7 +198,10 @@ static bool LoadImageAndScale(const char *filename,
     for (size_t i = 0; i < result->size(); ++i) {
         Magick::Image *const img = &(*result)[i];
         if (do_scale) {
-            img->scale(Magick::Geometry(target_width, target_height));
+            if (do_antialias)
+                img->scale(Magick::Geometry(target_width, target_height));
+            else
+                img->sample(Magick::Geometry(target_width, target_height));
         }
         if (do_add_background) {
             Magick::Image target;
@@ -343,6 +346,7 @@ static int usage(const char *progname, int w, int h) {
             "\t             the terminal size, scale it up to full size.\n"
             "\t-W         : Scale to fit width of terminal (default: "
             "fit terminal width and height)\n"
+            "\t-a         : Switch off antialiasing (default: on)\n"
             "\t-s[<ms>]   : Scroll horizontally (optionally: delay ms (60)).\n"
             "\t-d<dx:dy>  : delta x and delta y when scrolling (default: 1:0).\n"
             "\t-w<seconds>: If multiple images given: Wait time between (default: 0.0).\n"
@@ -373,6 +377,7 @@ int main(int argc, char *argv[]) {
     bool do_scroll = false;
     bool do_clear = false;
     bool do_upscale = false;
+    bool do_antialias = true;
     bool show_filename = false;
     bool hide_cursor = true;
     int width = term_width;
@@ -389,7 +394,7 @@ int main(int argc, char *argv[]) {
     bool fit_width = false;
 
     int opt;
-    while ((opt = getopt(argc, argv, "vg:s::w:t:c:f:b:B:hCFEd:UW")) != -1) {
+    while ((opt = getopt(argc, argv, "vg:s::w:t:c:f:b:B:hCFEd:UWa")) != -1) {
         switch (opt) {
         case 'g':
             if (sscanf(optarg, "%dx%d", &width, &height) < 2) {
@@ -408,6 +413,9 @@ int main(int argc, char *argv[]) {
             break;
         case 'f':
             max_frames = atoi(optarg);
+            break;
+        case 'a':
+            do_antialias = false;
             break;
         case 'b':
             bg_color = strdup(optarg);
@@ -494,7 +502,8 @@ int main(int argc, char *argv[]) {
 
         std::vector<Magick::Image> frames;
         bool is_animation = false;
-        if (!LoadImageAndScale(filename, width, height, do_upscale,
+        if (!LoadImageAndScale(filename, width, height,
+                               do_upscale, do_antialias,
                                fill_width, fill_height, bg_color, pattern_color,
                                &frames, &is_animation)) {
             exit_code = 1;
