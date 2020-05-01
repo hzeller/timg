@@ -19,6 +19,7 @@
 // $ sudo apt-get install libgraphicsmagick++-dev
 
 #include "terminal-canvas.h"
+#include "timg-time.h"
 
 #include <assert.h>
 #include <math.h>
@@ -34,27 +35,14 @@
 
 #include <vector>
 
-#define TIMG_VERSION "0.9.1beta"
+#define TIMG_VERSION "0.9.9"
+
+using timg::Duration;
+using timg::Time;
 
 volatile sig_atomic_t interrupt_received = 0;
 static void InterruptHandler(int signo) {
   interrupt_received = 1;
-}
-
-typedef int64_t tmillis_t;
-
-static tmillis_t GetTimeInMillis() {
-    struct timeval tp;
-    gettimeofday(&tp, NULL);
-    return tp.tv_sec * 1000 + tp.tv_usec / 1000;
-}
-
-static void SleepMillis(tmillis_t milli_seconds) {
-    if (milli_seconds <= 0) return;
-    struct timespec ts;
-    ts.tv_sec = milli_seconds / 1000;
-    ts.tv_nsec = (milli_seconds % 1000) * 1000000;
-    nanosleep(&ts, NULL);
 }
 
 void CopyToCanvas(const Magick::Image &img, TerminalCanvas *result) {
@@ -81,17 +69,17 @@ public:
         : content_(new TerminalCanvas(img.columns(), img.rows())) {
         int delay_time = img.animationDelay();  // in 1/100s of a second.
         if (delay_time < 1) delay_time = 10;
-        delay_millis_ = delay_time * 10;
+        delay_ = Duration::Millis(delay_time * 10);
         CopyToCanvas(img, content_);
     }
     ~PreprocessedFrame() { delete content_; }
 
     void Send(int fd, bool jump_back) { content_->Send(fd, jump_back); }
-    int delay_millis() const { return delay_millis_; }
+    Duration delay() const { return delay_; }
 
 private:
     TerminalCanvas *content_;
-    int delay_millis_;
+    Duration delay_;
 };
 
 static void RenderBackground(int width, int height,
@@ -224,7 +212,7 @@ static bool LoadImageAndScale(const char *filename,
 
 void DisplayImageSequence(const std::vector<Magick::Image> &image_sequence,
                           bool is_animation,
-                          tmillis_t duration_ms, int max_frames, int loops,
+                          Duration duration, int max_frames, int loops,
                           int w, int h, int fd) {
     std::vector<PreprocessedFrame*> frames;
     if (max_frames == -1) {
@@ -238,23 +226,25 @@ void DisplayImageSequence(const std::vector<Magick::Image> &image_sequence,
         frames.push_back(new PreprocessedFrame(image_sequence[i], w, h));
     }
 
-    const tmillis_t end_time_ms = GetTimeInMillis() + duration_ms;
+    const Time end_time = Time::Now() + duration;
     bool is_first = true;
     if (frames.size() == 1 || !is_animation)
         loops = 1;   // If there is no animation, nothing to repeat.
     for (int k = 0;
          (loops < 0 || k < loops)
              && !interrupt_received
-             && GetTimeInMillis() < end_time_ms;
+             && Time::Now() < end_time;
          ++k) {
         for (unsigned int i = 0; i < frames.size() && !interrupt_received; ++i) {
-            if (interrupt_received || GetTimeInMillis() > end_time_ms)
+            const Time frame_start = Time::Now();
+            if (interrupt_received || frame_start >= end_time)
                 break;
             PreprocessedFrame *frame = frames[i];
             const bool jump_back_to_top = is_animation && !is_first;
             frame->Send(fd, jump_back_to_top);  // Simple. just send it.
             is_first = false;
-            SleepMillis(frame->delay_millis());
+            const Time frame_finish = frame_start + frame->delay();
+            frame_finish.WaitUntil();
         }
     }
     for (size_t i = 0; i < frames.size(); ++i) {
@@ -264,8 +254,8 @@ void DisplayImageSequence(const std::vector<Magick::Image> &image_sequence,
 
 static int gcd(int a, int b) { return b == 0 ? a : gcd(b, a % b); }
 
-void DisplayScrolling(const Magick::Image &img, int scroll_delay_ms,
-                      tmillis_t duration_ms, int loops, int w, int h,
+void DisplayScrolling(const Magick::Image &img, Duration scroll_delay,
+                      Duration duration, int loops, int w, int h,
                       int dx, int dy, int fd) {
     TerminalCanvas display(w, h);
     const int img_width = img.columns();
@@ -309,14 +299,15 @@ void DisplayScrolling(const Magick::Image &img, int scroll_delay_ms,
         }
     }
 
-    const tmillis_t end_time_ms = GetTimeInMillis() + duration_ms;
+    const Time end_time = Time::Now() + duration;
     for (int k = 0;
          (loops < 0 || k < loops)
              && !interrupt_received
-             && GetTimeInMillis() < end_time_ms;
+             && Time::Now() < end_time;
          ++k) {
         for (int64_t cycle_pos = 0; cycle_pos <= cycle_steps; ++cycle_pos) {
-            if (interrupt_received || GetTimeInMillis() > end_time_ms)
+            const Time frame_start = Time::Now();
+            if (interrupt_received || frame_start >= end_time)
                 break;
             const int64_t x_cycle_pos = dx*cycle_pos;
             const int64_t y_cycle_pos = dy*cycle_pos;
@@ -330,7 +321,8 @@ void DisplayScrolling(const Magick::Image &img, int scroll_delay_ms,
             }
             display.Send(fd, !is_first);
             is_first = false;
-            SleepMillis(scroll_delay_ms);
+            const Time frame_finish = frame_start + scroll_delay;
+            frame_finish.WaitUntil();
         }
     }
 
@@ -383,11 +375,11 @@ int main(int argc, char *argv[]) {
     int width = term_width;
     int height = term_height;
     int max_frames = -1;
-    int scroll_delay_ms = 50;
     const char *bg_color = nullptr;
     const char *pattern_color = nullptr;
-    tmillis_t duration_ms = (1LL<<40);  // that is a while.
-    tmillis_t wait_ms = 0;
+    Duration duration = Duration::InfiniteFuture();
+    Duration wait_duration = Duration::Millis(0);
+    Duration scroll_delay = Duration::Millis(50);
     int loops  = -1;
     int dx = 1;
     int dy = 0;
@@ -403,10 +395,10 @@ int main(int argc, char *argv[]) {
             }
             break;
         case 'w':
-            wait_ms = roundf(atof(optarg) * 1000.0f);
+            wait_duration = Duration::Millis(roundf(atof(optarg) * 1000.0f));
             break;
         case 't':
-            duration_ms = roundf(atof(optarg) * 1000.0f);
+            duration = Duration::Millis(roundf(atof(optarg) * 1000.0f));
             break;
         case 'c':
             loops = atoi(optarg);
@@ -426,7 +418,7 @@ int main(int argc, char *argv[]) {
         case 's':
             do_scroll = true;
             if (optarg != NULL) {
-                scroll_delay_ms = atoi(optarg);
+                scroll_delay = Duration::Millis(atoi(optarg));
             }
             break;
         case 'd':
@@ -528,15 +520,16 @@ int main(int argc, char *argv[]) {
             TerminalCanvas::CursorOff(STDOUT_FILENO);
         }
         if (do_scroll) {
-            DisplayScrolling(frames[0], scroll_delay_ms, duration_ms, loops,
+            DisplayScrolling(frames[0], scroll_delay, duration, loops,
                              display_width, display_height, dx, dy,
                              STDOUT_FILENO);
         } else {
             DisplayImageSequence(frames, is_animation,
-                                 duration_ms, max_frames, loops,
+                                 duration, max_frames, loops,
                                  display_width, display_height, STDOUT_FILENO);
-            if (frames.size() == 1 && wait_ms > 0)
-                SleepMillis(wait_ms);
+            if (frames.size() == 1) {
+                (Time::Now() + wait_duration).WaitUntil();
+            }
         }
         if (hide_cursor) {
             TerminalCanvas::CursorOn(STDOUT_FILENO);
