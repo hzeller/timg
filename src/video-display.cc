@@ -13,11 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://gnu.org/licenses/gpl-2.0.txt>
 
-// TODO
-// * I did this a while ago, in the meantime the AV-API complains about
-//   a lot of deprecated functionality. Bring this to the latest state
-// * (platform independent?) sound output.
-// (help needed)
+// TODO; help needed.
+// * sound output ((platform independently ?)
 
 #include "video-display.h"
 
@@ -28,6 +25,7 @@
 extern "C" {
 #  include <libavcodec/avcodec.h>
 #  include <libavformat/avformat.h>
+#  include <libavutil/imgutils.h>
 #  include <libswscale/swscale.h>
 }
 
@@ -38,23 +36,23 @@ namespace timg {
 // https://libav.org/documentation/doxygen/master/pixfmt_8h.html#a9a8e335cf3be472042bc9f0cf80cd4c5
 static SwsContext *CreateSWSContext(const AVCodecContext *codec_ctx,
                                     int display_width, int display_height) {
-    AVPixelFormat pix_fmt;
+    AVPixelFormat src_pix_fmt;
     bool src_range_extended_yuvj = true;
     // Remap deprecated to new pixel format.
     switch (codec_ctx->pix_fmt) {
-    case AV_PIX_FMT_YUVJ420P: pix_fmt = AV_PIX_FMT_YUV420P; break;
-    case AV_PIX_FMT_YUVJ422P: pix_fmt = AV_PIX_FMT_YUV422P; break;
-    case AV_PIX_FMT_YUVJ444P: pix_fmt = AV_PIX_FMT_YUV444P; break;
-    case AV_PIX_FMT_YUVJ440P: pix_fmt = AV_PIX_FMT_YUV440P; break;
+    case AV_PIX_FMT_YUVJ420P: src_pix_fmt = AV_PIX_FMT_YUV420P; break;
+    case AV_PIX_FMT_YUVJ422P: src_pix_fmt = AV_PIX_FMT_YUV422P; break;
+    case AV_PIX_FMT_YUVJ444P: src_pix_fmt = AV_PIX_FMT_YUV444P; break;
+    case AV_PIX_FMT_YUVJ440P: src_pix_fmt = AV_PIX_FMT_YUV440P; break;
     default:
         src_range_extended_yuvj = false;
-        pix_fmt = codec_ctx->pix_fmt;
+        src_pix_fmt = codec_ctx->pix_fmt;
     }
     SwsContext *swsCtx = sws_getContext(codec_ctx->width, codec_ctx->height,
-                                        pix_fmt,
+                                        src_pix_fmt,
                                         display_width, display_height,
-                                        AV_PIX_FMT_RGB24, SWS_BILINEAR,
-                                        NULL, NULL, NULL);
+                                        AV_PIX_FMT_RGB24,
+                                        SWS_BILINEAR, NULL, NULL, NULL);
     if (src_range_extended_yuvj) {
         // Manually set the source range to be extended. Read modify write.
         int dontcare[4];
@@ -71,26 +69,18 @@ static SwsContext *CreateSWSContext(const AVCodecContext *codec_ctx,
     return swsCtx;
 }
 
-void VideoLoader::Init() {
-    // Register all formats and codecs
-    //av_register_all();  // Deprecated. How is it done now ?
-    //avformat_network_init();
-}
-
 VideoLoader::~VideoLoader() {
-    av_free(output_buffer_);
-    av_frame_free(&output_frame_);
-
     avcodec_close(codec_context_);
-    avcodec_close(codec_ctx_orig_);
-
+    sws_freeContext(sws_context_);
+    av_frame_free(&output_frame_);
     avformat_close_input(&format_context_);
-    delete framebuffer_;
+    delete terminal_fb_;
 }
 
 bool VideoLoader::LoadAndScale(const char *filename,
                                int screen_width, int screen_height,
                                const ScaleOptions &scale_options) {
+    format_context_ = avformat_alloc_context();
     if (avformat_open_input(&format_context_, filename, NULL, NULL) != 0) {
         perror("Issue opening file");
         return false;
@@ -102,69 +92,42 @@ bool VideoLoader::LoadAndScale(const char *filename,
     }
 
     // Find the first video stream
-    desiredStream_ = -1;
+    AVCodecParameters *codec_parameters = nullptr;
+    AVCodec *av_codec = nullptr;
     for (int i = 0; i < (int)format_context_->nb_streams; ++i) {
-        if (format_context_->streams[i]->codec->codec_type
-            == AVMEDIA_TYPE_VIDEO) {
-            desiredStream_ = i;
+        codec_parameters = format_context_->streams[i]->codecpar;
+        av_codec = avcodec_find_decoder(codec_parameters->codec_id);
+        if (!av_codec) continue;
+        if (codec_parameters->codec_type == AVMEDIA_TYPE_VIDEO) {
+            video_stream_index_ = i;
             break;
         }
     }
-    if (desiredStream_ == -1)
+    if (video_stream_index_ == -1)
         return false;
 
-    // Get a pointer to the codec context for the video stream
-    codec_ctx_orig_ = format_context_->streams[desiredStream_]->codec;
-    double fps = av_q2d(format_context_->streams[desiredStream_]->avg_frame_rate);
-    if (fps < 0) {
-        fps = 1.0 / av_q2d(format_context_
-                           ->streams[desiredStream_]->codec->time_base);
-    }
-    frame_duration_ = Duration::Nanos(1e9 / fps);
+    auto stream = format_context_->streams[video_stream_index_];
+    AVRational rate = av_guess_frame_rate(format_context_, stream, nullptr);
+    frame_duration_ = Duration::Nanos(1e9 * rate.den / rate.num);
 
-    // Find the decoder for the video stream
-    AVCodec *const av_codec = avcodec_find_decoder(codec_ctx_orig_->codec_id);
-    if (!av_codec) {
-        fprintf(stderr, "Unsupported codec!\n");
-        return false;
-    }
-    // Copy context
     codec_context_ = avcodec_alloc_context3(av_codec);
-    if (avcodec_copy_context(codec_context_, codec_ctx_orig_) != 0) {
-        fprintf(stderr, "Couldn't copy codec context");
+    if (avcodec_parameters_to_context(codec_context_, codec_parameters) < 0)
         return false;
-    }
-
-    // Open codec
-    if (avcodec_open2(codec_context_, av_codec, NULL)<0)
+    if (avcodec_open2(codec_context_, av_codec, NULL) < 0)
         return false;
 
     /*
      * Prepare frame to hold the scaled target frame to be send to matrix.
      */
-    output_frame_ = av_frame_alloc();  // Target frame for output
     int target_width = 0;
     int target_height = 0;
-    // Make display fit within canvas.
+
+    // Make display fit within canvas using the timg scaling utility.
     ScaleOptions opts(scale_options);
     opts.fill_height = false;  // This only makes sense for horizontal scroll.
     ScaleWithOptions(codec_context_->width, codec_context_->height,
                      screen_width, screen_height, opts,
                      &target_width, &target_height);
-
-    // Allocate buffer to meet output size requirements
-    const size_t output_size = avpicture_get_size(AV_PIX_FMT_RGB24,
-                                                  target_width,
-                                                  target_height);
-    output_buffer_ = (uint8_t *) av_malloc(output_size);
-
-    // Assign appropriate parts of buffer to image planes in output_frame.
-    // Note that output_frame is an AVFrame, but AVFrame is a superset
-    // of AVPicture
-    avpicture_fill((AVPicture *)output_frame_, output_buffer_, AV_PIX_FMT_RGB24,
-                   target_width, target_height);
-
-    framebuffer_ = new timg::Framebuffer(target_width, target_height);
 
     // initialize SWS context for software scaling
     sws_context_ = CreateSWSContext(codec_context_,
@@ -174,15 +137,36 @@ bool VideoLoader::LoadAndScale(const char *filename,
                 screen_width, screen_height);
         return false;
     }
+
+    // The output_frame_ will receive the scaled result.
+    output_frame_ = av_frame_alloc();
+    if (av_image_alloc(output_frame_->data, output_frame_->linesize,
+                       target_width, target_height, AV_PIX_FMT_RGB24,
+                       64) < 0) {
+        return false;
+    }
+
+    // Framebuffer to interface with the timg TerminalCanvas
+    terminal_fb_ = new timg::Framebuffer(target_width, target_height);
     return true;
 }
 
+bool VideoLoader::DecodePacket(AVPacket *packet, AVFrame *output_frame) {
+    if (avcodec_send_packet(codec_context_, packet) < 0)
+        return false;
+
+    // TODO: the API looks like we could possibly call receive frame multiple
+    // times, possibly for some queued multiple frames ? In that case we
+    // should do something for each frame we get.
+    return avcodec_receive_frame(codec_context_, output_frame) == 0;
+}
+
 void VideoLoader::CopyToFramebuffer(const AVFrame *av_frame) {
-    struct Pixel { uint8_t r, g, b; };
-    for (int y = 0; y < framebuffer_->height(); ++y) {
+    struct Pixel { uint8_t r, g, b; } __attribute__((packed));
+    for (int y = 0; y < terminal_fb_->height(); ++y) {
         Pixel *pix = (Pixel*) (av_frame->data[0] + y*av_frame->linesize[0]);
-        for (int x = 0; x < framebuffer_->width(); ++x, ++pix) {
-            framebuffer_->SetPixel(x, y, pix->r, pix->g, pix->b);
+        for (int x = 0; x < terminal_fb_->width(); ++x, ++pix) {
+            terminal_fb_->SetPixel(x, y, pix->r, pix->g, pix->b);
         }
     }
 }
@@ -190,39 +174,36 @@ void VideoLoader::CopyToFramebuffer(const AVFrame *av_frame) {
 void VideoLoader::Play(Duration duration,
                        const volatile sig_atomic_t &interrupt_received,
                        timg::TerminalCanvas *canvas) {
-    AVPacket packet;
-    int frameFinished;
+    AVPacket *packet = av_packet_alloc();
     bool is_first = true;
     const Time end_time = Time::Now() + duration;
     AVFrame *decode_frame = av_frame_alloc();  // Decode video into this
     timg::Time end_next_frame;
     while (Time::Now() < end_time && !interrupt_received
-           && av_read_frame(format_context_, &packet) >= 0) {
-        // Is this a packet from the video stream?
-        if (packet.stream_index == desiredStream_) {
+           && av_read_frame(format_context_, packet) >= 0) {
+        if (packet->stream_index == video_stream_index_) {
             // Determine absolute end of this frame now so that we don't include
-            // decoding overhead. TODO: skip frames if getting too slow ?
+            // decoding overhead.
+            // TODO: skip frames if getting too much behind ?
             end_next_frame.Add(frame_duration_);
 
             // Decode video frame
-            avcodec_decode_video2(codec_context_, decode_frame, &frameFinished, &packet);
-            // Did we get a video frame?
-            if (frameFinished) {
-                // Convert the image from its native format to RGB
+            if (DecodePacket(packet, decode_frame)) {
                 sws_scale(sws_context_,
-                          (uint8_t const * const *)decode_frame->data,
-                          decode_frame->linesize, 0, codec_context_->height,
+                          decode_frame->data, decode_frame->linesize,
+                          0, codec_context_->height,
                           output_frame_->data, output_frame_->linesize);
                 CopyToFramebuffer(output_frame_);
-                if (!is_first) canvas->JumpUpPixels(framebuffer_->height());
-                canvas->Send(*framebuffer_);
+                if (!is_first) canvas->JumpUpPixels(terminal_fb_->height());
+                canvas->Send(*terminal_fb_);
                 is_first = false;
             }
             end_next_frame.WaitUntil();
         }
-        av_free_packet(&packet);  // was allocated by av_read_frame
+        av_packet_unref(packet);  // was allocated by av_read_frame
     }
     av_frame_free(&decode_frame);
+    av_packet_free(&packet);
 }
 
 }  // namespace timg

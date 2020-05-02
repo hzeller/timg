@@ -26,14 +26,12 @@
 #  include "video-display.h"
 #endif
 
-#include <assert.h>
 #include <math.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
-#include <sys/time.h>
 #include <unistd.h>
 
 #include <Magick++.h>
@@ -89,9 +87,6 @@ static int usage(const char *progname, int w, int h) {
 
 int main(int argc, char *argv[]) {
     Magick::InitializeMagick(*argv);
-#ifdef WITH_TIMG_VIDEO
-    timg::VideoLoader::Init();
-#endif
 
     struct winsize w = {};
     const bool winsize_success = (ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == 0);

@@ -9,7 +9,7 @@ CXXFLAGS=$(MAGICK_CXXFLAGS) -Wall -Wextra -W -Wno-unused-parameter -O3 -fPIC -st
 ifneq ($(WITH_VIDEO_DECODING), 0)
   AV_CXXFLAGS=$(shell pkg-config --cflags  libavcodec libavformat libswscale libavutil)
   AV_LDFLAGS=$(shell pkg-config --cflags --libs  libavcodec libavformat libswscale libavutil)
-  CXXFLAGS+=$(AV_CXXFLAGS) -Wno-deprecated-declarations -DWITH_TIMG_VIDEO
+  CXXFLAGS+=$(AV_CXXFLAGS) -DWITH_TIMG_VIDEO
   LDFLAGS+=$(AV_LDFLAGS)
   OBJECTS+=video-display.o
 endif

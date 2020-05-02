@@ -18,25 +18,24 @@
 
 #include <signal.h>
 
-#include "timg-time.h"
 #include "terminal-canvas.h"
+#include "timg-time.h"
 
-struct SwsContext;
 struct AVCodecContext;
-struct AVFrame;
 struct AVFormatContext;
+struct AVFrame;
+struct AVPacket;
+struct SwsContext;
 
 namespace timg {
 struct ScaleOptions;
 
+// Video loader, meant for one video to load, and if successful, Play().
 class VideoLoader {
 public:
-    // General initialization for video playing.
-    static void Init();
-
     ~VideoLoader();
 
-    // Attempt to load given filename as video, and set-up scaling.
+    // Attempt to load given filename as video, open stream and set-up scaling.
     // Returns true on success.
     bool LoadAndScale(const char *filename,
                       int display_width, int display_height,
@@ -52,16 +51,15 @@ public:
 
 private:
     void CopyToFramebuffer(const AVFrame *av_frame);
+    bool DecodePacket(AVPacket *packet, AVFrame *output_frame);
 
-    int desiredStream_ = -1;
+    int video_stream_index_ = -1;
     AVFormatContext *format_context_ = nullptr;
     AVCodecContext *codec_context_ = nullptr;
-    AVCodecContext *codec_ctx_orig_ = nullptr;
     AVFrame *output_frame_ = nullptr;
     SwsContext *sws_context_ = nullptr;
     timg::Duration frame_duration_;  // 1/fps
-    uint8_t *output_buffer_ = nullptr;
-    timg::Framebuffer *framebuffer_ = nullptr;
+    timg::Framebuffer *terminal_fb_ = nullptr;
 };
 
 }  // namespace timg
