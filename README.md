@@ -102,9 +102,16 @@ echo some-image.jpg | fzf --preview='timg -E -f1 -c1 -g $(( $COLUMNS / 2 - 4 ))x
 
 # Of course, you can go really crazy by storing a cycle of an animation. Use xz
 # for compression as it seems to deal with this kind of stuff really well:
-timg -g60x30 -C -c1 nyan.gif | xz > /tmp/nyan.term.xz
-# ..now, replay that cycle in a loop. Latch on the frame marker with awk to delay
-while : ; do xzcat /tmp/nyan.term.xz | gawk '/\[[0-9]+A/ { system("sleep 0.1"); } { print $0 }' ; done
+timg -g60x30 -c10 nyan.gif | xz > /tmp/nyan.term.xz
+
+# ..now, replay that cycle in a loop. Each frame has a 'move up rows'
+# escape sequence that contains an upper-case 'A'. We can latch on that to
+# generate a delay between frames:
+xzcat /tmp/nyan.term.xz | gawk '/A/ { system("sleep 0.1"); } { print $0 }'
+
+#You can wrap all that in a loop to get an infinite repeat.
+while : ; do xzcat... ; done
+
 # (If you ctrl-c that loop, you might need to use 'reset' for terminal sanity)
 ```
 
