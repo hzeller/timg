@@ -93,9 +93,6 @@ timg -b white -B gray some-transparent-image.png
 # Another use: can run use this in a fzf preview window:
 echo some-image.jpg | fzf --preview='timg -E -f1 -c1 -g $(( $COLUMNS / 2 - 4 ))x$(( $FZF_PREVIEW_HEIGHT * 2 )) {}'
 
-# Look at a PDF file, scale it to the width of the terminal
-timg -W foo.pdf
-
 # Also, you could store the output and cat later to your terminal...
 timg -g80x40 some-image.jpg > /tmp/imageout.txt
 cat /tmp/imageout.txt
