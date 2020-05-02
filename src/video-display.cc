@@ -146,8 +146,10 @@ bool VideoLoader::LoadAndScale(const char *filename,
     int target_width = 0;
     int target_height = 0;
     // Make display fit within canvas.
+    ScaleOptions opts(scale_options);
+    opts.fill_height = false;  // This only makes sense for horizontal scroll.
     ScaleWithOptions(codec_context_->width, codec_context_->height,
-                     screen_width, screen_height, scale_options,
+                     screen_width, screen_height, opts,
                      &target_width, &target_height);
 
     // Allocate buffer to meet output size requirements
