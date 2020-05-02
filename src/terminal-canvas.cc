@@ -76,7 +76,7 @@ static void reliable_write(int fd, const char *buf, size_t size) {
     }
 }
 
-char *TerminalCanvas::EnsureBuffer(int width, int height) {
+char *TerminalCanvas::EnsureBuffer(int width, int height, int indent) {
     // Pixels will be variable size depending on if we need to change colors
     // between two adjacent pixels. This is the maximum size they can be.
     static const int max_pixel_size = strlen("\033[")
@@ -88,9 +88,10 @@ char *TerminalCanvas::EnsureBuffer(int width, int height) {
 
     const int vertical_characters = (height+1) / 2;   // two pixels, one glyph
     const size_t character_buffer_size = vertical_characters *
-        (width * max_pixel_size           // pixels in one row
-         + strlen(SCREEN_RESET)            // Reset at each EOL
-         + 1);                             // one \n per line
+        (indent                    // Horizontal indentation with spaces
+         + width * max_pixel_size  // pixels in one row
+         + strlen(SCREEN_RESET)    // Reset at each EOL
+         + 1);                     // one \n per line
 
     if (character_buffer_size > buffer_size_) {
         if (!content_buffer_) {
@@ -128,15 +129,19 @@ static char *WriteAnsiColor(char *buf, uint32_t col) {
     return int_append(buf, (col & 0xff));
 }
 
-void TerminalCanvas::Send(const Framebuffer &framebuffer) {
+void TerminalCanvas::Send(const Framebuffer &framebuffer, int indent) {
     static constexpr char kStartEscape[] = "\033[";
     const int width = framebuffer.width();
     const int height = framebuffer.height();
-    char *start_buffer = EnsureBuffer(width, height);
+    char *start_buffer = EnsureBuffer(width, height, indent);
     char *pos = start_buffer;
     for (int y = 0; y < height; y+=2) {
         Framebuffer::rgb_t last_fg = 0xff000000;  // Guaranteed != first color
         Framebuffer::rgb_t last_bg = 0xff000000;
+        if (indent > 0) {
+            memset(pos, ' ', indent);
+            pos += indent;
+        }
         for (int x = 0; x < width; ++x) {
             const Framebuffer::rgb_t fg = framebuffer.pixels_[width*y + x];
             const Framebuffer::rgb_t bg = framebuffer.pixels_[width*(y+1) + x];

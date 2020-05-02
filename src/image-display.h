@@ -23,21 +23,22 @@
 #include "terminal-canvas.h"
 
 namespace timg {
-struct ScaleOptions {
+struct DisplayOptions {
     // If image is smaller than screen, only upscale if do_upscale is set.
-    bool do_upscale = false;
+    bool upscale = false;
     bool fill_width = false;   // Fill screen width, allow overflow height.
     bool fill_height = false;  // Fill screen height, allow overflow width.
-    bool do_antialias = true;  // Try a pleasing antialiasing while scaling.
+    bool antialias = true;     // Try a pleasing antialiasing while scaling.
+    bool center_horizontally = false;  // Try to center image
 };
 
 // Determine the target width and height given the incoming image size
 // and desired fit in screen-width.
 // Returns 'true' if the image has to be scaled.
-bool ScaleWithOptions(int img_width, int img_height,
-                      int screen_width, int screen_height,
-                      const ScaleOptions &options,
-                      int *target_width, int *target_height);
+bool ScaleToFit(int img_width, int img_height,
+                int screen_width, int screen_height,
+                const DisplayOptions &options,
+                int *target_width, int *target_height);
 
 class ImageLoader {
 public:
@@ -52,7 +53,7 @@ public:
     // We're ready for display.
     bool LoadAndScale(const char *filename,
                       int display_width, int display_height,
-                      const ScaleOptions &options,
+                      const DisplayOptions &options,
                       const char *bg_color, const char *pattern_color);
 
     // Display loaded image. If this is an animation, then
@@ -75,10 +76,15 @@ public:
 
 private:
     class PreprocessedFrame;
+
+    // Return how much we should indent a frame if centering is requested.
+    int IndentationIfCentered(const PreprocessedFrame *frame) const;
+
     int display_width_;
     int display_height_;
     std::vector<PreprocessedFrame *> frames_;
     bool is_animation_ = false;
+    bool center_horizontally_ = false;
 };
 
 }  // namespace timg

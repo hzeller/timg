@@ -66,7 +66,12 @@ static int usage(const char *progname, int w, int h) {
             "\t             (useful, if you stream from stdin).\n"
             "\t-b<str>    : Background color to use on transparent images (default '').\n"
             "\t-B<str>    : Checkerboard pattern color to use on transparent images (default '').\n"
-            "\t-C         : Clear screen before showing images.\n"
+            // used -C before to clear screen, but that is really a small
+            // feature that should not request a toplevel option. Let's make
+            // this --clear once we use long options, and re-use -C for
+            // centering.
+            //"\t-C         : Clear screen before showing images.\n"
+            "\t-C         : Center image horizontally.\n"
             "\t-F         : Print filename before showing images.\n"
             "\t-E         : Don't hide the cursor while showing images.\n"
             "\t-v         : Print version and exit.\n"
@@ -95,7 +100,7 @@ int main(int argc, char *argv[]) {
     const int term_width = w.ws_col;
     const int term_height = 2 * (w.ws_row-1);  // double number of pixels high.
 
-    timg::ScaleOptions scale_options;
+    timg::DisplayOptions display_opts;
     bool do_scroll = false;
     bool do_clear = false;
 
@@ -138,7 +143,7 @@ int main(int argc, char *argv[]) {
             max_frames = atoi(optarg);
             break;
         case 'a':
-            scale_options.do_antialias = false;
+            display_opts.antialias = false;
             break;
         case 'b':
             bg_color = strdup(optarg);
@@ -167,10 +172,11 @@ int main(int argc, char *argv[]) {
             }
             break;
         case 'C':
-            do_clear = true;
+            // used to be do_clear. Needs to find a new home in --clear
+            display_opts.center_horizontally = true;
             break;
         case 'U':
-            scale_options.do_upscale = !scale_options.do_upscale;
+            display_opts.upscale = !display_opts.upscale;
             break;
         case 'F':
             show_filename = !show_filename;
@@ -217,8 +223,8 @@ int main(int argc, char *argv[]) {
 
     // If we scroll in one direction (so have 'infinite' space) we want fill
     // the available screen space fully in the other direction.
-    scale_options.fill_width  = fit_width || (do_scroll && dy != 0);
-    scale_options.fill_height = do_scroll && dx != 0; // scroll hor, fill vert
+    display_opts.fill_width  = fit_width || (do_scroll && dy != 0);
+    display_opts.fill_height = do_scroll && dx != 0; // scroll hor, fill vert
     int exit_code = 0;
 
     signal(SIGTERM, InterruptHandler);
@@ -239,7 +245,7 @@ int main(int argc, char *argv[]) {
         if (!skip_image_loading) {
             timg::ImageLoader image_loader;
             if (image_loader.LoadAndScale(filename, width, height,
-                                          scale_options,
+                                          display_opts,
                                           bg_color, pattern_color)) {
                 if (do_scroll) {
                     image_loader.Scroll(duration, loops, interrupt_received,
@@ -257,7 +263,7 @@ int main(int argc, char *argv[]) {
 
 #ifdef WITH_TIMG_VIDEO
         timg::VideoLoader video_loader;
-        if (video_loader.LoadAndScale(filename, width, height, scale_options)) {
+        if (video_loader.LoadAndScale(filename, width, height, display_opts)) {
             video_loader.Play(duration, interrupt_received, &canvas);
             continue;
         }

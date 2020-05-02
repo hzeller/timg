@@ -25,15 +25,15 @@
 
 namespace timg {
 // Returns 'true' if anything is to do to the picture.
-bool ScaleWithOptions(int img_width, int img_height,
-                      const int screen_width, const int screen_height,
-                      const ScaleOptions &options,
-                      int *target_width, int *target_height) {
+bool ScaleToFit(int img_width, int img_height,
+                const int screen_width, const int screen_height,
+                const DisplayOptions &options,
+                int *target_width, int *target_height) {
     const float width_fraction = (float)screen_width / img_width;
     const float height_fraction = (float)screen_height / img_height;
 
     // If the image < screen, only upscale if do_upscale requested
-    if (!options.do_upscale &&
+    if (!options.upscale &&
         (options.fill_height || width_fraction > 1.0) &&
         (options.fill_width || height_fraction > 1.0)) {
         *target_width = img_width;
@@ -143,11 +143,12 @@ static bool EndsWith(const char *filename, const char *suffix) {
 
 bool ImageLoader::LoadAndScale(const char *filename,
                                int display_width, int display_height,
-                               const ScaleOptions &scale_options,
+                               const DisplayOptions &display_options,
                                const char *bg_color,
                                const char *pattern_color) {
     display_width_ = display_width;
     display_height_ = display_height;
+    center_horizontally_ = display_options.center_horizontally;
 
     std::vector<Magick::Image> frames;
     try {
@@ -183,11 +184,9 @@ bool ImageLoader::LoadAndScale(const char *filename,
 
     for (Magick::Image &img : result) {
         int target_width = 0, target_height = 0;
-        if (ScaleWithOptions(img.columns(), img.rows(),
-                             display_width, display_height,
-                             scale_options,
-                             &target_width, &target_height)) {
-            if (scale_options.do_antialias)
+        if (ScaleToFit(img.columns(), img.rows(), display_width, display_height,
+                       display_options, &target_width, &target_height)) {
+            if (display_options.antialias)
                 img.scale(Magick::Geometry(target_width, target_height));
             else
                 img.sample(Magick::Geometry(target_width, target_height));
@@ -212,6 +211,12 @@ bool ImageLoader::LoadAndScale(const char *filename,
     }
 
     return true;
+}
+
+int ImageLoader::IndentationIfCentered(const PreprocessedFrame *frame) const {
+    return center_horizontally_
+        ? (display_width_ - frame->framebuffer().width()) / 2
+        : 0;
 }
 
 void ImageLoader::Display(Duration duration, int max_frames, int loops,
@@ -239,7 +244,7 @@ void ImageLoader::Display(Duration duration, int max_frames, int loops,
             if (is_animation_ && last_height > 0) {
                 canvas->JumpUpPixels(last_height);
             }
-            canvas->Send(frame->framebuffer());
+            canvas->Send(frame->framebuffer(), IndentationIfCentered(frame));
             last_height = frame->framebuffer().height();
             const Time frame_finish = frame_start + frame->delay();
             frame_finish.WaitUntil();
@@ -313,7 +318,7 @@ void ImageLoader::Scroll(Duration duration, int loops,
             if (!is_first) {
                 canvas->JumpUpPixels(display_fb.height());
             }
-            canvas->Send(display_fb);
+            canvas->Send(display_fb, 0);
             is_first = false;
             const Time frame_finish = frame_start + scroll_delay;
             frame_finish.WaitUntil();

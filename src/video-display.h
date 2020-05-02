@@ -28,7 +28,7 @@ struct AVPacket;
 struct SwsContext;
 
 namespace timg {
-struct ScaleOptions;
+struct DisplayOptions;
 
 // Video loader, meant for one video to load, and if successful, Play().
 class VideoLoader {
@@ -39,7 +39,7 @@ public:
     // Returns true on success.
     bool LoadAndScale(const char *filename,
                       int display_width, int display_height,
-                      const ScaleOptions &options);
+                      const DisplayOptions &options);
 
     // Play video up to given duration.
     //
@@ -60,6 +60,7 @@ private:
     SwsContext *sws_context_ = nullptr;
     timg::Duration frame_duration_;  // 1/fps
     timg::Framebuffer *terminal_fb_ = nullptr;
+    int center_indentation_ = 0;
 };
 
 }  // namespace timg

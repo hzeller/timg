@@ -79,7 +79,7 @@ VideoLoader::~VideoLoader() {
 
 bool VideoLoader::LoadAndScale(const char *filename,
                                int screen_width, int screen_height,
-                               const ScaleOptions &scale_options) {
+                               const DisplayOptions &display_options) {
     if (strcmp(filename, "-") == 0) {
         filename = "/dev/stdin";
     }
@@ -126,12 +126,15 @@ bool VideoLoader::LoadAndScale(const char *filename,
     int target_height = 0;
 
     // Make display fit within canvas using the timg scaling utility.
-    ScaleOptions opts(scale_options);
+    DisplayOptions opts(display_options);
     opts.fill_height = false;  // This only makes sense for horizontal scroll.
-    ScaleWithOptions(codec_context_->width, codec_context_->height,
-                     screen_width, screen_height, opts,
-                     &target_width, &target_height);
+    ScaleToFit(codec_context_->width, codec_context_->height,
+               screen_width, screen_height, opts,
+               &target_width, &target_height);
 
+    if (display_options.center_horizontally) {
+        center_indentation_ = (screen_width - target_width)/2;
+    }
     // initialize SWS context for software scaling
     sws_context_ = CreateSWSContext(codec_context_,
                                     target_width, target_height);
@@ -198,7 +201,7 @@ void VideoLoader::Play(Duration duration,
                           output_frame_->data, output_frame_->linesize);
                 CopyToFramebuffer(output_frame_);
                 if (!is_first) canvas->JumpUpPixels(terminal_fb_->height());
-                canvas->Send(*terminal_fb_);
+                canvas->Send(*terminal_fb_, center_indentation_);
                 is_first = false;
             }
             end_next_frame.WaitUntil();

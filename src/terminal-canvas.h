@@ -54,7 +54,7 @@ public:
     ~TerminalCanvas();
 
     // Send frame to terminal.
-    void Send(const Framebuffer &framebuffer);
+    void Send(const Framebuffer &framebuffer, int horizontal_indent);
 
     // Move cursor up give number of pixels.
     void JumpUpPixels(int pixels);
@@ -65,8 +65,8 @@ public:
 
 private:
     const int fd_;
-    // Return a buffer large enough to
-    char *EnsureBuffer(int width, int height);
+    // Return a buffer large enough to hold the whole ANSI-color encoded text.
+    char *EnsureBuffer(int width, int height, int indent);
 
     char *content_buffer_ = nullptr;  // Buffer containing content to write out
     size_t buffer_size_ = 0;

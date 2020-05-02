@@ -31,7 +31,7 @@ sudo make install
 ```
 usage: timg [options] <image/video> [<image/video>...]
 Options:
-        -g<w>x<h>  : Output pixel geometry. Default from terminal 203x126
+        -g<w>x<h>  : Output pixel geometry. Default from terminal 195x126
         -w<seconds>: If multiple images given: Wait time between (default: 0.0).
         -a         : Switch off antialiasing (default: on)
         -W         : Scale to fit width of terminal (default: fit terminal width and height)
@@ -41,7 +41,7 @@ Options:
                      (useful, if you stream from stdin).
         -b<str>    : Background color to use on transparent images (default '').
         -B<str>    : Checkerboard pattern color to use on transparent images (default '').
-        -C         : Clear screen before showing images.
+        -C         : Center image horizontally.
         -F         : Print filename before showing images.
         -E         : Don't hide the cursor while showing images.
         -v         : Print version and exit.
@@ -74,7 +74,7 @@ timg some-video.mp4         # Watch a video.
 
 # If you read a video from a pipe, it is necessary to skip attempting the
 # image decode first as this will consume bytes from the pipe. Use -V
-youtube-dl -q -o- -f'[height<480]' 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' | ./timg -V -
+youtube-dl -q -o- -f'[height<480]' 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' | timg -V -
 
 # Show animated gif with timeout.
 timg some-animated.gif      # show an animated gif (stop with Ctrl-C)
