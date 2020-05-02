@@ -104,12 +104,13 @@ echo some-image.jpg | fzf --preview='timg -E -f1 -c1 -g $(( $COLUMNS / 2 - 4 ))x
 # for compression as it seems to deal with this kind of stuff really well:
 timg -g60x30 -c10 nyan.gif | xz > /tmp/nyan.term.xz
 
-# ..now, replay that cycle in a loop. Each frame has a 'move up rows'
-# escape sequence that contains an upper-case 'A'. We can latch on that to
-# generate a delay between frames:
+# ..now, replay the generated ANSI codes on the terminal. Since it would
+# rush through as fast as possible, we have to use a trick to wait between
+# frames: Each frame has a 'move cursor up' escape sequence that contains
+# an upper-case 'A'. We can latch on that to generate a delay between frames:
 xzcat /tmp/nyan.term.xz | gawk '/A/ { system("sleep 0.1"); } { print $0 }'
 
-#You can wrap all that in a loop to get an infinite repeat.
+# You can wrap all that in a loop to get an infinite repeat.
 while : ; do xzcat... ; done
 
 # (If you ctrl-c that loop, you might need to use 'reset' for terminal sanity)
