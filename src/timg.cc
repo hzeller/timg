@@ -62,6 +62,8 @@ static int usage(const char *progname, int w, int h) {
             "fit terminal width and height)\n"
             "\t-U         : Toggle Upscale. If an image is smaller than\n"
             "\t             the terminal size, scale it up to full size.\n"
+            "\t-V         : This is a video, don't attempt to probe image deocding first\n"
+            "\t             (useful, if you stream from stdin).\n"
             "\t-b<str>    : Background color to use on transparent images (default '').\n"
             "\t-B<str>    : Checkerboard pattern color to use on transparent images (default '').\n"
             "\t-C         : Clear screen before showing images.\n"
@@ -111,9 +113,10 @@ int main(int argc, char *argv[]) {
     int dx = 1;
     int dy = 0;
     bool fit_width = false;
+    bool skip_image_loading = false;
 
     int opt;
-    while ((opt = getopt(argc, argv, "vg:s::w:t:c:f:b:B:hCFEd:UWa")) != -1) {
+    while ((opt = getopt(argc, argv, "vg:s::w:t:c:f:b:B:hCFEd:UWaV")) != -1) {
         switch (opt) {
         case 'g':
             if (sscanf(optarg, "%dx%d", &width, &height) < 2) {
@@ -148,6 +151,13 @@ int main(int argc, char *argv[]) {
             if (optarg != NULL) {
                 scroll_delay = Duration::Millis(atoi(optarg));
             }
+            break;
+        case 'V':
+#ifdef WITH_TIMG_VIDEO
+            skip_image_loading = true;
+#else
+            fprintf(stderr, "-V: Video support not compiled in\n");
+#endif
             break;
         case 'd':
             if (sscanf(optarg, "%d:%d", &dx, &dy) < 1) {
@@ -226,26 +236,28 @@ int main(int argc, char *argv[]) {
             printf("%s\n", filename);
         }
 
-        timg::ImageLoader image_loader;
-        if (image_loader.LoadAndScale(filename, width, height, scale_options,
-                                      bg_color, pattern_color)) {
-            if (do_scroll) {
-                image_loader.Scroll(duration, loops, interrupt_received,
-                                    dx, dy, scroll_delay, &canvas);
-            } else {
-                image_loader.Display(duration, max_frames, loops,
-                                     interrupt_received, &canvas);
+        if (!skip_image_loading) {
+            timg::ImageLoader image_loader;
+            if (image_loader.LoadAndScale(filename, width, height,
+                                          scale_options,
+                                          bg_color, pattern_color)) {
+                if (do_scroll) {
+                    image_loader.Scroll(duration, loops, interrupt_received,
+                                        dx, dy, scroll_delay, &canvas);
+                } else {
+                    image_loader.Display(duration, max_frames, loops,
+                                         interrupt_received, &canvas);
+                }
+                if (!image_loader.is_animation()) {
+                    (Time::Now() + between_images_duration).WaitUntil();
+                }
+                continue;
             }
-            if (!image_loader.is_animation()) {
-                (Time::Now() + between_images_duration).WaitUntil();
-            }
-            continue;
         }
 
 #ifdef WITH_TIMG_VIDEO
         timg::VideoLoader video_loader;
-        if (video_loader.LoadAndScale(filename, width, height,
-                                           scale_options)) {
+        if (video_loader.LoadAndScale(filename, width, height, scale_options)) {
             video_loader.Play(duration, interrupt_received, &canvas);
             continue;
         }
@@ -253,6 +265,12 @@ int main(int argc, char *argv[]) {
 
         // We either loaded, played and continue'ed, or we end up here.
         fprintf(stderr, "%s: couldn't load\n", filename);
+#ifdef WITH_TIMG_VIDEO
+        if (strcmp(filename, "-") == 0 || strcmp(filename, "/dev/stdin") == 0) {
+            fprintf(stderr, "If this is a video on stdin, use '-V' to "
+                    "skip image probing\n");
+        }
+#endif
     }
 
     if (hide_cursor) {

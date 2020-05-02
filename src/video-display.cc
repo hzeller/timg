@@ -80,6 +80,9 @@ VideoLoader::~VideoLoader() {
 bool VideoLoader::LoadAndScale(const char *filename,
                                int screen_width, int screen_height,
                                const ScaleOptions &scale_options) {
+    if (strcmp(filename, "-") == 0) {
+        filename = "/dev/stdin";
+    }
     format_context_ = avformat_alloc_context();
     if (avformat_open_input(&format_context_, filename, NULL, NULL) != 0) {
         perror("Issue opening file");
