@@ -1,12 +1,13 @@
-timg - Terminal Image Viewer
-============================
+timg - Terminal Image and Video Viewer
+======================================
 
 A viewer that uses 24-Bit color capabilities and unicode character blocks
 to display images in the terminal.
 
 ![](./img/sunflower-term.png)
 
-Displays regular images, plays animated gifs or allows to scroll static images.
+Displays regular images, plays animated gifs, scrolls static images and
+plays videos.
 
 Very useful for if you want to have a quick visual check without starting a
 bulky image viewer ... and don't care about resolution.
@@ -17,14 +18,18 @@ bulky image viewer ... and don't care about resolution.
 git clone https://github.com/hzeller/timg.git
 cd timg/src
 sudo apt-get install libwebp-dev libgraphicsmagick++-dev    # required libs.
-make
+
+# If you want to include video decoding
+sudo apt-get install pkg-config libavcodec-dev libavformat-dev libswscale-dev
+
+make WITH_VIDEO_DECODING=1
 sudo make install
 ```
 
 ### Synopsis
 
 ```
-usage: ./timg [options] <image> [<image>...]
+usage: ./timg [options] <image/video> [<image/video>...]
 Options:
         -g<w>x<h>  : Output pixel geometry. Default from terminal 203x126
         -w<seconds>: If multiple images given: Wait time between (default: 0.0).

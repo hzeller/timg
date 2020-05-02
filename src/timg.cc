@@ -20,7 +20,11 @@
 
 #include "terminal-canvas.h"
 #include "timg-time.h"
+
 #include "image-display.h"
+#ifdef WITH_TIMG_VIDEO
+#  include "video-display.h"
+#endif
 
 #include <assert.h>
 #include <math.h>
@@ -45,7 +49,13 @@ static void InterruptHandler(int signo) {
 }
 
 static int usage(const char *progname, int w, int h) {
-    fprintf(stderr, "usage: %s [options] <image> [<image>...]\n", progname);
+#ifdef WITH_TIMG_VIDEO
+    static constexpr char kFileType[] = "image/video";
+#else
+    static constexpr char kFileType[] = "image";
+#endif
+    fprintf(stderr, "usage: %s [options] <%s> [<%s>...]\n", progname,
+            kFileType, kFileType);
     fprintf(stderr, "Options:\n"
             "\t-g<w>x<h>  : Output pixel geometry. Default from terminal %dx%d\n"
             "\t-w<seconds>: If multiple images given: Wait time between (default: 0.0).\n"
@@ -79,6 +89,9 @@ static int usage(const char *progname, int w, int h) {
 
 int main(int argc, char *argv[]) {
     Magick::InitializeMagick(*argv);
+#ifdef WITH_TIMG_VIDEO
+    timg::VideoLoader::Init();
+#endif
 
     struct winsize w = {};
     const bool winsize_success = (ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == 0);
@@ -231,11 +244,16 @@ int main(int argc, char *argv[]) {
             if (!image_loader.is_animation()) {
                 (Time::Now() + between_images_duration).WaitUntil();
             }
-        }
-        else if (false) {  // TODO: video loading.
-            exit_code = 1;
             continue;
         }
+
+#ifdef WITH_TIMG_VIDEO
+        timg::VideoLoader video_loader;
+        if (video_loader.LoadAndScale(filename, width, height,
+                                           scale_options)) {
+            video_loader.Play(duration, interrupt_received, &canvas);
+        }
+#endif
     }
 
     if (hide_cursor) {
