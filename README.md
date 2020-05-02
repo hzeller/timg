@@ -105,6 +105,10 @@ echo some-image.jpg | fzf --preview='timg -E -f1 -c1 -g $(( $COLUMNS / 2 - 4 ))x
 timg -g80x40 some-image.jpg > /tmp/imageout.txt
 cat /tmp/imageout.txt
 
+# Of course, you can redirect the output to somewhere else. I am not suggesting
+# that you rickroll some terminal by redirecting timg's output to a /dev/pts/*
+# you have access to, but you certainly could...
+
 # Of course, you can go really crazy by storing a cycle of an animation. Use xz
 # for compression as it seems to deal with this kind of stuff really well:
 timg -g60x30 -c10 nyan.gif | xz > /tmp/nyan.term.xz
