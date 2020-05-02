@@ -29,7 +29,7 @@ sudo make install
 ### Synopsis
 
 ```
-usage: ./timg [options] <image/video> [<image/video>...]
+usage: timg [options] <image/video> [<image/video>...]
 Options:
         -g<w>x<h>  : Output pixel geometry. Default from terminal 203x126
         -w<seconds>: If multiple images given: Wait time between (default: 0.0).
