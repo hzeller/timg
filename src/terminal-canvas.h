@@ -71,6 +71,6 @@ private:
     char *content_buffer_ = nullptr;  // Buffer containing content to write out
     size_t buffer_size_ = 0;
 };
-}  // namespace framebuffer
+}  // namespace timg
 
 #endif // TERMINAL_CANVAS_H_

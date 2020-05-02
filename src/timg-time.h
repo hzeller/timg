@@ -84,7 +84,7 @@ private:
     struct timespec time_;
 };
 
-Time operator+(const Time &t, Duration d) {
+inline Time operator+(const Time &t, Duration d) {
     Time result = t;
     result.Add(d);
     return result;
