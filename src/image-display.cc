@@ -46,7 +46,8 @@ bool ScaleWithOptions(int img_width, int img_height,
 
     if (options.fill_width && options.fill_height) {
         // Fill as much as we can get in available space.
-        // Largest scale fraction determines that.
+        // Largest scale fraction determines that. This is for some diagonal
+        // scroll modes.
         const float larger_fraction = (width_fraction > height_fraction)
             ? width_fraction
             : height_fraction;
@@ -62,6 +63,14 @@ bool ScaleWithOptions(int img_width, int img_height,
     else if (options.fill_width) {
         // dito, vertical. Make things fit in horizontal, overflow vertical.
         *target_height = (int) roundf(width_fraction * img_height);
+    }
+    else {
+        // Typical situation: whatever limits first
+        const float smaller_fraction = (width_fraction < height_fraction)
+            ? width_fraction
+            : height_fraction;
+        *target_width = (int) roundf(smaller_fraction * img_width);
+        *target_height = (int) roundf(smaller_fraction * img_height);
     }
     return *target_width != img_width || *target_height != img_height;
 }
@@ -145,7 +154,7 @@ bool ImageLoader::LoadAndScale(const char *filename,
         readImages(&frames, filename);
     }
     catch (std::exception& e) {
-        fprintf(stderr, "Trouble loading %s (%s)\n", filename, e.what());
+        //fprintf(stderr, "Trouble loading %s (%s)\n", filename, e.what());
         return false;
     }
 

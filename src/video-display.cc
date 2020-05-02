@@ -74,7 +74,7 @@ static SwsContext *CreateSWSContext(const AVCodecContext *codec_ctx,
 void VideoLoader::Init() {
     // Register all formats and codecs
     //av_register_all();  // Deprecated. How is it done now ?
-    avformat_network_init();
+    //avformat_network_init();
 }
 
 VideoLoader::~VideoLoader() {
@@ -91,10 +91,8 @@ VideoLoader::~VideoLoader() {
 bool VideoLoader::LoadAndScale(const char *filename,
                                int screen_width, int screen_height,
                                const ScaleOptions &scale_options) {
-    AVCodec   *pCodec = NULL;
-
     if (avformat_open_input(&format_context_, filename, NULL, NULL) != 0) {
-        perror("Issue opening file: ");
+        perror("Issue opening file");
         return false;
     }
 
@@ -125,28 +123,28 @@ bool VideoLoader::LoadAndScale(const char *filename,
     frame_duration_ = Duration::Nanos(1e9 / fps);
 
     // Find the decoder for the video stream
-    pCodec=avcodec_find_decoder(codec_ctx_orig_->codec_id);
-    if (pCodec==NULL) {
+    AVCodec *const av_codec = avcodec_find_decoder(codec_ctx_orig_->codec_id);
+    if (!av_codec) {
         fprintf(stderr, "Unsupported codec!\n");
         return false;
     }
     // Copy context
-    codec_context_ = avcodec_alloc_context3(pCodec);
+    codec_context_ = avcodec_alloc_context3(av_codec);
     if (avcodec_copy_context(codec_context_, codec_ctx_orig_) != 0) {
         fprintf(stderr, "Couldn't copy codec context");
         return false;
     }
 
     // Open codec
-    if (avcodec_open2(codec_context_, pCodec, NULL)<0)
+    if (avcodec_open2(codec_context_, av_codec, NULL)<0)
         return false;
 
     /*
      * Prepare frame to hold the scaled target frame to be send to matrix.
      */
     output_frame_ = av_frame_alloc();  // Target frame for output
-    int target_width = screen_width;
-    int target_height = screen_height;
+    int target_width = 0;
+    int target_height = 0;
     // Make display fit within canvas.
     ScaleWithOptions(codec_context_->width, codec_context_->height,
                      screen_width, screen_height, scale_options,

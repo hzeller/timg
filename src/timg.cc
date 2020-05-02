@@ -252,8 +252,12 @@ int main(int argc, char *argv[]) {
         if (video_loader.LoadAndScale(filename, width, height,
                                            scale_options)) {
             video_loader.Play(duration, interrupt_received, &canvas);
+            continue;
         }
 #endif
+
+        // We either loaded, played and continue'ed, or we end up here.
+        fprintf(stderr, "%s: couldn't load\n", filename);
     }
 
     if (hide_cursor) {
