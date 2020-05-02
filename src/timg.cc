@@ -45,7 +45,7 @@ static void InterruptHandler(int signo) {
   interrupt_received = 1;
 }
 
-void CopyToCanvas(const Magick::Image &img, TerminalCanvas *result) {
+void CopyToFramebuffer(const Magick::Image &img, timg::Framebuffer *result) {
     assert(result->width() >= (int) img.columns()
            && result->height() >= (int) img.rows());
     for (size_t y = 0; y < img.rows(); ++y) {
@@ -65,21 +65,22 @@ void CopyToCanvas(const Magick::Image &img, TerminalCanvas *result) {
 // does not have to be done online. Also knows about the animation delay.
 class PreprocessedFrame {
 public:
-    PreprocessedFrame(const Magick::Image &img, int w, int h)
-        : content_(new TerminalCanvas(img.columns(), img.rows())) {
-        int delay_time = img.animationDelay();  // in 1/100s of a second.
-        if (delay_time < 1) delay_time = 10;
-        delay_ = Duration::Millis(delay_time * 10);
-        CopyToCanvas(img, content_);
+    PreprocessedFrame(const Magick::Image &img)
+        : delay_(DurationFromImgDelay(img)),
+          framebuffer_(img.columns(), img.rows()) {
+        CopyToFramebuffer(img, &framebuffer_);
     }
-    ~PreprocessedFrame() { delete content_; }
-
-    void Send(int fd, bool jump_back) { content_->Send(fd, jump_back); }
     Duration delay() const { return delay_; }
+    const timg::Framebuffer &framebuffer() const { return framebuffer_; }
 
 private:
-    TerminalCanvas *content_;
-    Duration delay_;
+    static Duration DurationFromImgDelay(const Magick::Image &img) {
+        int delay_time = img.animationDelay();  // in 1/100s of a second.
+        if (delay_time < 1) delay_time = 10;
+        return Duration::Millis(delay_time * 10);
+    }
+    const Duration delay_;
+    timg::Framebuffer framebuffer_;
 };
 
 static void RenderBackground(int width, int height,
@@ -229,8 +230,7 @@ static bool LoadImageAndScale(const char *filename,
 void DisplayImageSequence(const std::vector<Magick::Image> &image_sequence,
                           bool is_animation,
                           Duration duration, int max_frames, int loops,
-                          int w, int h, int fd) {
-    std::vector<PreprocessedFrame*> frames;
+                          timg::TerminalCanvas *canvas) {
     if (max_frames == -1) {
         max_frames = image_sequence.size();
     } else {
@@ -238,12 +238,13 @@ void DisplayImageSequence(const std::vector<Magick::Image> &image_sequence,
     }
 
     // Convert to preprocessed frames.
+    std::vector<PreprocessedFrame*> frames;
     for (int i = 0; i < max_frames; ++i) {
-        frames.push_back(new PreprocessedFrame(image_sequence[i], w, h));
+        frames.emplace_back(new PreprocessedFrame(image_sequence[i]));
     }
 
     const Time end_time = Time::Now() + duration;
-    bool is_first = true;
+    int last_height = -1;  // First one will not have a height.
     if (frames.size() == 1 || !is_animation)
         loops = 1;   // If there is no animation, nothing to repeat.
     for (int k = 0;
@@ -251,29 +252,28 @@ void DisplayImageSequence(const std::vector<Magick::Image> &image_sequence,
              && !interrupt_received
              && Time::Now() < end_time;
          ++k) {
-        for (unsigned int i = 0; i < frames.size() && !interrupt_received; ++i) {
+        for (const auto &frame : frames) {
             const Time frame_start = Time::Now();
             if (interrupt_received || frame_start >= end_time)
                 break;
-            PreprocessedFrame *frame = frames[i];
-            const bool jump_back_to_top = is_animation && !is_first;
-            frame->Send(fd, jump_back_to_top);  // Simple. just send it.
-            is_first = false;
+            if (is_animation && last_height > 0) {
+                canvas->JumpUpPixels(last_height);
+            }
+            canvas->Send(frame->framebuffer());
+            last_height = frame->framebuffer().height();
             const Time frame_finish = frame_start + frame->delay();
             frame_finish.WaitUntil();
         }
-    }
-    for (size_t i = 0; i < frames.size(); ++i) {
-        delete frames[i];
     }
 }
 
 static int gcd(int a, int b) { return b == 0 ? a : gcd(b, a % b); }
 
 void DisplayScrolling(const Magick::Image &img, Duration scroll_delay,
-                      Duration duration, int loops, int w, int h,
-                      int dx, int dy, int fd) {
-    TerminalCanvas display(w, h);
+                      Duration duration, int loops,
+                      const int display_w, const int display_h,
+                      int dx, int dy,
+                      timg::TerminalCanvas *canvas) {
     const int img_width = img.columns();
     const int img_height = img.rows();
 
@@ -294,27 +294,17 @@ void DisplayScrolling(const Magick::Image &img, Duration scroll_delay,
     // right or left.
     // For negative direction, guarantee that we never run into negative numbers.
     const int64_t x_init = (dx < 0)
-        ? (img_width - display.width() - dx*cycle_steps) : 0;
+        ? (img_width - display_w - dx*cycle_steps) : 0;
     const int64_t y_init = (dy < 0)
-        ? (img_height - display.height() - dy*cycle_steps) : 0;
+        ? (img_height - display_h - dy*cycle_steps) : 0;
     bool is_first = true;
 
     // Accessing the original image in a loop is very slow with ImageMagic, so
     // we preprocess this first and create our own fast copy.
-    struct RGBCol { RGBCol() : r(0), g(0), b(0){} uint8_t r, g, b; };
-    RGBCol *fast_image = new RGBCol[ img_width * img_height ];
-    for (int y = 0; y < img_height; ++y) {
-        for (int x = 0; x < img_width; ++x) {
-            const Magick::Color &src = img.pixelColor(x, y);
-            if (src.alphaQuantum() >= 255)
-                continue;
-            RGBCol &dest = fast_image[y * img_width + x];
-            dest.r = ScaleQuantumToChar(src.redQuantum());
-            dest.g = ScaleQuantumToChar(src.greenQuantum());
-            dest.b = ScaleQuantumToChar(src.blueQuantum());
-        }
-    }
+    timg::Framebuffer preprocessed(img.columns(), img.rows());
+    CopyToFramebuffer(img, &preprocessed);
 
+    timg::Framebuffer display_fb(display_w, display_h);
     const Time end_time = Time::Now() + duration;
     for (int k = 0;
          (loops < 0 || k < loops)
@@ -327,22 +317,22 @@ void DisplayScrolling(const Magick::Image &img, Duration scroll_delay,
                 break;
             const int64_t x_cycle_pos = dx*cycle_pos;
             const int64_t y_cycle_pos = dy*cycle_pos;
-            for (int y = 0; y < display.height(); ++y) {
-                for (int x = 0; x < display.width(); ++x) {
+            for (int y = 0; y < display_h; ++y) {
+                for (int x = 0; x < display_w; ++x) {
                     const int x_src = (x_init + x_cycle_pos + x) % img_width;
                     const int y_src = (y_init + y_cycle_pos + y) % img_height;
-                    const RGBCol &c = fast_image[y_src * img_width + x_src];
-                    display.SetPixel(x, y, c.r, c.g, c.b);
+                    display_fb.SetPixel(x, y, preprocessed.at(x_src, y_src));
                 }
             }
-            display.Send(fd, !is_first);
+            if (!is_first) {
+                canvas->JumpUpPixels(display_fb.height());
+            }
+            canvas->Send(display_fb);
             is_first = false;
             const Time frame_finish = frame_start + scroll_delay;
             frame_finish.WaitUntil();
         }
     }
-
-    delete [] fast_image;
 }
 
 
@@ -511,6 +501,8 @@ int main(int argc, char *argv[]) {
     signal(SIGTERM, InterruptHandler);
     signal(SIGINT, InterruptHandler);
 
+    timg::TerminalCanvas canvas(STDOUT_FILENO);
+
     for (int imgarg = optind; imgarg < argc && !interrupt_received; ++imgarg) {
         const char *filename = argv[imgarg];
         if (show_filename) {
@@ -541,25 +533,25 @@ int main(int argc, char *argv[]) {
         const int display_height = std::min(height, (int)frames[0].rows());
 
         if (do_clear) {
-            TerminalCanvas::ClearScreen(STDOUT_FILENO);
+            canvas.ClearScreen();
         }
         if (hide_cursor) {
-            TerminalCanvas::CursorOff(STDOUT_FILENO);
+            canvas.CursorOff();
         }
         if (do_scroll) {
             DisplayScrolling(frames[0], scroll_delay, duration, loops,
                              display_width, display_height, dx, dy,
-                             STDOUT_FILENO);
+                             &canvas);
         } else {
             DisplayImageSequence(frames, is_animation,
                                  duration, max_frames, loops,
-                                 display_width, display_height, STDOUT_FILENO);
+                                 &canvas);
             if (frames.size() == 1) {
                 (Time::Now() + wait_duration).WaitUntil();
             }
         }
         if (hide_cursor) {
-            TerminalCanvas::CursorOn(STDOUT_FILENO);
+            canvas.CursorOn();
         }
     }
 

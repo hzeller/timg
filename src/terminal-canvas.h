@@ -19,37 +19,58 @@
 #include <string>
 #include <stdint.h>
 
-class TerminalCanvas {
+namespace timg {
+class TerminalCanvas;
+
+// Very simple framebuffer.
+class Framebuffer {
 public:
-    TerminalCanvas(int width, int heigh);
-    ~TerminalCanvas();
+    typedef uint32_t rgb_t;
+
+    Framebuffer(int width, int height);
+    Framebuffer() = delete;
+    Framebuffer(const Framebuffer &other) = delete;
+    ~Framebuffer();
+
+    void SetPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b);
+    void SetPixel(int x, int y, rgb_t value);
+    rgb_t at(int x, int y) const;
 
     inline int width() const { return width_; }
     inline int height() const { return height_; }
 
-    void SetPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b);
-
-    // Send image to terminal. If jump_back_first is set, jump up the
-    // number of rows first.
-    void Send(int fd, bool jump_back_first);
-
-    static void ClearScreen(int fd);
-    static void CursorOff(int fd);
-    static void CursorOn(int fd);
-
 private:
+    friend class TerminalCanvas;
     const int width_;
     const int height_;
-    uint32_t *const pixels_;
-    bool any_change_;             // any SetPixel() since last Send() ?
-
-    char *content_buffer_;        // Buffer containing content to write out
-
-    // Pointing to different places in the content buffer.
-    const char *goto_top_prefix_;
-    char *ansi_text_buffer_start_;
-
-    const char *ansi_text_end_;     // end of generated ansi-pixel text.
+    rgb_t *const pixels_;
 };
+
+// Canvas that can send a framebuffer to a terminal.
+class TerminalCanvas {
+public:
+    // Create a terminal canvas, sending to given file-descriptor
+    TerminalCanvas(int fd) : fd_(fd) {}
+    ~TerminalCanvas();
+
+    // Send frame to terminal.
+    void Send(const Framebuffer &framebuffer);
+
+    // Move cursor up give number of pixels.
+    void JumpUpPixels(int pixels);
+
+    void ClearScreen();
+    void CursorOff();
+    void CursorOn();
+
+private:
+    const int fd_;
+    // Return a buffer large enough to
+    char *EnsureBuffer(int width, int height);
+
+    char *content_buffer_ = nullptr;  // Buffer containing content to write out
+    size_t buffer_size_ = 0;
+};
+}  // namespace framebuffer
 
 #endif // TERMINAL_CANVAS_H_

@@ -27,7 +27,7 @@ public:
     constexpr Duration(const Duration &other) : duration_(other.duration_) {}
     constexpr Duration() : duration_({}) {}
 
-    constexpr Duration &operator=(const Duration &other) {
+    Duration &operator=(const Duration &other) {
         duration_ = other.duration_;
         return *this;
     }
