@@ -33,6 +33,7 @@ struct DisplayOptions;
 // Video loader, meant for one video to load, and if successful, Play().
 class VideoLoader {
 public:
+    VideoLoader();
     ~VideoLoader();
 
     // Attempt to load given filename as video, open stream and set-up scaling.

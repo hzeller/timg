@@ -21,6 +21,8 @@
 #include "image-display.h"
 #include "timg-time.h"
 
+#include <mutex>
+
 // libav: "U NO extern C in header ?"
 extern "C" {
 #  include <libavcodec/avcodec.h>
@@ -67,6 +69,18 @@ static SwsContext *CreateSWSContext(const AVCodecContext *codec_ctx,
                                  brightness, contrast, saturation);
     }
     return swsCtx;
+}
+
+static void OnceInitialize() {
+#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(58, 9, 100)
+    av_register_all();
+#endif
+    avformat_network_init();
+}
+
+VideoLoader::VideoLoader() {
+    static std::once_flag init;
+    std::call_once(init, OnceInitialize);
 }
 
 VideoLoader::~VideoLoader() {
