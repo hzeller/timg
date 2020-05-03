@@ -161,7 +161,7 @@ void TerminalCanvas::Send(const Framebuffer &framebuffer, int indent) {
                 last_top = top;
                 prefix = ";";
             }
-            if (btm != last_btm && y + 1 != height) {
+            if (btm != last_btm) {
                 pos = str_append(pos, prefix);
                 pos = str_append(pos, BOTTOM_PIXEL_COLOR);
                 pos = WriteAnsiColor(pos, btm);
