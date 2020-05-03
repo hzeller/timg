@@ -64,16 +64,24 @@ Framebuffer::rgb_t Framebuffer::at(int x, int y) const {
 
 // Each character on the screen is divided in a top pixel and bottom pixel.
 // We use a block character to fill one half, the rest is shown as background.
-// Some fonts display the top block worse than the bottom block, so use that
-// by default.
+// Some fonts display the top block worse than the bottom block, so use the
+// bottom block by default, but use it for the last line.
+
+#define PIXEL_UPPER_HALF_BLOCK_CHARACTER  "▀"
+#define PIXEL_LOWER_HALF_BLOCK_CHARACTER  "▄"
+#define PIXEL_SET_FOREGROUND_COLOR       "38;2;"
+#define PIXEL_SET_BACKGROUND_COLOR        "48;2;"
+
 #if PIXEL_USE_UPPER_BLOCK
-#  define PIXEL_CHARACTER  "▀"  // Top foreground color, bottom background color
-#  define TOP_PIXEL_COLOR       "38;2;"
-#  define BOTTOM_PIXEL_COLOR    "48;2;"
+// Top foreground color, bottom background color
+#  define PIXEL_CHARACTER      PIXEL_UPPER_HALF_BLOCK_CHARACTER
+#  define TOP_PIXEL_COLOR      PIXEL_SET_FOREGROUND_COLOR
+#  define BOTTOM_PIXEL_COLOR   PIXEL_SET_BACKGROUND_COLOR
 #else
-#  define PIXEL_CHARACTER  "▄"  // Top background color, bottom foreground color
-#  define TOP_PIXEL_COLOR       "48;2;"
-#  define BOTTOM_PIXEL_COLOR    "38;2;"
+// Top background color, bottom foreground color
+#  define PIXEL_CHARACTER      PIXEL_LOWER_HALF_BLOCK_CHARACTER
+#  define TOP_PIXEL_COLOR      PIXEL_SET_BACKGROUND_COLOR
+#  define BOTTOM_PIXEL_COLOR   PIXEL_SET_FOREGROUND_COLOR
 #endif
 
 static void reliable_write(int fd, const char *buf, size_t size) {
@@ -137,41 +145,73 @@ static char *WriteAnsiColor(char *buf, uint32_t col) {
     return int_append(buf, (col & 0xff));
 }
 
-void TerminalCanvas::Send(const Framebuffer &framebuffer, int indent) {
+// Append two rows of pixels at once, by writing a half-block character with
+// foreground/background.
+static char *AppendDoubleRow(
+    char *pos, int indent, int width,
+    const Framebuffer::rgb_t *top_line, const char *top_pixel_color,
+    const Framebuffer::rgb_t *bottom_line, const char *bottom_pixel_color,
+    const char *pixel_glyph) {
     static constexpr char kStartEscape[] = "\033[";
+    Framebuffer::rgb_t last_top = 0xff000000;  // Guaranteed != first color
+    Framebuffer::rgb_t last_btm = 0xff000000;
+    if (indent > 0) {
+        memset(pos, ' ', indent);
+        pos += indent;
+    }
+    for (int x = 0; x < width; ++x) {
+        const char *prefix = kStartEscape;
+        const Framebuffer::rgb_t top = *top_line++;
+        if (top != last_top) {
+            pos = str_append(pos, prefix);
+            pos = str_append(pos, top_pixel_color);
+            pos = WriteAnsiColor(pos, top);
+            last_top = top;
+            prefix = ";";
+        }
+        if (bottom_line) {  // Might not be there if odd-height image.
+            const Framebuffer::rgb_t btm = *bottom_line++;
+            if (btm != last_btm) {
+                pos = str_append(pos, prefix);
+                pos = str_append(pos, bottom_pixel_color);
+                pos = WriteAnsiColor(pos, btm);
+                last_btm = btm;
+                prefix = nullptr;   // Sentinel for next if()
+            }
+        }
+        if (prefix != kStartEscape) {
+            *pos++ = 'm';   // We emitted color; need to finish ESC seq
+        }
+        pos = str_append(pos, pixel_glyph);
+    }
+    return pos;
+}
+
+void TerminalCanvas::Send(const Framebuffer &framebuffer, int indent) {
     const int width = framebuffer.width();
     const int height = framebuffer.height();
     char *start_buffer = EnsureBuffer(width, height, indent);
     char *pos = start_buffer;
     for (int y = 0; y < height; y+=2) {
-        Framebuffer::rgb_t last_top = 0xff000000;  // Guaranteed != first color
-        Framebuffer::rgb_t last_btm = 0xff000000;
-        if (indent > 0) {
-            memset(pos, ' ', indent);
-            pos += indent;
-        }
-        for (int x = 0; x < width; ++x) {
-            const Framebuffer::rgb_t top = framebuffer.pixels_[width*y + x];
-            const Framebuffer::rgb_t btm = framebuffer.pixels_[width*(y+1) + x];
-            const char *prefix = kStartEscape;
-            if (top != last_top) {
-                pos = str_append(pos, prefix);
-                pos = str_append(pos, TOP_PIXEL_COLOR);
-                pos = WriteAnsiColor(pos, top);
-                last_top = top;
-                prefix = ";";
-            }
-            if (btm != last_btm) {
-                pos = str_append(pos, prefix);
-                pos = str_append(pos, BOTTOM_PIXEL_COLOR);
-                pos = WriteAnsiColor(pos, btm);
-                last_btm = btm;
-                prefix = nullptr;   // Sentinel for next if()
-            }
-            if (prefix != kStartEscape) {
-                *pos++ = 'm';   // We emitted color; need to finish ESC seq
-            }
-            pos = str_append(pos, PIXEL_CHARACTER);
+        const Framebuffer::rgb_t *top_line = &framebuffer.pixels_[width*y];
+        const Framebuffer::rgb_t *bottom_line =
+            (y+1) == height ? nullptr : &framebuffer.pixels_[width*(y+1)];
+        if (bottom_line) {
+            pos = AppendDoubleRow(pos, indent, width,
+                                  top_line, TOP_PIXEL_COLOR,
+                                  bottom_line, BOTTOM_PIXEL_COLOR,
+                                  PIXEL_CHARACTER);
+        } else {
+            // If we don't have to display anything at the bottom, we always
+            // use the upper half character: that way we can set the 'meat'
+            // of the character to the color in question, while leaving the
+            // bottom line just with the terminal reset background.
+            // That way it will always look good in black/white/colored
+            // backgrounds.
+            pos = AppendDoubleRow(pos, indent, width,
+                                  top_line, PIXEL_SET_FOREGROUND_COLOR,
+                                  nullptr, nullptr,
+                                  PIXEL_UPPER_HALF_BLOCK_CHARACTER);
         }
         pos = str_append(pos, SCREEN_RESET); // end-of-line
         *pos++ = '\n';
