@@ -95,6 +95,11 @@ static int usage(const char *progname, int w, int h) {
     return 1;
 }
 
+static bool GetBoolenEnv(const char *env_name) {
+    const char *const value = getenv(env_name);
+    return value && atoi(value) != 0;
+}
+
 int main(int argc, char *argv[]) {
     Magick::InitializeMagick(*argv);
 
@@ -102,6 +107,7 @@ int main(int argc, char *argv[]) {
     const bool winsize_success = (ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == 0);
     const int term_width = w.ws_col;
     const int term_height = 2 * (w.ws_row-1);  // double number of pixels high.
+    bool terminal_use_upper_block = GetBoolenEnv("TIMG_USE_UPPER_BLOCK");
 
     timg::DisplayOptions display_opts;
     bool do_scroll = false;
@@ -239,7 +245,7 @@ int main(int argc, char *argv[]) {
     signal(SIGTERM, InterruptHandler);
     signal(SIGINT, InterruptHandler);
 
-    timg::TerminalCanvas canvas(STDOUT_FILENO);
+    timg::TerminalCanvas canvas(STDOUT_FILENO, terminal_use_upper_block);
     if (hide_cursor) {
         canvas.CursorOff();
     }

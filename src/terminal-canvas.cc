@@ -66,25 +66,11 @@ Framebuffer::rgb_t Framebuffer::at(int x, int y) const {
 // We use a block character to fill one half with the foreground color,
 // the other half is shown as background color.
 // Some fonts display the top block worse than the bottom block, so use the
-// bottom block by default; still might use upper half block for last line.
-
+// bottom block by default.
 #define PIXEL_UPPER_HALF_BLOCK_CHARACTER  "▀"
 #define PIXEL_LOWER_HALF_BLOCK_CHARACTER  "▄"
 #define PIXEL_SET_FOREGROUND_COLOR        "38;2;"
 #define PIXEL_SET_BACKGROUND_COLOR        "48;2;"
-
-// Compile-time choice: use upper or lower block by default.
-#if PIXEL_USE_UPPER_BLOCK
-// Top foreground color, bottom background color
-#  define PIXEL_CHARACTER      PIXEL_UPPER_HALF_BLOCK_CHARACTER
-#  define TOP_PIXEL_COLOR      PIXEL_SET_FOREGROUND_COLOR
-#  define BOTTOM_PIXEL_COLOR   PIXEL_SET_BACKGROUND_COLOR
-#else
-// Top background color, bottom foreground color
-#  define PIXEL_CHARACTER      PIXEL_LOWER_HALF_BLOCK_CHARACTER
-#  define TOP_PIXEL_COLOR      PIXEL_SET_BACKGROUND_COLOR
-#  define BOTTOM_PIXEL_COLOR   PIXEL_SET_FOREGROUND_COLOR
-#endif
 
 static void reliable_write(int fd, const char *buf, size_t size) {
     int written;
@@ -98,11 +84,11 @@ char *TerminalCanvas::EnsureBuffer(int width, int height, int indent) {
     // Pixels will be variable size depending on if we need to change colors
     // between two adjacent pixels. This is the maximum size they can be.
     static const int max_pixel_size = strlen("\033[")
-        + strlen(TOP_PIXEL_COLOR) + strlen(ESCAPE_COLOR_TEMPLATE)
+        + strlen(PIXEL_SET_FOREGROUND_COLOR) + strlen(ESCAPE_COLOR_TEMPLATE)
         + 1 /* ; */
-        + strlen(BOTTOM_PIXEL_COLOR) + strlen(ESCAPE_COLOR_TEMPLATE)
+        + strlen(PIXEL_SET_BACKGROUND_COLOR) + strlen(ESCAPE_COLOR_TEMPLATE)
         + 1 /* m */
-        + strlen(PIXEL_CHARACTER);
+        + strlen(PIXEL_UPPER_HALF_BLOCK_CHARACTER);
 
     const int vertical_characters = (height+1) / 2;   // two pixels, one glyph
     const size_t character_buffer_size = vertical_characters *
@@ -121,6 +107,20 @@ char *TerminalCanvas::EnsureBuffer(int width, int height, int indent) {
         buffer_size_ = character_buffer_size;
     }
     return content_buffer_;
+}
+
+TerminalCanvas::TerminalCanvas(int fd, bool use_upper_half_block)
+    : fd_(fd),
+      set_upper_color_(use_upper_half_block
+                       ? PIXEL_SET_FOREGROUND_COLOR
+                       : PIXEL_SET_BACKGROUND_COLOR),
+      set_lower_color_(use_upper_half_block
+                       ? PIXEL_SET_BACKGROUND_COLOR
+                       : PIXEL_SET_FOREGROUND_COLOR),
+      pixel_character_(use_upper_half_block
+                       ? PIXEL_UPPER_HALF_BLOCK_CHARACTER
+                       : PIXEL_LOWER_HALF_BLOCK_CHARACTER),
+      top_optional_blank_(!use_upper_half_block) {
 }
 
 TerminalCanvas::~TerminalCanvas() {
@@ -163,15 +163,17 @@ static char *AppendDoubleRow(
     }
     for (int x = 0; x < width; ++x) {
         const char *prefix = kStartEscape;
-        const Framebuffer::rgb_t top = *top_line++;
-        if (top != last_top) {
-            pos = str_append(pos, prefix);
-            pos = str_append(pos, set_top_pixel_color);
-            pos = WriteAnsiColor(pos, top);
-            last_top = top;
-            prefix = ";";
+        if (top_line) {
+            const Framebuffer::rgb_t top = *top_line++;
+            if (top != last_top) {
+                pos = str_append(pos, prefix);
+                pos = str_append(pos, set_top_pixel_color);
+                pos = WriteAnsiColor(pos, top);
+                last_top = top;
+                prefix = ";";
+            }
         }
-        if (bottom_line) {  // Might not be there if odd-height image.
+        if (bottom_line) {
             const Framebuffer::rgb_t btm = *bottom_line++;
             if (btm != last_btm) {
                 pos = str_append(pos, prefix);
@@ -194,29 +196,24 @@ void TerminalCanvas::Send(const Framebuffer &framebuffer, int indent) {
     const int height = framebuffer.height();
     char *start_buffer = EnsureBuffer(width, height, indent);
     char *pos = start_buffer;
+    const Framebuffer::rgb_t *pixels = framebuffer.pixels_;
+    const Framebuffer::rgb_t *top_line;
+    const Framebuffer::rgb_t *bottom_line;
+
+    // We offset the scannig top/bottom line in case we need to leave top blank.
+    const bool needs_empty_line = (height % 2 != 0);
+    const int row_offset = (needs_empty_line && top_optional_blank_) ? -1 : 0;
     for (int y = 0; y < height; y+=2) {
-        const Framebuffer::rgb_t *top_line = &framebuffer.pixels_[width*y];
-        const Framebuffer::rgb_t *bottom_line =
-            (y+1) == height ? nullptr : &framebuffer.pixels_[width*(y+1)];
-        if (bottom_line) {
-            pos = AppendDoubleRow(pos, indent, width,
-                                  top_line, TOP_PIXEL_COLOR,
-                                  bottom_line, BOTTOM_PIXEL_COLOR,
-                                  PIXEL_CHARACTER);
-        } else {
-            // If we don't have to display anything at the bottom, we always
-            // use the upper half character: that way we can set the 'meat'
-            // of the character to the color in question, while leaving the
-            // bottom part just with the terminal reset background.
-            // That way it will always look good in black/white/colored
-            // backgrounds (modulo the fact that some terminals have a bad
-            // font for the upper half character :/)
-            pos = AppendDoubleRow(pos, indent, width,
-                                  top_line, PIXEL_SET_FOREGROUND_COLOR,
-                                  nullptr, nullptr,
-                                  PIXEL_UPPER_HALF_BLOCK_CHARACTER);
-        }
-        pos = str_append(pos, SCREEN_RESET); // end-of-line
+        const int row = y + row_offset;
+        // With that, we can exctract the right row of pixels to print.
+        top_line = row < 0 ? nullptr : &pixels[width*row];
+        bottom_line = (row+1) >= height ? nullptr : &pixels[width*(row + 1)];
+
+        pos = AppendDoubleRow(pos, indent, width,
+                              top_line, set_upper_color_,
+                              bottom_line, set_lower_color_,
+                              pixel_character_);
+        pos = str_append(pos, SCREEN_RESET);  // end-of-line
         *pos++ = '\n';
     }
     reliable_write(fd_, start_buffer, pos - start_buffer);

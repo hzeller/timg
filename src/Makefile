@@ -4,7 +4,7 @@ OBJECTS=timg.o terminal-canvas.o image-display.o
 
 MAGICK_CXXFLAGS=$(shell GraphicsMagick++-config --cppflags)
 MAGICK_LDFLAGS=$(shell GraphicsMagick++-config --ldflags --libs)
-CXXFLAGS=$(MAGICK_CXXFLAGS) -Wall -Wextra -W -Wno-unused-parameter -O3 -fPIC -std=c++11 -DPIXEL_USE_UPPER_BLOCK=0
+CXXFLAGS=$(MAGICK_CXXFLAGS) -Wall -Wextra -W -Wno-unused-parameter -O3 -fPIC -std=c++11
 
 ifneq ($(WITH_VIDEO_DECODING), 0)
   AV_CXXFLAGS=$(shell pkg-config --cflags  libavcodec libavformat libswscale libavutil)

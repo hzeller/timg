@@ -149,8 +149,21 @@ while : ; do xzcat... ; done
 
 Note, this requires that your terminal can display
 [24 bit true color][24-bit-term] and is able to display the unicode
-characters ▄ (U+2584 - 'Lower Half Block') and  ▀ (U+2580 - 'Upper Half Block').
-If not, it doesn't show anything or it looks like gibberish.
+characters[▄] (U+2584 - 'Lower Half Block') and [▀] (U+2580 - 'Upper Half Block').
+If not, it doesn't show anything or it looks like gibberish. These days, most
+terminals have these minimum requirements.
+
+By default, `timg` uses the 'lower half block' to show the pixels. Depending
+on the font the terminal is using, using the upper block might look better,
+so it is possible to change the default with an environment variable.
+Play around with this value if the output looks poor on your terminal. I found
+that on my system there is no difference for `konsole` or `xterm` but the
+[`cool-retro-term`][cool-retro-term] looks better with the lower block, this is why it is the
+default. To change, set this environment variable:
+
+```
+export TIMG_USE_UPPER_BLOCK=1   # change default to use upper block.
+```
 
 Tested terminals: `konsole` >= 2.14.1, `gnome-terminal` > 3.6.2 look good,
 recent xterms also seem to work (albeit with less color richness).
@@ -166,3 +179,4 @@ For Mac users, the iTerm2 >= 3.x should work, please confirm if you have this
 setup.
 
 [24-bit-term]: https://gist.github.com/XVilka/8346728
+[cool-retro-term]: https://github.com/Swordfish90/cool-retro-term

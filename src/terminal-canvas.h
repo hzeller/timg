@@ -49,8 +49,10 @@ private:
 // Canvas that can send a framebuffer to a terminal.
 class TerminalCanvas {
 public:
-    // Create a terminal canvas, sending to given file-descriptor
-    TerminalCanvas(int fd) : fd_(fd) {}
+    // Create a terminal canvas, sending to given file-descriptor.
+    // Using either 'upper half block' or 'lower half block' to display
+    // pixels. Which look depends on the font.
+    TerminalCanvas(int fd, bool use_upper_half_block);
     ~TerminalCanvas();
 
     // Send frame to terminal.
@@ -65,6 +67,12 @@ public:
 
 private:
     const int fd_;
+
+    const char *const set_upper_color_;
+    const char *const set_lower_color_;
+    const char *const pixel_character_;
+    const bool top_optional_blank_;   // For odd height frames.
+
     // Return a buffer large enough to hold the whole ANSI-color encoded text.
     char *EnsureBuffer(int width, int height, int indent);
 
