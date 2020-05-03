@@ -30,6 +30,7 @@ struct DisplayOptions {
     bool fill_height = false;  // Fill screen height, allow overflow width.
     bool antialias = true;     // Try a pleasing antialiasing while scaling.
     bool center_horizontally = false;  // Try to center image
+    int trim_image_rounds = 0; // Trim image, removing 'boring' space around.
 };
 
 // Determine the target width and height given the incoming image size

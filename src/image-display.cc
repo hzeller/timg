@@ -183,6 +183,14 @@ bool ImageLoader::LoadAndScale(const char *filename,
     }
 
     for (Magick::Image &img : result) {
+        // We do trimming only if this is not an animation, which will likely
+        // not create a pleasent result.
+        if (!is_animation_) {
+            for (int i = 0; i < display_options.trim_image_rounds; ++i) {
+                img.trim();
+            }
+        }
+
         int target_width = 0, target_height = 0;
         if (ScaleToFit(img.columns(), img.rows(), display_width, display_height,
                        display_options, &target_width, &target_height)) {

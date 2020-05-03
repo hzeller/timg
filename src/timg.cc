@@ -58,6 +58,8 @@ static int usage(const char *progname, int w, int h) {
             "\t-g<w>x<h>  : Output pixel geometry. Default from terminal %dx%d\n"
             "\t-w<seconds>: If multiple images given: Wait time between (default: 0.0).\n"
             "\t-a         : Switch off antialiasing (default: on)\n"
+            "\t-T         : Trim: crop away all same-color pixels around image.\n"
+            "\t             Can be given multiple times for more 'rounds'.\n"
             "\t-W         : Scale to fit width of terminal (default: "
             "fit terminal width and height)\n"
             "\t-U         : Toggle Upscale. If an image is smaller than\n"
@@ -121,7 +123,7 @@ int main(int argc, char *argv[]) {
     bool skip_image_loading = false;
 
     int opt;
-    while ((opt = getopt(argc, argv, "vg:s::w:t:c:f:b:B:hCFEd:UWaV")) != -1) {
+    while ((opt = getopt(argc, argv, "vg:s::w:t:c:f:b:B:hCFEd:UWaVT")) != -1) {
         switch (opt) {
         case 'g':
             if (sscanf(optarg, "%dx%d", &width, &height) < 2) {
@@ -177,6 +179,9 @@ int main(int argc, char *argv[]) {
             break;
         case 'U':
             display_opts.upscale = !display_opts.upscale;
+            break;
+        case 'T':
+            display_opts.trim_image_rounds++;
             break;
         case 'F':
             show_filename = !show_filename;

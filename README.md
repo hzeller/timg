@@ -34,6 +34,8 @@ Options:
         -g<w>x<h>  : Output pixel geometry. Default from terminal 195x126
         -w<seconds>: If multiple images given: Wait time between (default: 0.0).
         -a         : Switch off antialiasing (default: on)
+        -T         : Trim: crop away all same-color pixels around image.
+                     Can be given multiple times for more 'rounds'.
         -W         : Scale to fit width of terminal (default: fit terminal width and height)
         -U         : Toggle Upscale. If an image is smaller than
                      the terminal size, scale it up to full size.
@@ -68,9 +70,13 @@ timg *.jpg                  # display all *.jpg images
 
 timg multi-resolution.ico   # See all the bitmaps in multi-resolution icons-file
 
-timg -W some-document.pdf   # Show a PDF document, use full width of terminal
+# Show a PDF document, use full width of terminal, trim away empty border
+timg -W -T some-document.pdf
 
 timg some-video.mp4         # Watch a video.
+
+# Open an image from a URL
+timg -C https://i.kym-cdn.com/photos/images/newsfeed/000/406/282/2b8.jpg
 
 # If you read a video from a pipe, it is necessary to skip attempting the
 # image decode first as this will consume bytes from the pipe. Use -V
