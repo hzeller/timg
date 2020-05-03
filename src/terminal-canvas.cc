@@ -63,15 +63,17 @@ Framebuffer::rgb_t Framebuffer::at(int x, int y) const {
 #define ESCAPE_COLOR_TEMPLATE "rrr;ggg;bbb"
 
 // Each character on the screen is divided in a top pixel and bottom pixel.
-// We use a block character to fill one half, the rest is shown as background.
+// We use a block character to fill one half with the foreground color,
+// the other half is shown as background color.
 // Some fonts display the top block worse than the bottom block, so use the
-// bottom block by default, but use it for the last line.
+// bottom block by default; still might use upper half block for last line.
 
 #define PIXEL_UPPER_HALF_BLOCK_CHARACTER  "▀"
 #define PIXEL_LOWER_HALF_BLOCK_CHARACTER  "▄"
-#define PIXEL_SET_FOREGROUND_COLOR       "38;2;"
+#define PIXEL_SET_FOREGROUND_COLOR        "38;2;"
 #define PIXEL_SET_BACKGROUND_COLOR        "48;2;"
 
+// Compile-time choice: use upper or lower block by default.
 #if PIXEL_USE_UPPER_BLOCK
 // Top foreground color, bottom background color
 #  define PIXEL_CHARACTER      PIXEL_UPPER_HALF_BLOCK_CHARACTER
@@ -149,8 +151,8 @@ static char *WriteAnsiColor(char *buf, uint32_t col) {
 // foreground/background.
 static char *AppendDoubleRow(
     char *pos, int indent, int width,
-    const Framebuffer::rgb_t *top_line, const char *top_pixel_color,
-    const Framebuffer::rgb_t *bottom_line, const char *bottom_pixel_color,
+    const Framebuffer::rgb_t *top_line,    const char *set_top_pixel_color,
+    const Framebuffer::rgb_t *bottom_line, const char *set_bottom_pixel_color,
     const char *pixel_glyph) {
     static constexpr char kStartEscape[] = "\033[";
     Framebuffer::rgb_t last_top = 0xff000000;  // Guaranteed != first color
@@ -164,7 +166,7 @@ static char *AppendDoubleRow(
         const Framebuffer::rgb_t top = *top_line++;
         if (top != last_top) {
             pos = str_append(pos, prefix);
-            pos = str_append(pos, top_pixel_color);
+            pos = str_append(pos, set_top_pixel_color);
             pos = WriteAnsiColor(pos, top);
             last_top = top;
             prefix = ";";
@@ -173,7 +175,7 @@ static char *AppendDoubleRow(
             const Framebuffer::rgb_t btm = *bottom_line++;
             if (btm != last_btm) {
                 pos = str_append(pos, prefix);
-                pos = str_append(pos, bottom_pixel_color);
+                pos = str_append(pos, set_bottom_pixel_color);
                 pos = WriteAnsiColor(pos, btm);
                 last_btm = btm;
                 prefix = nullptr;   // Sentinel for next if()
@@ -205,9 +207,10 @@ void TerminalCanvas::Send(const Framebuffer &framebuffer, int indent) {
             // If we don't have to display anything at the bottom, we always
             // use the upper half character: that way we can set the 'meat'
             // of the character to the color in question, while leaving the
-            // bottom line just with the terminal reset background.
+            // bottom part just with the terminal reset background.
             // That way it will always look good in black/white/colored
-            // backgrounds.
+            // backgrounds (modulo the fact that some terminals have a bad
+            // font for the upper half character :/)
             pos = AppendDoubleRow(pos, indent, width,
                                   top_line, PIXEL_SET_FOREGROUND_COLOR,
                                   nullptr, nullptr,
