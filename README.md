@@ -79,8 +79,8 @@ timg multi-resolution.ico   # See all the bitmaps in multi-resolution icons-file
 timg some-video.mp4         # Watch a video.
 
 # If you read a video from a pipe, it is necessary to skip attempting the
-# image decode first as this will consume bytes from the pipe. Use -V
-youtube-dl -q -o- -f'[height<480]' 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' | timg -V -
+# image decode first as this will consume bytes from the pipe. Use -V option.
+youtube-dl -q -o- -f'[height<480]' 'https://youtu.be/dQw4w9WgXcQ' | timg -V -
 
 # Show animated gif with timeout.
 timg some-animated.gif      # show an animated gif (stop with Ctrl-C)
