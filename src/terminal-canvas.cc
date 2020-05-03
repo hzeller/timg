@@ -58,15 +58,23 @@ Framebuffer::rgb_t Framebuffer::at(int x, int y) const {
 #define CURSOR_ON       "\033[?25h"
 #define CURSOR_OFF      "\033[?25l"
 
-// Each character on the screen is divided in a top pixel and bottom pixel.
-// We use the following character which fills the top block:
-#define PIXEL_CHARACTER  "▀"  // Top foreground color, bottom background color
-
 // Now, pixels on the even row will get the foreground color changed, pixels
 // on odd rows the background color. Two pixels one stone. Or something.
 #define ESCAPE_COLOR_TEMPLATE "rrr;ggg;bbb"
-#define TOP_PIXEL_COLOR       "38;2;"
-#define BOTTOM_PIXEL_COLOR    "48;2;"
+
+// Each character on the screen is divided in a top pixel and bottom pixel.
+// We use a block character to fill one half, the rest is shown as background.
+// Some fonts display the top block worse than the bottom block, so use that
+// by default.
+#if PIXEL_USE_UPPER_BLOCK
+#  define PIXEL_CHARACTER  "▀"  // Top foreground color, bottom background color
+#  define TOP_PIXEL_COLOR       "38;2;"
+#  define BOTTOM_PIXEL_COLOR    "48;2;"
+#else
+#  define PIXEL_CHARACTER  "▄"  // Top background color, bottom foreground color
+#  define TOP_PIXEL_COLOR       "48;2;"
+#  define BOTTOM_PIXEL_COLOR    "38;2;"
+#endif
 
 static void reliable_write(int fd, const char *buf, size_t size) {
     int written;
@@ -136,28 +144,28 @@ void TerminalCanvas::Send(const Framebuffer &framebuffer, int indent) {
     char *start_buffer = EnsureBuffer(width, height, indent);
     char *pos = start_buffer;
     for (int y = 0; y < height; y+=2) {
-        Framebuffer::rgb_t last_fg = 0xff000000;  // Guaranteed != first color
-        Framebuffer::rgb_t last_bg = 0xff000000;
+        Framebuffer::rgb_t last_top = 0xff000000;  // Guaranteed != first color
+        Framebuffer::rgb_t last_btm = 0xff000000;
         if (indent > 0) {
             memset(pos, ' ', indent);
             pos += indent;
         }
         for (int x = 0; x < width; ++x) {
-            const Framebuffer::rgb_t fg = framebuffer.pixels_[width*y + x];
-            const Framebuffer::rgb_t bg = framebuffer.pixels_[width*(y+1) + x];
+            const Framebuffer::rgb_t top = framebuffer.pixels_[width*y + x];
+            const Framebuffer::rgb_t btm = framebuffer.pixels_[width*(y+1) + x];
             const char *prefix = kStartEscape;
-            if (fg != last_fg) {
+            if (top != last_top) {
                 pos = str_append(pos, prefix);
                 pos = str_append(pos, TOP_PIXEL_COLOR);
-                pos = WriteAnsiColor(pos, fg);
-                last_fg = fg;
+                pos = WriteAnsiColor(pos, top);
+                last_top = top;
                 prefix = ";";
             }
-            if (bg != last_bg && y + 1 != height) {
+            if (btm != last_btm && y + 1 != height) {
                 pos = str_append(pos, prefix);
                 pos = str_append(pos, BOTTOM_PIXEL_COLOR);
-                pos = WriteAnsiColor(pos, bg);
-                last_bg = bg;
+                pos = WriteAnsiColor(pos, btm);
+                last_btm = btm;
                 prefix = nullptr;   // Sentinel for next if()
             }
             if (prefix != kStartEscape) {

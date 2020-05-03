@@ -149,8 +149,9 @@ while : ; do xzcat... ; done
 
 Note, this requires that your terminal can display
 [24 bit true color][24-bit-term] and is able to display the unicode
-character ▀ (U+2580, 'Upper Half Block').
-If not, it doesn't show anything or it is garbage.
+character ▄ (U+2584 - 'Lower Half Block') (or  ▀, U+2580 - 'Upper Half Block',
+if `PIXEL_USE_UPPER_BLOCK=1` is defined in the Makefile).
+If not, it doesn't show anything or it looks like gibberish.
 
 Tested terminals: `konsole` >= 2.14.1, `gnome-terminal` > 3.6.2 look good,
 recent xterms also seem to work (albeit with less color richness).
