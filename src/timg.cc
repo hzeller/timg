@@ -58,8 +58,9 @@ static int usage(const char *progname, int w, int h) {
             "\t-g<w>x<h>  : Output pixel geometry. Default from terminal %dx%d\n"
             "\t-w<seconds>: If multiple images given: Wait time between (default: 0.0).\n"
             "\t-a         : Switch off antialiasing (default: on)\n"
-            "\t-T         : Trim: crop away all same-color pixels around image.\n"
-            "\t             Can be given multiple times for more 'rounds'.\n"
+            "\t-T[<pre-crop>] : Trim: auto-crop away all same-color pixels around image.\n"
+            "\t             The optional pre-crop is pixels to remove beforehand\n"
+            "\t             to get rid of an uneven border.\n"
             "\t-W         : Scale to fit width of terminal (default: "
             "fit terminal width and height)\n"
             "\t-U         : Toggle Upscale. If an image is smaller than\n"
@@ -120,10 +121,10 @@ int main(int argc, char *argv[]) {
     int dx = 1;
     int dy = 0;
     bool fit_width = false;
-    bool skip_image_loading = false;
+    bool do_image_loading = true;
 
     int opt;
-    while ((opt = getopt(argc, argv, "vg:s::w:t:c:f:b:B:hCFEd:UWaVT")) != -1) {
+    while ((opt = getopt(argc, argv, "vg:s::w:t:c:f:b:B:T::hCFEd:UWaV"))!=-1) {
         switch (opt) {
         case 'g':
             if (sscanf(optarg, "%dx%d", &width, &height) < 2) {
@@ -161,7 +162,7 @@ int main(int argc, char *argv[]) {
             break;
         case 'V':
 #ifdef WITH_TIMG_VIDEO
-            skip_image_loading = true;
+            do_image_loading = false;
 #else
             fprintf(stderr, "-V: Video support not compiled in\n");
 #endif
@@ -181,7 +182,10 @@ int main(int argc, char *argv[]) {
             display_opts.upscale = !display_opts.upscale;
             break;
         case 'T':
-            display_opts.trim_image_rounds++;
+            display_opts.auto_trim_image = true;
+            if (optarg) {
+                display_opts.crop_border = atoi(optarg);
+            }
             break;
         case 'F':
             show_filename = !show_filename;
@@ -247,7 +251,7 @@ int main(int argc, char *argv[]) {
             printf("%s\n", filename);
         }
 
-        if (!skip_image_loading) {
+        if (do_image_loading) {
             timg::ImageLoader image_loader;
             if (image_loader.LoadAndScale(filename, width, height,
                                           display_opts,

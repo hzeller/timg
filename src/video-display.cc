@@ -127,6 +127,21 @@ bool VideoLoader::LoadAndScale(const char *filename,
 
     // Make display fit within canvas using the timg scaling utility.
     DisplayOptions opts(display_options);
+    // Make sure we don't confuse users. Some image URLs actually end up here,
+    // so make sure that it is clear certain options won't work.
+    // TODO: this is a crude work-around. And while we tell the user what to
+    // do, it would be better if we'd dealt with it already.
+    if (opts.crop_border != 0 || opts.auto_trim_image) {
+        const bool is_url = (strncmp(filename, "http://", 7) == 0 ||
+                             strncmp(filename, "https://", 8) == 0);
+        fprintf(stderr, "%s%s is handled by video subsystem. "
+                "Unfortunately, no -T trimming feature is implemented there.\n",
+                is_url ? "URL " : "", filename);
+        if (is_url) {
+            fprintf(stderr, "use:\n\twget -qO- %s | timg -T%d -\n... instead "
+                    "for this to work\n", filename, opts.crop_border);
+        }
+    }
     opts.fill_height = false;  // This only makes sense for horizontal scroll.
     ScaleToFit(codec_context_->width, codec_context_->height,
                screen_width, screen_height, opts,

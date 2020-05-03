@@ -18,6 +18,7 @@
 #include "terminal-canvas.h"
 #include "timg-time.h"
 
+#include <algorithm>
 #include <string.h>
 #include <assert.h>
 #include <math.h>
@@ -154,8 +155,11 @@ bool ImageLoader::LoadAndScale(const char *filename,
     try {
         readImages(&frames, filename);
     }
+    catch(Magick::Warning &warning) {
+        //fprintf(stderr, "Meh: %s (%s)\n", filename, warning.what());
+    }
     catch (std::exception& e) {
-        //fprintf(stderr, "Trouble loading %s (%s)\n", filename, e.what());
+        // No message, let that file be handled by the next handler.
         return false;
     }
 
@@ -186,11 +190,18 @@ bool ImageLoader::LoadAndScale(const char *filename,
         // We do trimming only if this is not an animation, which will likely
         // not create a pleasent result.
         if (!is_animation_) {
-            for (int i = 0; i < display_options.trim_image_rounds; ++i) {
+            if (display_options.crop_border > 0) {
+                const int c = display_options.crop_border;
+                const int w = std::max(1, (int)img.columns() - 2*c);
+                const int h = std::max(1, (int)img.rows() - 2*c);
+                img.crop(Magick::Geometry(w, h, c, c));
+            }
+            if (display_options.auto_trim_image) {
                 img.trim();
             }
         }
 
+        // Figure out scaling for the image.
         int target_width = 0, target_height = 0;
         if (ScaleToFit(img.columns(), img.rows(), display_width, display_height,
                        display_options, &target_width, &target_height)) {
@@ -200,6 +211,7 @@ bool ImageLoader::LoadAndScale(const char *filename,
                 img.sample(Magick::Geometry(target_width, target_height));
         }
 
+        // If these are transparent and should get a background, apply that.
         if (bg_color || pattern_color) {
             Magick::Image target;
             try {

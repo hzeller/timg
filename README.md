@@ -34,8 +34,9 @@ Options:
         -g<w>x<h>  : Output pixel geometry. Default from terminal 195x126
         -w<seconds>: If multiple images given: Wait time between (default: 0.0).
         -a         : Switch off antialiasing (default: on)
-        -T         : Trim: crop away all same-color pixels around image.
-                     Can be given multiple times for more 'rounds'.
+        -T[<pre-crop>] : Trim: auto-crop away all same-color pixels around image.
+                     The optional pre-crop is pixels to remove beforehand
+                     to get rid of an uneven border.
         -W         : Scale to fit width of terminal (default: fit terminal width and height)
         -U         : Toggle Upscale. If an image is smaller than
                      the terminal size, scale it up to full size.
@@ -68,11 +69,26 @@ timg -g50x50 some-image.jpg # display image fitting in box of 50x50 pixel
 
 timg *.jpg                  # display all *.jpg images
 
-# Open an image from a URL
-timg -C https://i.kym-cdn.com/photos/images/newsfeed/000/406/282/2b8.jpg
-
 # Show a PDF document, use full width of terminal, trim away empty border
 timg -W -T some-document.pdf
+
+# Open an image from a URL. URLs are internally actually handled by the
+# video subsystem, so it is treated as a single-frame 'film', nevertheless,
+# many image-URLs just work. But some image-specific features, such as trimming
+# or scrolling, won't work.
+timg -C https://i.kym-cdn.com/photos/images/newsfeed/000/406/282/2b8.jpg
+
+# Sometimes, it is necessary to manually crop a few pixels from an
+# uneven border before the auto-trim finds uniform color all-around to remove.
+# For example with -T7 we'd remove first seven pixels around an image, then
+# do the regular auto-cropping.
+#
+# The following example loads an image from a URL; -T does not work with that,
+# so we have to get the content manually, e.g. with wget. Piping to stdin works.
+#
+# For this image, we need to remove 3 pixels all around before
+# auto-trim can take over successfully:
+wget -qO- https://imgs.xkcd.com/comics/a_better_idea.png | timg -T3 -
 
 timg multi-resolution.ico   # See all the bitmaps in multi-resolution icons-file
 
