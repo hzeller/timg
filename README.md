@@ -68,15 +68,15 @@ timg -g50x50 some-image.jpg # display image fitting in box of 50x50 pixel
 
 timg *.jpg                  # display all *.jpg images
 
-timg multi-resolution.ico   # See all the bitmaps in multi-resolution icons-file
+# Open an image from a URL
+timg -C https://i.kym-cdn.com/photos/images/newsfeed/000/406/282/2b8.jpg
 
 # Show a PDF document, use full width of terminal, trim away empty border
 timg -W -T some-document.pdf
 
-timg some-video.mp4         # Watch a video.
+timg multi-resolution.ico   # See all the bitmaps in multi-resolution icons-file
 
-# Open an image from a URL
-timg -C https://i.kym-cdn.com/photos/images/newsfeed/000/406/282/2b8.jpg
+timg some-video.mp4         # Watch a video.
 
 # If you read a video from a pipe, it is necessary to skip attempting the
 # image decode first as this will consume bytes from the pipe. Use -V
