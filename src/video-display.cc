@@ -84,8 +84,11 @@ bool VideoLoader::LoadAndScale(const char *filename,
         filename = "/dev/stdin";
     }
     format_context_ = avformat_alloc_context();
-    if (avformat_open_input(&format_context_, filename, NULL, NULL) != 0) {
-        perror("Issue opening file");
+    int ret;
+    if ((ret = avformat_open_input(&format_context_, filename, NULL, NULL)) != 0) {
+        char msg[100];
+        av_strerror(ret, msg, sizeof(msg));
+        fprintf(stderr, "%s: %s\n", filename, msg);
         return false;
     }
 
