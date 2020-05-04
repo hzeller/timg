@@ -95,7 +95,8 @@ char *TerminalCanvas::EnsureBuffer(int width, int height, int indent) {
         (indent                    // Horizontal indentation with spaces
          + width * max_pixel_size  // pixels in one row
          + strlen(SCREEN_RESET)    // Reset at each EOL
-         + 1);                     // one \n per line
+         + 1)                      // one \n per line
+        + 1;                       // one potential NUL
 
     if (character_buffer_size > buffer_size_) {
         if (!content_buffer_) {
@@ -135,9 +136,9 @@ static inline char *int_append(char *buf, uint8_t val) {
     return buf;
 }
 static inline char *str_append(char *buf, const char *str) {
-    int l = strlen(str);
-    memcpy(buf, str, l);
-    return buf + l;
+    while ((*buf++ = *str++))
+        ;
+    return buf - 1;
 }
 static char *WriteAnsiColor(char *buf, uint32_t col) {
     buf = int_append(buf, (col & 0xff0000) >> 16);
