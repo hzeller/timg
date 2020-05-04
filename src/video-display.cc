@@ -91,6 +91,10 @@ VideoLoader::~VideoLoader() {
     delete terminal_fb_;
 }
 
+const char *VideoLoader::VersionInfo() {
+    return "libav " AV_STRINGIFY(LIBAVFORMAT_VERSION);
+}
+
 bool VideoLoader::LoadAndScale(const char *filename,
                                int screen_width, int screen_height,
                                const DisplayOptions &display_options) {

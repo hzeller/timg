@@ -135,6 +135,10 @@ ImageLoader::~ImageLoader() {
     for (PreprocessedFrame *f : frames_) delete f;
 }
 
+const char *ImageLoader::VersionInfo() {
+    return "GraphicsMagick " MagickLibVersionText " (" MagickReleaseDate ")";
+}
+
 static bool EndsWith(const char *filename, const char *suffix) {
     size_t flen = strlen(filename);
     size_t slen = strlen(suffix);

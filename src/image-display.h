@@ -47,6 +47,8 @@ class ImageLoader {
 public:
     ~ImageLoader();
 
+    static const char *VersionInfo();
+
     // Attempt to load image(s) from filename and prepare for display.
     // Images are processed to fit in the given "display_width"x"display_height"
     // using ScaleOptions.

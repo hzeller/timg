@@ -17,7 +17,7 @@
 //
 // To compile this image viewer, first get image-magick development files
 // $ sudo apt-get install libgraphicsmagick++-dev
-
+#include "timg-version.h"
 #include "terminal-canvas.h"
 #include "timg-time.h"
 
@@ -36,7 +36,9 @@
 
 #include <Magick++.h>
 
-#define TIMG_VERSION "0.9.9"
+#ifndef TIMG_VERSION
+#  define TIMG_VERSION "(unknown)"
+#endif
 
 using timg::Duration;
 using timg::Time;
@@ -205,8 +207,14 @@ int main(int argc, char *argv[]) {
         case 'v':
             fprintf(stderr, "timg " TIMG_VERSION
                     " <https://github.com/hzeller/timg>\n"
-                    "Copyright (c) 2016 Henner Zeller. "
-                    "This program is free software; license GPL 2.0.\n");
+                    "Copyright (c) 2016.. Henner Zeller. "
+                    "This program is free software; license GPL 2.0.\n\n");
+            fprintf(stderr, "Image decoding %s\n",
+                    timg::ImageLoader::VersionInfo());
+#ifdef WITH_TIMG_VIDEO
+            fprintf(stderr, "Video decoding %s\n",
+                    timg::VideoLoader::VersionInfo());
+#endif
             return 0;
         case 'h':
         default:

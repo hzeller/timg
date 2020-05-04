@@ -36,6 +36,8 @@ public:
     VideoLoader();
     ~VideoLoader();
 
+    static const char *VersionInfo();
+
     // Attempt to load given filename as video, open stream and set-up scaling.
     // Returns true on success.
     bool LoadAndScale(const char *filename,
