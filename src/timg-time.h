@@ -17,7 +17,11 @@
 #define TIMG_TIME_H_
 
 #include <time.h>
+#include <sys/time.h>
+#include <stdint.h>
+#include <unistd.h>
 
+#include <stdio.h>
 // Type-safe representation of time and duration.
 // Inspired by golang and absl.
 
@@ -56,8 +60,22 @@ class Time {
 public:
     static Time Now() { return Time(); }
 
-    Time() { clock_gettime(CLOCK_MONOTONIC, &time_); }
+    Time() {
+#ifdef CLOCK_MONOTONIC
+        clock_gettime(CLOCK_MONOTONIC, &time_);
+#else
+        struct timeval tv;
+        gettimeofday(&tv, nullptr);
+        time_.tv_sec = tv.tv_sec;
+        time_.tv_nsec = 1000L * (long)tv.tv_usec;
+#endif
+    }
+
     Time(const Time &other) : time_(other.time_) {}
+
+    inline int64_t nanoseconds() const {
+        return (int64_t)time_.tv_sec * 1000000000 + time_.tv_nsec;
+    }
 
     bool operator <(const Time &other) const {
         if (time_.tv_sec > other.time_.tv_sec) return false;
@@ -77,7 +95,13 @@ public:
     }
 
     void WaitUntil() const {
+#if defined(CLOCK_MONOTONIC) && defined(TIMER_ABSTIME)
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &time_, nullptr);
+#else
+        Time now;
+        const int64_t ns = nanoseconds() - now.nanoseconds();
+        if (ns > 0) usleep(ns / 1000);
+#endif
     }
 
 private:
