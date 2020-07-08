@@ -242,14 +242,18 @@ void TerminalCanvas::CursorOn() {
     reliable_write(fd_, CURSOR_ON, strlen(CURSOR_ON));
 }
 
-// Somewhat fast conversion uint8 -> ASCII digits. There are probably faster
-// ways (send a pull request if you know one), but this is a good start.
+// Converting the colors requires fast uint8 -> ASCII decimal digits with
+// appended semicolon. There are probably faster ways (send a pull request
+// if you know one), but this is a good start.
 // Approach is to specify exactly how many digits to memcpy(), which helps the
 // compiler create good instructions.
 
-// TODO: is there a way to force-align a string literal to 4 ? We could write
-// these as an uint32 array, but it would look less readable.
-static const char digit_convert[] =
+// Make sure we're 4 aligned so that we can quickly access chunks of 4 bytes.
+// While at it, let's go further and align it to 64 byte cache lines.
+struct digit_convert {
+    char data[1025];
+};
+static constexpr digit_convert convert_lookup __attribute__ ((aligned(64))) = {
     "0;  1;  2;  3;  4;  5;  6;  7;  8;  9;  "
     "10; 11; 12; 13; 14; 15; 16; 17; 18; 19; "
     "20; 21; 22; 23; 24; 25; 26; 27; 28; 29; "
@@ -275,15 +279,18 @@ static const char digit_convert[] =
     "220;221;222;223;224;225;226;227;228;229;"
     "230;231;232;233;234;235;236;237;238;239;"
     "240;241;242;243;244;245;246;247;248;249;"
-    "250;251;252;253;254;255;";
+    "250;251;252;253;254;255;"
+};
 
-// Append decimal representation of given "value" to "buffer".
+// Append decimal representation plus semicolon of given "value" to "buffer".
 // Does not \0-terminate. Might write one byte beyond number.
 static char *int_append_with_semicolon(char *buffer, uint8_t value) {
     // We cheat a little here: for the beauty of initizliaing the above array
-    // with a block of text, we hope for a nice 4 alignment of the bytes and
-    // treat it as an uint32 array.
-    const uint32_t *const four_bytes = (const uint32_t*) digit_convert;
+    // with a block of text, we manually aligned the data array to 4 to
+    // be able to interpret it as uint-array generating fast accesses like
+    //    mov eax, DWORD PTR convert_lookup[0+rax*4]
+    // (only slightly invokong undefined behavior with this type punning :) )
+    const uint32_t *const four_bytes = (const uint32_t*) convert_lookup.data;
     if (value >= 100) {
         memcpy(buffer, &four_bytes[value], 4);
         return buffer + 4;
