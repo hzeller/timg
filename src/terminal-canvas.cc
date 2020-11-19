@@ -195,9 +195,9 @@ static char *AppendDoubleRow(
 void TerminalCanvas::Send(const Framebuffer &framebuffer, int indent) {
     const int width = framebuffer.width();
     const int height = framebuffer.height();
-    char *start_buffer = EnsureBuffer(width, height, indent);
+    char *const start_buffer = EnsureBuffer(width, height, indent);
     char *pos = start_buffer;
-    const Framebuffer::rgb_t *pixels = framebuffer.pixels_;
+    const Framebuffer::rgb_t *const pixels = framebuffer.pixels_;
     const Framebuffer::rgb_t *top_line;
     const Framebuffer::rgb_t *bottom_line;
 
