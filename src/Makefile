@@ -22,7 +22,7 @@ timg : $(OBJECTS)
 timg.o : timg-version.h
 
 timg-version.h: .FORCE
-	@(echo "#define TIMG_VERSION \"$(shell git log -n1 --date=short --format='0.9.9 %cd %h' 2>/dev/null || echo -n '0.0.8')\"" > $@-new; \
+	@(echo "#define TIMG_VERSION \"$(shell git describe --tags --match='v*') $(shell git log -n1 --date=short --format='%cd' 2>/dev/null || echo -n '0.9.8+')\"" > $@-new; \
 	cmp -s $@ $@-new || cp $@-new $@; \
 	rm $@-new)
 
