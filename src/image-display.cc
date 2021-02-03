@@ -261,7 +261,8 @@ void ImageLoader::Display(Duration duration, int max_frames, int loops,
              && !interrupt_received
              && Time::Now() < end_time;
          ++k) {
-        for (const auto &frame : frames_) {
+        for (int f = 0; f < max_frames; ++f) {
+            const auto &frame = frames_[f];
             const Time frame_start = Time::Now();
             if (interrupt_received || frame_start >= end_time)
                 break;

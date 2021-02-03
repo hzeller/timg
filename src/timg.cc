@@ -86,9 +86,10 @@ static int usage(const char *progname, int w, int h) {
             "\t-d<dx:dy>  : delta x and delta y when scrolling (default: 1:0).\n"
 
             "\n  For Animations and Scrolling\n"
+            "  These are usually shown in in full in an infinite loop. These options influence that.\n"
             "\t-t<seconds>: Stop after this time.\n"
             "\t-c<num>    : Number of runs through a full cycle.\n"
-            "\t-f<num>    : Only animation: number of frames to render.\n"
+            "\t-f<num>    : For animations: only render first num frames.\n"
 
             "\nIf both -c and -t are given, whatever comes first stops.\n"
             "If both -w and -t are given for some animation/scroll, -t "

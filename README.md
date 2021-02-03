@@ -31,7 +31,7 @@ sudo make install
 ```
 usage: timg [options] <image/video> [<image/video>...]
 Options:
-        -g<w>x<h>  : Output pixel geometry. Default from terminal 195x126
+        -g<w>x<h>  : Output pixel geometry. Default from terminal 160x100
         -w<seconds>: If multiple images given: Wait time between (default: 0.0).
         -a         : Switch off antialiasing (default: on)
         -T[<pre-crop>] : Trim: auto-crop away all same-color pixels around image.
@@ -54,9 +54,10 @@ Options:
         -d<dx:dy>  : delta x and delta y when scrolling (default: 1:0).
 
   For Animations and Scrolling
+  These are usually shown in in full in an infinite loop. These options influence that.
         -t<seconds>: Stop after this time.
         -c<num>    : Number of runs through a full cycle.
-        -f<num>    : Only animation: number of frames to render.
+        -f<num>    : For animations: only render first num frames.
 
 If both -c and -t are given, whatever comes first stops.
 If both -w and -t are given for some animation/scroll, -t takes precedence
