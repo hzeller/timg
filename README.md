@@ -26,7 +26,7 @@ make WITH_VIDEO_DECODING=1
 sudo make install
 ```
 
-This installs the binary and the [manpage](man/man.1.md).
+This installs the binary and the [manpage](man/timg.1.md).
 
 ### Synopsis
 

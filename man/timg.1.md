@@ -65,7 +65,7 @@ from files and URLs.
 
     The optional pre-crop is number of pixels to unconditionally trim
     beforehand trim beforehand to get rid of an uneven border. The
-    link in the [EXAMPLES][] section shows an example how this improves
+    link in the [EXAMPLES](#EXAMPLES) section shows an example how this improves
     showing an xkcd comic with a border.
 
   * `-U`:
@@ -82,7 +82,7 @@ from files and URLs.
     This is a video, directly read the content as video and don't attempt to
     probe image decoding first. This is useful if you stream a video from
     stdin (which can't be rewound, so the probing bytes would be lost).
-    See link in [EXAMPLES][] section for a an example.
+    See link in [EXAMPLES](#EXAMPLES) section for a an example.
 
   * `-F`:
     Print filename before each image.
