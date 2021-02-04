@@ -45,8 +45,9 @@ Options:
                      to get rid of an uneven border.
         -U         : Toggle Upscale. If an image is smaller than
                      the terminal size, scale it up to full size.
-        -V         : This is a video, don't attempt to probe image deocding first
+        -V         : This is a video, don't attempt to probe image deocding first.
                      (useful, if you stream from stdin).
+                     Add parameter 0 (zero) for opposite: no video loading.
         -F         : Print filename before showing images.
         -E         : Don't hide the cursor while showing images.
         -v         : Print version and exit.

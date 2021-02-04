@@ -78,8 +78,11 @@ static int usage(const char *progname, ExitCode exit_code, int w, int h) {
             "\t             to get rid of an uneven border.\n"
             "\t-U         : Toggle Upscale. If an image is smaller than\n"
             "\t             the terminal size, scale it up to full size.\n"
-            "\t-V         : This is a video, don't attempt to probe image deocding first\n"
+#ifdef WITH_TIMG_VIDEO
+            "\t-V         : This is a video, don't attempt to probe image deocding first.\n"
             "\t             (useful, if you stream from stdin).\n"
+            "\t             Add parameter 0 (zero) for opposite: no video loading.\n"
+#endif
             "\t-F         : Print filename before showing images.\n"
             "\t-E         : Don't hide the cursor while showing images.\n"
             "\t-v         : Print version and exit.\n"
@@ -135,9 +138,10 @@ int main(int argc, char *argv[]) {
     int dy = 0;
     bool fit_width = false;
     bool do_image_loading = true;
+    bool do_video_loading = true;
 
     int opt;
-    while ((opt = getopt(argc, argv, "vg:s::w:t:c:f:b:B:T::hCFEd:UWaV"))!=-1) {
+    while ((opt = getopt(argc, argv, "vg:s::w:t:c:f:b:B:T::hCFEd:UWaV::"))!=-1) {
         switch (opt) {
         case 'g':
             if (sscanf(optarg, "%dx%d", &width, &height) < 2) {
@@ -177,13 +181,17 @@ int main(int argc, char *argv[]) {
         case 'V':
 #ifdef WITH_TIMG_VIDEO
             do_image_loading = false;
+            if (optarg != NULL &&(atoi(optarg) == 0)) {
+                do_image_loading = true;
+                do_video_loading = false;
+            }
 #else
             fprintf(stderr, "-V: Video support not compiled in\n");
 #endif
             break;
         case 'd':
             if (sscanf(optarg, "%d:%d", &dx, &dy) < 1) {
-                fprintf(stderr, "-d%s: At least dx paramter needed e.g. -d1."
+                fprintf(stderr, "-d%s: At least dx parameter needed e.g. -d1."
                         "Or you can give dx, dy like so: -d1:-1", optarg);
                 return usage(argv[0], ExitCode::kParameterError,
                              term_width, term_height);
@@ -294,11 +302,14 @@ int main(int argc, char *argv[]) {
         }
 
 #ifdef WITH_TIMG_VIDEO
-        timg::VideoLoader video_loader;
-        if (video_loader.LoadAndScale(filename, width, height, display_opts)) {
-            if (show_filename) printf("%s\n", filename);
-            video_loader.Play(duration, interrupt_received, &canvas);
-            continue;
+        if (do_video_loading) {
+            timg::VideoLoader video_loader;
+            if (video_loader.LoadAndScale(filename, width, height,
+                                          display_opts)) {
+                if (show_filename) printf("%s\n", filename);
+                video_loader.Play(duration, interrupt_received, &canvas);
+                continue;
+            }
         }
 #endif
 

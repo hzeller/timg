@@ -80,9 +80,19 @@ from files and URLs.
 
   * `-V`:
     This is a video, directly read the content as video and don't attempt to
-    probe image decoding first. This is useful if you stream a video from
-    stdin (which can't be rewound, so the probing bytes would be lost).
+    probe image decoding first.
+
+    Usually, timg will first attempt to interpret the data as image, but
+    if it that fails, will fall-back to try interpret the file as video.
+    However, if the file is coming from stdin, the first bytes used to probe
+    for the image have already been consumed so the fall-back would fail in
+    that case... Arguably, this should be dealt with automatically but isn't :)
+
+    Long story short: if you read a video from a pipe, use -V.
     See link in [EXAMPLES](#EXAMPLES) section for a an example.
+
+    Optionally, you can add a paramter 0 (zero), to achieve the opposite:
+    *Only* read image and skip video fallback.
 
   * `-F`:
     Print filename before each image.
