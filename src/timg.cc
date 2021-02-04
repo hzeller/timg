@@ -182,7 +182,7 @@ int main(int argc, char *argv[]) {
         case 'V':
 #ifdef WITH_TIMG_VIDEO
             do_image_loading = false;
-            if (optarg != NULL && strcmp(optarg, "1") == 0) {
+            if (optarg != NULL && strcmp(optarg, "0") == 0) {
                 do_image_loading = true;
                 do_video_loading = false;
             }
