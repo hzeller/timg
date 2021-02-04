@@ -138,8 +138,9 @@ int main(int argc, char *argv[]) {
     int dy = 0;
     bool fit_width = false;
     bool do_image_loading = true;
+#if WITH_TIMG_VIDEO
     bool do_video_loading = true;
-
+#endif
     int opt;
     while ((opt = getopt(argc, argv, "vg:s::w:t:c:f:b:B:T::hCFEd:UWaV::"))!=-1) {
         switch (opt) {
