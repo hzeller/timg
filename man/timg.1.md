@@ -158,7 +158,7 @@ Exit code is
 
 ## EXAMPLES
 
-See example invocations including scrolling diagonally or streaming an
+Some example invocations including scrolling diagonally or streaming an
 online video are collected at <https://github.com/hzeller/timg#examples>
 
 ## KNOWN ISSUES
