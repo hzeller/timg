@@ -40,6 +40,14 @@
 #  define TIMG_VERSION "(unknown)"
 #endif
 
+enum class ExitCode {
+    kSuccess        = 0,
+    kImageReadError = 1,
+    kParameterError = 2,
+    kNotATerminal   = 3,
+    // Keep in sync with error codes mentioned in manpage
+};
+
 using timg::Duration;
 using timg::Time;
 
@@ -48,7 +56,7 @@ static void InterruptHandler(int signo) {
   interrupt_received = 1;
 }
 
-static int usage(const char *progname, int w, int h) {
+static int usage(const char *progname, ExitCode exit_code, int w, int h) {
 #ifdef WITH_TIMG_VIDEO
     static constexpr char kFileType[] = "image/video";
 #else
@@ -58,28 +66,24 @@ static int usage(const char *progname, int w, int h) {
             kFileType, kFileType);
     fprintf(stderr, "Options:\n"
             "\t-g<w>x<h>  : Output pixel geometry. Default from terminal %dx%d\n"
+            "\t-C         : Center image horizontally.\n"
+            "\t-W         : Scale to fit width of terminal (default: "
+            "fit terminal width and height)\n"
             "\t-w<seconds>: If multiple images given: Wait time between (default: 0.0).\n"
             "\t-a         : Switch off antialiasing (default: on)\n"
+            "\t-b<str>    : Background color to use on transparent images (default '').\n"
+            "\t-B<str>    : Checkerboard pattern color to use on transparent images (default '').\n"
             "\t-T[<pre-crop>] : Trim: auto-crop away all same-color pixels around image.\n"
             "\t             The optional pre-crop is pixels to remove beforehand\n"
             "\t             to get rid of an uneven border.\n"
-            "\t-W         : Scale to fit width of terminal (default: "
-            "fit terminal width and height)\n"
             "\t-U         : Toggle Upscale. If an image is smaller than\n"
             "\t             the terminal size, scale it up to full size.\n"
             "\t-V         : This is a video, don't attempt to probe image deocding first\n"
             "\t             (useful, if you stream from stdin).\n"
-            "\t-b<str>    : Background color to use on transparent images (default '').\n"
-            "\t-B<str>    : Checkerboard pattern color to use on transparent images (default '').\n"
-            // used -C before to clear screen, but that is really a small
-            // feature that should not request a toplevel option. Let's make
-            // this --clear once we use long options, and re-use -C for
-            // centering.
-            //"\t-C         : Clear screen before showing images.\n"
-            "\t-C         : Center image horizontally.\n"
             "\t-F         : Print filename before showing images.\n"
             "\t-E         : Don't hide the cursor while showing images.\n"
             "\t-v         : Print version and exit.\n"
+            "\t-h         : Print this help and exit.\n"
 
             "\n  Scrolling\n"
             "\t-s[<ms>]   : Scroll horizontally (optionally: delay ms (60)).\n"
@@ -95,7 +99,7 @@ static int usage(const char *progname, int w, int h) {
             "If both -w and -t are given for some animation/scroll, -t "
             "takes precedence\n",
             w, h);
-    return 1;
+    return (int)exit_code;
 }
 
 static bool GetBoolenEnv(const char *env_name) {
@@ -138,7 +142,8 @@ int main(int argc, char *argv[]) {
         case 'g':
             if (sscanf(optarg, "%dx%d", &width, &height) < 2) {
                 fprintf(stderr, "Invalid size spec '%s'", optarg);
-                return usage(argv[0], term_width, term_height);
+                return usage(argv[0], ExitCode::kParameterError,
+                             term_width, term_height);
             }
             break;
         case 'w':
@@ -180,7 +185,8 @@ int main(int argc, char *argv[]) {
             if (sscanf(optarg, "%d:%d", &dx, &dy) < 1) {
                 fprintf(stderr, "-d%s: At least dx paramter needed e.g. -d1."
                         "Or you can give dx, dy like so: -d1:-1", optarg);
-                return usage(argv[0], term_width, term_height);
+                return usage(argv[0], ExitCode::kParameterError,
+                             term_width, term_height);
             }
             break;
         case 'C':
@@ -219,7 +225,10 @@ int main(int argc, char *argv[]) {
             return 0;
         case 'h':
         default:
-            return usage(argv[0], term_width, term_height);
+            return usage(argv[0], (opt == 'h'
+                                   ? ExitCode::kSuccess
+                                   : ExitCode::kParameterError),
+                         term_width, term_height);
         }
     }
 
@@ -230,12 +239,13 @@ int main(int argc, char *argv[]) {
         } else {
             fprintf(stderr, "%dx%d is a rather unusual size\n", width, height);
         }
-        return usage(argv[0], term_width, term_height);
+        return usage(argv[0], ExitCode::kNotATerminal, term_width, term_height);
     }
 
     if (optind >= argc) {
         fprintf(stderr, "Expected image filename.\n");
-        return usage(argv[0], term_width, term_height);
+        return usage(argv[0], ExitCode::kImageReadError,
+                     term_width, term_height);
     }
 
     // There is no scroll if there is no movement.

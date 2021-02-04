@@ -26,8 +26,9 @@ timg-version.h: .FORCE
 	cmp -s $@ $@-new || cp $@-new $@; \
 	rm $@-new)
 
-install: timg
-	install $^ $(PREFIX)/bin
+install: timg ../man/timg.1.gz
+	install -D -s timg $(PREFIX)/bin/timg
+	install -D ../man/timg.1.gz $(PREFIX)/share/man/man1/timg.1.gz
 
 uninstall:
 	rm -f $(PREFIX)/bin/timg

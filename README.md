@@ -9,7 +9,7 @@ to display images in the terminal.
 Displays regular images, plays animated gifs, scrolls static images and
 plays videos.
 
-Very useful for if you want to have a quick visual check without starting a
+Very useful if you want to have a quick visual check without starting a
 bulky image viewer ... and don't care about resolution.
 
 ### Install
@@ -26,28 +26,31 @@ make WITH_VIDEO_DECODING=1
 sudo make install
 ```
 
+This installs the binary and the [manpage](man/man.1.md).
+
 ### Synopsis
 
 ```
 usage: timg [options] <image/video> [<image/video>...]
 Options:
         -g<w>x<h>  : Output pixel geometry. Default from terminal 160x100
+        -C         : Center image horizontally.
+        -W         : Scale to fit width of terminal (default: fit terminal width and height)
         -w<seconds>: If multiple images given: Wait time between (default: 0.0).
         -a         : Switch off antialiasing (default: on)
+        -b<str>    : Background color to use on transparent images (default '').
+        -B<str>    : Checkerboard pattern color to use on transparent images (default '').
         -T[<pre-crop>] : Trim: auto-crop away all same-color pixels around image.
                      The optional pre-crop is pixels to remove beforehand
                      to get rid of an uneven border.
-        -W         : Scale to fit width of terminal (default: fit terminal width and height)
         -U         : Toggle Upscale. If an image is smaller than
                      the terminal size, scale it up to full size.
         -V         : This is a video, don't attempt to probe image deocding first
                      (useful, if you stream from stdin).
-        -b<str>    : Background color to use on transparent images (default '').
-        -B<str>    : Checkerboard pattern color to use on transparent images (default '').
-        -C         : Center image horizontally.
         -F         : Print filename before showing images.
         -E         : Don't hide the cursor while showing images.
         -v         : Print version and exit.
+        -h         : Print this help and exit.
 
   Scrolling
         -s[<ms>]   : Scroll horizontally (optionally: delay ms (60)).
