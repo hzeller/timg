@@ -27,11 +27,12 @@ timg-version.h: .FORCE
 	rm $@-new)
 
 install: timg ../man/timg.1.gz
-	install -D -s timg $(PREFIX)/bin/timg
-	install -D ../man/timg.1.gz $(PREFIX)/share/man/man1/timg.1.gz
+	install -d $(PREFIX)/bin $(PREFIX)/share/man/man1
+	install -s timg $(PREFIX)/bin/timg
+	install ../man/timg.1.gz $(PREFIX)/share/man/man1/timg.1.gz
 
 uninstall:
-	rm -f $(PREFIX)/bin/timg
+	rm -f $(PREFIX)/bin/timg $(PREFIX)/share/man/man1/timg.1.gz
 
 clean:
 	rm -f timg $(OBJECTS) timg-version.h
