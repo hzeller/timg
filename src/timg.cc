@@ -272,15 +272,13 @@ int main(int argc, char *argv[]) {
     for (int imgarg = optind; imgarg < argc && !interrupt_received; ++imgarg) {
         const char *filename = argv[imgarg];
         if (do_clear) canvas.ClearScreen();
-        if (show_filename) {
-            printf("%s\n", filename);
-        }
 
         if (do_image_loading) {
             timg::ImageLoader image_loader;
             if (image_loader.LoadAndScale(filename, width, height,
                                           display_opts,
                                           bg_color, pattern_color)) {
+                if (show_filename) printf("%s\n", filename);
                 if (do_scroll) {
                     image_loader.Scroll(duration, loops, interrupt_received,
                                         dx, dy, scroll_delay, &canvas);
@@ -298,6 +296,7 @@ int main(int argc, char *argv[]) {
 #ifdef WITH_TIMG_VIDEO
         timg::VideoLoader video_loader;
         if (video_loader.LoadAndScale(filename, width, height, display_opts)) {
+            if (show_filename) printf("%s\n", filename);
             video_loader.Play(duration, interrupt_received, &canvas);
             continue;
         }
