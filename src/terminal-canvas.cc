@@ -227,7 +227,10 @@ void TerminalCanvas::Send(const Framebuffer &framebuffer, int indent) {
 
 void TerminalCanvas::JumpUpPixels(int pixels) {
     if (pixels <= 0) return;
-    dprintf(fd_, SCREEN_CURSOR_UP_FORMAT, (pixels+1)/2);
+    char buf[32];
+    size_t len = snprintf(buf, sizeof(buf),
+                          SCREEN_CURSOR_UP_FORMAT, (pixels+1)/2);
+    reliable_write(fd_, buf, len);
 }
 
 void TerminalCanvas::ClearScreen() {
