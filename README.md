@@ -14,9 +14,15 @@ bulky image viewer ... and don't care about resolution.
 
 ### Install
 
+First get the repository and change into the `src` directory
+
 ```bash
 git clone https://github.com/hzeller/timg.git
 cd timg/src
+```
+
+Compiling on Debian/Ubuntu
+```
 sudo apt-get install libwebp-dev libgraphicsmagick++-dev    # required libs.
 
 # If you do not want to include video decoding
@@ -25,18 +31,11 @@ make WITH_VIDEO_DECODING=0
 # If you want to include video decoding, install these additional libraries
 sudo apt-get install pkg-config libavcodec-dev libavformat-dev libswscale-dev
 make
-
-sudo make install
 ```
 
-This installs the binary and the [manpage](man/timg.1.md).
-
-#### Install on macOS
-Assuming homebrew is available to install required dependencies
+Compiling on macOS
 ```
-git clone https://github.com/hzeller/timg.git
-cd timg/src
-
+# Homebrew needs to be available to install required dependencies
 brew install GraphicsMagick webp  # required libs 
 
 # If you do not want to include video decoding
@@ -45,9 +44,14 @@ LDFLAGS=-L${HOMEBREW_PREFIX}/lib make WITH_VIDEO_DECODING=0
 # If you want to include video decoding, install these additional libraries
 brew install ffmpeg
 LDFLAGS=-L${HOMEBREW_PREFIX}/lib make
+```
 
+
+Install the binary and the [manpage](man/timg.1.md)
+```
 sudo make install
 ```
+
 
 ### Synopsis
 
