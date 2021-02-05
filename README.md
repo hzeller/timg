@@ -22,7 +22,7 @@ sudo apt-get install libwebp-dev libgraphicsmagick++-dev    # required libs.
 # If you do not want to include video decoding
 make WITH_VIDEO_DECODING=0
 
-# If you want to include video decoding
+# If you want to include video decoding, install these additional libraries
 sudo apt-get install pkg-config libavcodec-dev libavformat-dev libswscale-dev
 make
 
@@ -39,7 +39,7 @@ cd timg/src
 
 brew install GraphicsMagick webp  # required libs 
 
-# If you do not want to include video decoding
+# If you do not want to include video decoding, install these additional libraries
 LDFLAGS=-L${HOMEBREW_PREFIX}/lib make WITH_VIDEO_DECODING=0
 
 # If you want to include  video decoding
