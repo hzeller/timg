@@ -96,8 +96,8 @@ void CopyToFramebuffer(const Magick::Image &img, timg::Framebuffer *result) {
 // does not have to be done online. Also knows about the animation delay.
 class ImageLoader::PreprocessedFrame {
 public:
-    PreprocessedFrame(const Magick::Image &img)
-        : delay_(DurationFromImgDelay(img)),
+    PreprocessedFrame(const Magick::Image &img, bool is_part_of_animation)
+        : delay_(DurationFromImgDelay(img, is_part_of_animation)),
           framebuffer_(img.columns(), img.rows()) {
         CopyToFramebuffer(img, &framebuffer_);
     }
@@ -105,7 +105,9 @@ public:
     const timg::Framebuffer &framebuffer() const { return framebuffer_; }
 
 private:
-    static Duration DurationFromImgDelay(const Magick::Image &img) {
+    static Duration DurationFromImgDelay(const Magick::Image &img,
+                                         bool is_part_of_animation) {
+        if (!is_part_of_animation) return Duration::Millis(0);
         int delay_time = img.animationDelay();  // in 1/100s of a second.
         if (delay_time < 1) delay_time = 10;
         return Duration::Millis(delay_time * 10);
@@ -231,7 +233,7 @@ bool ImageLoader::LoadAndScale(const char *filename,
             target.animationDelay(img.animationDelay());  // lost otherwise.
             img = target;
         }
-        frames_.push_back(new PreprocessedFrame(img));
+        frames_.push_back(new PreprocessedFrame(img, result.size() > 1));
     }
 
     return true;
@@ -271,8 +273,10 @@ void ImageLoader::Display(Duration duration, int max_frames, int loops,
             }
             canvas->Send(frame->framebuffer(), IndentationIfCentered(frame));
             last_height = frame->framebuffer().height();
-            const Time frame_finish = frame_start + frame->delay();
-            frame_finish.WaitUntil();
+            if (!frame->delay().is_zero()) {
+                const Time frame_finish = frame_start + frame->delay();
+                frame_finish.WaitUntil();
+            }
         }
     }
 }
@@ -345,8 +349,10 @@ void ImageLoader::Scroll(Duration duration, int loops,
             }
             canvas->Send(display_fb, 0);
             is_first = false;
-            const Time frame_finish = frame_start + scroll_delay;
-            frame_finish.WaitUntil();
+            if (!scroll_delay.is_zero()) {
+                const Time frame_finish = frame_start + scroll_delay;
+                frame_finish.WaitUntil();
+            }
         }
     }
 }

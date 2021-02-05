@@ -51,6 +51,10 @@ public:
 
     struct timespec duration() const { return duration_; }
 
+    bool is_zero() const {
+        return duration_.tv_sec <= 0 && duration_.tv_nsec == 0;
+    }
+
 private:
     constexpr Duration(long sec, long ns) : duration_({sec, ns}) {}
     struct timespec duration_;

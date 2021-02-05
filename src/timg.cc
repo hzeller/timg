@@ -321,7 +321,8 @@ int main(int argc, char *argv[]) {
                     image_loader.Display(duration, max_frames, loops,
                                          interrupt_received, &canvas);
                 }
-                if (!image_loader.is_animation()) {
+                if (!image_loader.is_animation() &&
+                    !between_images_duration.is_zero()) {
                     (Time::Now() + between_images_duration).WaitUntil();
                 }
                 continue;
