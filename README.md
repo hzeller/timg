@@ -39,11 +39,11 @@ cd timg/src
 
 brew install GraphicsMagick webp  # required libs 
 
-# If you do not want to include video decoding, install these additional libraries
+# If you do not want to include video decoding
 LDFLAGS=-L${HOMEBREW_PREFIX}/lib make WITH_VIDEO_DECODING=0
 
-# If you want to include  video decoding
-brew install ffmpeg # includes the required libs for video decoding
+# If you want to include video decoding, install these additional libraries
+brew install ffmpeg
 LDFLAGS=-L${HOMEBREW_PREFIX}/lib make
 
 sudo make install
