@@ -26,6 +26,7 @@
 #  include "video-display.h"
 #endif
 
+#include <getopt.h>
 #include <math.h>
 #include <signal.h>
 #include <stdio.h>
@@ -65,32 +66,33 @@ static int usage(const char *progname, ExitCode exit_code, int w, int h) {
     fprintf(stderr, "usage: %s [options] <%s> [<%s>...]\n", progname,
             kFileType, kFileType);
     fprintf(stderr, "Options:\n"
-            "\t-g<w>x<h>  : Output pixel geometry. Default from terminal %dx%d\n"
-            "\t-C         : Center image horizontally.\n"
-            "\t-W         : Scale to fit width of terminal (default: "
+            "\t-g<w>x<h> : Output pixel geometry. Default from terminal %dx%d\n"
+            "\t-C        : Center image horizontally.\n"
+            "\t-W        : Scale to fit width of terminal (default: "
             "fit terminal width and height)\n"
             "\t-w<seconds>: If multiple images given: Wait time between (default: 0.0).\n"
-            "\t-a         : Switch off antialiasing (default: on)\n"
-            "\t-b<str>    : Background color to use on transparent images (default '').\n"
-            "\t-B<str>    : Checkerboard pattern color to use on transparent images (default '').\n"
-            "\t-T[<pre-crop>] : Trim: auto-crop away all same-color pixels around image.\n"
-            "\t             The optional pre-crop is pixels to remove beforehand\n"
-            "\t             to get rid of an uneven border.\n"
-            "\t-U         : Toggle Upscale. If an image is smaller than\n"
-            "\t             the terminal size, scale it up to full size.\n"
+            "\t-a        : Switch off antialiasing (default: on)\n"
+            "\t-b<str>   : Background color to use on transparent images (default '').\n"
+            "\t-B<str>   : Checkerboard pattern color to use on transparent images (default '').\n"
+            "\t--trim[=<pre-crop>]\n"
+            "\t          : Trim: auto-crop away all same-color pixels around image.\n"
+            "\t            The optional pre-crop is pixels to remove beforehand\n"
+            "\t            to get rid of an uneven border.\n"
+            "\t-U        : Toggle Upscale. If an image is smaller than\n"
+            "\t            the terminal size, scale it up to full size.\n"
 #ifdef WITH_TIMG_VIDEO
-            "\t-V         : This is a video, don't attempt to probe image deocding first.\n"
-            "\t             (useful, if you stream from stdin).\n"
-            "\t             Add parameter 0 (zero) for opposite: no video loading.\n"
+            "\t-V        : This is a video, don't attempt to probe image deocding first.\n"
+            "\t            (useful, if you stream from stdin).\n"
+            "\t-I        : This is an image. Don't attempt video decoding.\n"
 #endif
-            "\t-F         : Print filename before showing images.\n"
-            "\t-E         : Don't hide the cursor while showing images.\n"
-            "\t-v         : Print version and exit.\n"
-            "\t-h         : Print this help and exit.\n"
+            "\t-F        : Print filename before showing images.\n"
+            "\t-E        : Don't hide the cursor while showing images.\n"
+            "\t-v, --version : Print version and exit.\n"
+            "\t-h, --help    : Print this help and exit.\n"
 
             "\n  Scrolling\n"
-            "\t-s[<ms>]   : Scroll horizontally (optionally: delay ms (60)).\n"
-            "\t-d<dx:dy>  : delta x and delta y when scrolling (default: 1:0).\n"
+            "\t--scroll=[<ms>]         : Scroll horizontally (optionally: delay ms (60)).\n"
+            "\t--delta-move=<dx:dy>  : delta x and delta y when scrolling (default: 1:0).\n"
 
             "\n  For Animations and Scrolling\n"
             "  These are usually shown in in full in an infinite loop. These options influence that.\n"
@@ -141,8 +143,29 @@ int main(int argc, char *argv[]) {
 #if WITH_TIMG_VIDEO
     bool do_video_loading = true;
 #endif
+
+    // Flags with optional parameters need to be long-options, as on MacOS,
+    // there is no way to have single-character options with
+    static constexpr struct option long_options[] = {
+        { "scroll",     optional_argument, NULL, 's' },
+        { "trim",       optional_argument, NULL, 'T' },
+        { "delta-move", required_argument, NULL, 'd' },
+        { "version",    no_argument,       NULL, 'v' },
+        { "help",       no_argument,       NULL, 'h' },
+        // TODO: add more long-options
+        { 0, 0, 0, 0}
+    };
+    // BSD's don't have a getopt() that has the GNU extension to allow
+    // optional parameters on single-character flags, so we now only document
+    // the new --trim and --scroll but, for a while, will also silently
+    // support these old options.
+#define OLD_COMPAT_FLAGS "T::s::"
+
     int opt;
-    while ((opt = getopt(argc, argv, "vg:s::w:t:c:f:b:B:T::hCFEd:UWaV::"))!=-1) {
+    int option_index = 0;
+    while ((opt = getopt_long(argc, argv,
+                              "vg:w:t:c:f:b:B:hCFEd:UWaVI" OLD_COMPAT_FLAGS,
+                              long_options, &option_index))!=-1) {
         switch (opt) {
         case 'g':
             if (sscanf(optarg, "%dx%d", &width, &height) < 2) {
@@ -182,12 +205,15 @@ int main(int argc, char *argv[]) {
         case 'V':
 #ifdef WITH_TIMG_VIDEO
             do_image_loading = false;
-            if (optarg != NULL && strcmp(optarg, "0") == 0) {
-                do_image_loading = true;
-                do_video_loading = false;
-            }
+            do_video_loading = true;
 #else
             fprintf(stderr, "-V: Video support not compiled in\n");
+#endif
+            break;
+        case 'I':
+            do_image_loading = true;
+#if WITH_TIMG_VIDEO
+            do_video_loading = false;
 #endif
             break;
         case 'd':

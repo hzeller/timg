@@ -58,7 +58,7 @@ from files and URLs.
     the given color, which alternates with the `-b` color.
     Like in `-b`, HTML/SVG color strings are supported.
 
-  * `-T` [<pre-crop>]:
+  * `--trim`[=<pre-crop>]:
     Trim same-color pixels around the border of image before displaying. Use
     this if there is a border around an image which uses too many of the
     available few pixels.
@@ -91,8 +91,9 @@ from files and URLs.
     Long story short: if you read a video from a pipe, use -V.
     See link in [EXAMPLES](#EXAMPLES) section for a an example.
 
-    Optionally, you can add a paramter 0 (zero), to achieve the opposite:
-    *Only* read image and skip video fallback.
+  * `-I`:
+    This is an image, don't attempt to fall back to video decoding. Somewhat
+    the opposite of `-V`.
 
   * `-F`:
     Print filename before each image.
@@ -100,18 +101,18 @@ from files and URLs.
   * `-E`:
     Don't hide the cursor while showing images.
 
-  * `-v`:
+  * `-v`, `--version`:
     Print version and exit.
 
-  * `-h`:
+  * `-h`, `--help`:
     Print command line option help and exit.
 
 ### Scrolling
 
-  * `-s` [<ms>]:
+  * `--scroll`[=<ms>]:
     Scroll horizontally with an optional delay between updates (default: 60ms)
 
-  * `-d` <dx>\:<dy>:
+  * `--delta-move`=<dx>\:<dy>:
     Scroll with delta x and delta y. The default of 1:0 scrolls it horizontally,
     but with this option you can scroll vertically or even diagonally.
 

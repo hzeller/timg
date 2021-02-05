@@ -33,29 +33,30 @@ This installs the binary and the [manpage](man/timg.1.md).
 ```
 usage: timg [options] <image/video> [<image/video>...]
 Options:
-        -g<w>x<h>  : Output pixel geometry. Default from terminal 160x100
-        -C         : Center image horizontally.
-        -W         : Scale to fit width of terminal (default: fit terminal width and height)
+        -g<w>x<h> : Output pixel geometry. Default from terminal 204x114
+        -C        : Center image horizontally.
+        -W        : Scale to fit width of terminal (default: fit terminal width and height)
         -w<seconds>: If multiple images given: Wait time between (default: 0.0).
-        -a         : Switch off antialiasing (default: on)
-        -b<str>    : Background color to use on transparent images (default '').
-        -B<str>    : Checkerboard pattern color to use on transparent images (default '').
-        -T[<pre-crop>] : Trim: auto-crop away all same-color pixels around image.
-                     The optional pre-crop is pixels to remove beforehand
-                     to get rid of an uneven border.
-        -U         : Toggle Upscale. If an image is smaller than
-                     the terminal size, scale it up to full size.
-        -V         : This is a video, don't attempt to probe image deocding first.
-                     (useful, if you stream from stdin).
-                     Add parameter 0 (zero) for opposite: no video loading.
-        -F         : Print filename before showing images.
-        -E         : Don't hide the cursor while showing images.
-        -v         : Print version and exit.
-        -h         : Print this help and exit.
+        -a        : Switch off antialiasing (default: on)
+        -b<str>   : Background color to use on transparent images (default '').
+        -B<str>   : Checkerboard pattern color to use on transparent images (default '').
+        --trim[=<pre-crop>]
+                  : Trim: auto-crop away all same-color pixels around image.
+                    The optional pre-crop is pixels to remove beforehand
+                    to get rid of an uneven border.
+        -U        : Toggle Upscale. If an image is smaller than
+                    the terminal size, scale it up to full size.
+        -V        : This is a video, don't attempt to probe image deocding first.
+                    (useful, if you stream from stdin).
+        -I        : This is an image. Don't attempt video decoding.
+        -F        : Print filename before showing images.
+        -E        : Don't hide the cursor while showing images.
+        -v, --version : Print version and exit.
+        -h, --help    : Print this help and exit.
 
   Scrolling
-        -s[<ms>]   : Scroll horizontally (optionally: delay ms (60)).
-        -d<dx:dy>  : delta x and delta y when scrolling (default: 1:0).
+        --scroll=[<ms>]         : Scroll horizontally (optionally: delay ms (60)).
+        --delta-move=<dx:dy>  : delta x and delta y when scrolling (default: 1:0).
 
   For Animations and Scrolling
   These are usually shown in in full in an infinite loop. These options influence that.
@@ -75,7 +76,7 @@ timg -g50x50 some-image.jpg # display image fitting in box of 50x50 pixel
 timg *.jpg                  # display all *.jpg images
 
 # Show a PDF document, use full width of terminal, trim away empty border
-timg -W -T some-document.pdf
+timg -W --trim some-document.pdf
 
 # Open an image from a URL. URLs are internally actually handled by the
 # video subsystem, so it is treated as a single-frame 'film', nevertheless,
@@ -85,15 +86,16 @@ timg -C https://i.kym-cdn.com/photos/images/newsfeed/000/406/282/2b8.jpg
 
 # Sometimes, it is necessary to manually crop a few pixels from an
 # uneven border before the auto-trim finds uniform color all-around to remove.
-# For example with -T7 we'd remove first seven pixels around an image, then
-# do the regular auto-cropping.
+# For example with --trim=7 we'd remove first seven pixels around an image,
+# then do the regular auto-cropping.
 #
-# The following example loads an image from a URL; -T does not work with that,
-# so we have to get the content manually, e.g. with wget. Piping to stdin works.
+# The following example loads an image from a URL; --trim does not work with
+# that, so we have to get the content manually, e.g. with wget. Piping to
+# stdin works.
 #
 # For this image, we need to remove 3 pixels all around before
 # auto-trim can take over successfully:
-wget -qO- https://imgs.xkcd.com/comics/a_better_idea.png | timg -T3 -
+wget -qO- https://imgs.xkcd.com/comics/a_better_idea.png | timg --trim=3 -
 
 timg multi-resolution.ico   # See all the bitmaps in multi-resolution icons-file
 
@@ -108,14 +110,14 @@ timg some-animated.gif      # show an animated gif (stop with Ctrl-C)
 timg -t5 some-animated.gif  # show animated gif for 5 seconds
 
 # Scroll
-timg -s some-image.jpg      # scroll a static image as banner (stop with Ctrl-C)
-timg -s100 some-image.jpg   # scroll with 100ms delay
+timg --scroll some-image.jpg # scroll a static image as banner (stop with Ctrl-C)
+timg --scroll=100 some-image.jpg   # scroll with 100ms delay
 
 # Scroll direction. Horizontally, vertically; how about diagonally ?
-timg -s -d1:0 some-image.jpg  # scroll with dx=1 and dy=0, so horizontally.
-timg -s -d-1:0 some-image.jpg # scroll horizontally in reverse direction.
-timg -s -d0:2 some-image.jpg  # vertical, two pixels per step.
-timg -s -d1:1 some-image.jpg  # diagonal, dx=1, dy=1
+timg --scroll --delta-move=1:0 some-image.jpg  # scroll with dx=1 and dy=0, so horizontally.
+timg --scroll --delta-move=-1:0 some-image.jpg # scroll horizontally in reverse direction.
+timg --scroll --delta-move=0:2 some-image.jpg  # vertical, two pixels per step.
+timg --scroll --delta-move=1:1 some-image.jpg  # diagonal, dx=1, dy=1
 
 # Background color for transparent images (SVG-compatible strings are supported)
 timg -b 'red' some-transparent-image.png
