@@ -22,7 +22,7 @@ cd timg/src
 ```
 
 Compiling on Debian/Ubuntu
-```
+```bash
 sudo apt-get install libwebp-dev libgraphicsmagick++-dev    # required libs.
 
 # If you do not want to include video decoding
@@ -34,7 +34,7 @@ make
 ```
 
 Compiling on macOS
-```
+```bash
 # Homebrew needs to be available to install required dependencies
 brew install GraphicsMagick webp  # required libs 
 
@@ -48,7 +48,7 @@ LDFLAGS=-L${HOMEBREW_PREFIX}/lib make
 
 
 Install the binary and the [manpage](man/timg.1.md)
-```
+```bash
 sudo make install
 ```
 
