@@ -19,14 +19,35 @@ git clone https://github.com/hzeller/timg.git
 cd timg/src
 sudo apt-get install libwebp-dev libgraphicsmagick++-dev    # required libs.
 
+# If you do not want to include video decoding
+make WITH_VIDEO_DECODING=0
+
 # If you want to include video decoding
 sudo apt-get install pkg-config libavcodec-dev libavformat-dev libswscale-dev
+make
 
-make WITH_VIDEO_DECODING=1
 sudo make install
 ```
 
 This installs the binary and the [manpage](man/timg.1.md).
+
+#### Install on macOS
+Assuming homebrew is available to install required dependencies
+```
+git clone https://github.com/hzeller/timg.git
+cd timg/src
+
+brew install GraphicsMagick webp  # required libs 
+
+# If you do not want to include video decoding
+LDFLAGS=-L${HOMEBREW_PREFIX}/lib make WITH_VIDEO_DECODING=0
+
+# If you want to include  video decoding
+brew install ffmpeg # includes the required libs for video decoding
+LDFLAGS=-L${HOMEBREW_PREFIX}/lib make
+
+sudo make install
+```
 
 ### Synopsis
 
@@ -182,8 +203,7 @@ Linux console seems to be limited in colors and does not show the block
 character - if you know how to enable the unicode character or full color
 there, please let me know.
 
-For Mac users, the iTerm2 >= 3.x should work, please confirm if you have this
-setup.
+For Mac users, at least the combination of macOS 11.2 and iTerm2 3.4.3 works. 
 
 [24-bit-term]: https://gist.github.com/XVilka/8346728
 [cool-retro-term]: https://github.com/Swordfish90/cool-retro-term
