@@ -73,7 +73,7 @@ Options:
         --rotate=<exif|off> : Rotate according to included exif orientation or off. Default: exif.
         -U        : Toggle Upscale. If an image is smaller than
                     the terminal size, scale it up to full size.
-        -V        : This is a video, don't attempt to probe image deocding first.
+        -V        : This is a video, don't attempt to probe image decoding first.
                     (useful, if you stream from stdin).
         -I        : This is an image. Don't attempt video decoding.
         -F        : Print filename before showing images.
