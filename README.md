@@ -85,14 +85,12 @@ Options:
         --scroll=[<ms>]         : Scroll horizontally (optionally: delay ms (60)).
         --delta-move=<dx:dy>  : delta x and delta y when scrolling (default: 1:0).
 
-  For Animations and Scrolling
-  These are usually shown in in full in an infinite loop. These options influence that.
-        -t<seconds>: Stop after this time.
-        -c<num>    : Number of runs through a full cycle.
-        -f<num>    : For animations: only render first num frames.
-
-If both -c and -t are given, whatever comes first stops.
-If both -w and -t are given for some animation/scroll, -t takes precedence
+  For Animations, Scrolling, or Video
+  These options influence how long/often and what is shown.
+        --loops=<num> : Number of runs through a full cycle. Use -1 to mean 'forever'.
+                        If not set, videos behave like --loop=1, animated images like --loop=-1
+        --frames=<num>: Only render first num frames.
+        -t<seconds>   : Hard stop after this time, no matter what --loops or --frames say.
 ```
 
 ### Examples
@@ -104,6 +102,7 @@ timg *.jpg                  # display all *.jpg images
 
 # Show a PDF document, use full width of terminal, trim away empty border
 timg -W --autocrop some-document.pdf
+timg --frames=1 some-document.pdf    # Show a PDF, but only first page
 
 # Open an image from a URL. URLs are internally actually handled by the
 # video subsystem, so it is treated as a single-frame 'film', nevertheless,
@@ -132,9 +131,12 @@ timg some-video.mp4         # Watch a video.
 # image decode first as this will consume bytes from the pipe. Use -V option.
 youtube-dl -q -o- -f'[height<480]' 'https://youtu.be/dQw4w9WgXcQ' | timg -V -
 
-# Show animated gif with timeout.
-timg some-animated.gif      # show an animated gif (stop with Ctrl-C)
+# Show animated gif, possibly limited by timeout, loops or frame-count
+timg some-animated.gif      # show an animated gif forever (stop with Ctrl-C)
 timg -t5 some-animated.gif  # show animated gif for 5 seconds
+timg --loops=3 some-animated.gif  # Loop animated gif 3 times
+timg --frames=3 --loops=1 some-animated.gif  # Show only first three frames
+timg --frames=1 some-animated.gif  # Show only first frame. Static image.
 
 # Scroll
 timg --scroll some-image.jpg # scroll a static image as banner (stop with Ctrl-C)
@@ -167,7 +169,7 @@ cat /tmp/imageout.txt
 
 # Of course, you can go really crazy by storing a cycle of an animation. Use xz
 # for compression as it seems to deal with this kind of stuff really well:
-timg -g60x30 -c10 nyan.gif | xz > /tmp/nyan.term.xz
+timg -g60x30 --loops=10 nyan.gif | xz > /tmp/nyan.term.xz
 
 # ..now, replay the generated ANSI codes on the terminal. Since it would
 # rush through as fast as possible, we have to use a trick to wait between
@@ -178,7 +180,7 @@ xzcat /tmp/nyan.term.xz | gawk '/A/ { system("sleep 0.1"); } { print $0 }'
 # You can wrap all that in a loop to get an infinite repeat.
 while : ; do xzcat... ; done
 
-# (If you ctrl-c that loop, you might need to use 'reset' for terminal sanity)
+# (If you Ctrl-C that loop, you might need to use 'reset' for terminal sanity)
 ```
 
 Note, this requires that your terminal can display

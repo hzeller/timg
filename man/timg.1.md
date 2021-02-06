@@ -120,21 +120,25 @@ from files and URLs.
     Scroll with delta x and delta y. The default of 1:0 scrolls it horizontally,
     but with this option you can scroll vertically or even diagonally.
 
-### For Animations and Scrolling
+### For Animations, Scrolling, or Video
 
 Usually, animations are shown in full in an infinite loop. These options
 limit infinity.
 
   * `-t` <seconds>:
-   Stop an animation after these number of seconds.
-   Fractional values are allowed.
+    Stop an animation after these number of seconds.
+    Fractional values are allowed.
 
-  * `-c` <cycle-count>:
-    Number of runs through a fully cycle of an animation.
+  * `--loops=`<num>:
+    Number of loops through a fully cycle of an animation or video.
+    A value of -1 stands for 'forever'.
 
-  * `-f` <frame-count>:
-    Only render the first `frame-count` frames in an animation. Note, it will
-    still repeat, use `-c` and `-t` to change.
+    If this option is not set, videos behave like --loops=1 (show exactly once)
+    and animated gifs like --loop=-1 (loop forever).
+
+  * `--frames=`<frame-count>:
+    Only render the first `frame-count` frames in an animation or video.
+    If frame-count is set to 1, the output behaves like a static image.
 
 ## RETURN VALUES
 

@@ -95,15 +95,12 @@ static int usage(const char *progname, ExitCode exit_code, int w, int h) {
             "\t--scroll=[<ms>]         : Scroll horizontally (optionally: delay ms (60)).\n"
             "\t--delta-move=<dx:dy>  : delta x and delta y when scrolling (default: 1:0).\n"
 
-            "\n  For Animations and Scrolling\n"
-            "  These are usually shown in in full in an infinite loop. These options influence that.\n"
-            "\t-t<seconds>: Stop after this time.\n"
-            "\t-c<num>    : Number of runs through a full cycle.\n"
-            "\t-f<num>    : For animations: only render first num frames.\n"
-
-            "\nIf both -c and -t are given, whatever comes first stops.\n"
-            "If both -w and -t are given for some animation/scroll, -t "
-            "takes precedence\n",
+            "\n  For Animations, Scrolling, or Video\n"
+            "  These options influence how long/often and what is shown.\n"
+            "\t--loops=<num> : Number of runs through a full cycle. Use -1 to mean 'forever'.\n"
+            "\t                If not set, videos behave like --loop=1, animated images like --loop=-1\n"
+            "\t--frames=<num>: Only render first num frames.\n"
+            "\t-t<seconds>   : Stop after this time, no matter what --loops or --frames say.\n",
             w, h);
     return (int)exit_code;
 }
@@ -130,11 +127,11 @@ int main(int argc, char *argv[]) {
     bool do_clear = false;
     bool show_filename = false;
     bool hide_cursor = true;
-    int max_frames = -1;
     Duration duration = Duration::InfiniteFuture();
     Duration between_images_duration = Duration::Millis(0);
     Duration scroll_delay = Duration::Millis(50);
-    int loops  = -1;
+    int max_frames = timg::kNotInitialized;
+    int loops  = timg::kNotInitialized;
     int dx = 1;
     int dy = 0;
     bool fit_width = false;
@@ -154,6 +151,9 @@ int main(int argc, char *argv[]) {
         { "autocrop",    optional_argument, NULL, 'T' },
         { "delta-move",  required_argument, NULL, 'd' },
         { "rotate",      required_argument, NULL, OPT_ROTATE },
+        { "loops",       required_argument, NULL, 'c' },
+        { "frames",      required_argument, NULL, 'f' },
+        // TODO: frame offset ?
         { "version",     no_argument,       NULL, 'v' },
         { "help",        no_argument,       NULL, 'h' },
         // TODO: add more long-options
@@ -186,10 +186,10 @@ int main(int argc, char *argv[]) {
         case 't':
             duration = Duration::Millis(roundf(atof(optarg) * 1000.0f));
             break;
-        case 'c':
+        case 'c':  // Legacy option, now long opt. Keep for now.
             loops = atoi(optarg);
             break;
-        case 'f':
+        case 'f':  // Legacy option, now long opt. Keep for now.
             max_frames = atoi(optarg);
             break;
         case 'a':
@@ -313,10 +313,14 @@ int main(int argc, char *argv[]) {
     // the available screen space fully in the other direction.
     display_opts.fill_width  = fit_width || (do_scroll && dy != 0);
     display_opts.fill_height = do_scroll && dx != 0; // scroll hor, fill vert
-    int exit_code = 0;
+
+    // Showing exactly one frame implies animation behaves as static image
+    if (max_frames == 1)
+        loops = 1;
 
     signal(SIGTERM, InterruptHandler);
     signal(SIGINT, InterruptHandler);
+    int exit_code = 0;
 
     timg::TerminalCanvas canvas(STDOUT_FILENO, terminal_use_upper_block);
     if (hide_cursor) {
@@ -351,7 +355,8 @@ int main(int argc, char *argv[]) {
             timg::VideoLoader video_loader;
             if (video_loader.LoadAndScale(filename, display_opts)) {
                 if (show_filename) printf("%s\n", filename);
-                video_loader.Play(duration, interrupt_received, &canvas);
+                video_loader.Play(duration, max_frames, loops,
+                                  interrupt_received, &canvas);
                 continue;
             }
         }

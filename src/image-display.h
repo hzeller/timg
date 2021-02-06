@@ -16,13 +16,19 @@
 #ifndef IMAGE_DISPLAY_H_
 #define IMAGE_DISPLAY_H_
 
-#include <vector>
 #include <signal.h>
+
+#include <vector>
+#include <limits>
 
 #include "timg-time.h"
 #include "terminal-canvas.h"
 
 namespace timg {
+// Special sentinel value so signify a not initialized value on the command
+// line.
+static constexpr int kNotInitialized = std::numeric_limits<int>::min();
+
 struct DisplayOptions {
     int width = -1;             // These need to be set to valid values.
     int height = -1;

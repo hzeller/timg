@@ -211,37 +211,62 @@ void VideoLoader::CopyToFramebuffer(const AVFrame *av_frame) {
     }
 }
 
-void VideoLoader::Play(Duration duration,
+void VideoLoader::Play(Duration duration, const int frames, int loops,
                        const volatile sig_atomic_t &interrupt_received,
                        timg::TerminalCanvas *canvas) {
+    const bool frame_limit = (frames >= 0);
+
+    if (frames == 1)  // If there is only one frame, nothing to repeat.
+        loops = 1;
+
+    // Unlike animated images, in which a not set value in loops means
+    // 'infinite' repeat, it feels more sensible to repeat videos exactly once
+    // then. A negative value otherwise is considered 'forever'
+    const bool loop_forever = (loops < 0) && (loops != timg::kNotInitialized);
+    if (loops == timg::kNotInitialized)
+        loops = 1;
+
     AVPacket *packet = av_packet_alloc();
     bool is_first = true;
     const Time end_time = Time::Now() + duration;
     AVFrame *decode_frame = av_frame_alloc();  // Decode video into this
     timg::Time end_next_frame;
-    while (Time::Now() < end_time && !interrupt_received
-           && av_read_frame(format_context_, packet) >= 0) {
-        if (packet->stream_index == video_stream_index_) {
-            // Determine absolute end of this frame now so that we don't include
-            // decoding overhead.
-            // TODO: skip frames if getting too much behind ?
-            end_next_frame.Add(frame_duration_);
+    for (int k = 0;
+         (loop_forever || k < loops)
+             && !interrupt_received
+             && Time::Now() < end_time;
+         ++k) {
+        av_seek_frame(format_context_, video_stream_index_, 0, AVSEEK_FLAG_ANY);
+        avcodec_flush_buffers(codec_context_);
+        int remaining_frames = frames;
 
-            // Decode video frame
-            if (DecodePacket(packet, decode_frame)) {
-                sws_scale(sws_context_,
-                          decode_frame->data, decode_frame->linesize,
-                          0, codec_context_->height,
-                          output_frame_->data, output_frame_->linesize);
-                CopyToFramebuffer(output_frame_);
-                if (!is_first) canvas->JumpUpPixels(terminal_fb_->height());
-                canvas->Send(*terminal_fb_, center_indentation_);
-                is_first = false;
+        while (!interrupt_received && Time::Now() < end_time
+               && av_read_frame(format_context_, packet) >= 0
+               && (!frame_limit || remaining_frames > 0)) {
+            if (packet->stream_index == video_stream_index_) {
+                // Determine absolute end of this frame now so that we
+                // don't include decoding overhead.
+                // TODO: skip frames if getting too much behind ?
+                end_next_frame.Add(frame_duration_);
+
+                // Decode video frame
+                if (DecodePacket(packet, decode_frame)) {
+                    sws_scale(sws_context_,
+                              decode_frame->data, decode_frame->linesize,
+                              0, codec_context_->height,
+                              output_frame_->data, output_frame_->linesize);
+                    CopyToFramebuffer(output_frame_);
+                    if (!is_first) canvas->JumpUpPixels(terminal_fb_->height());
+                    canvas->Send(*terminal_fb_, center_indentation_);
+                    is_first = false;
+                    if (frame_limit) --remaining_frames;
+                }
+                end_next_frame.WaitUntil();
             }
-            end_next_frame.WaitUntil();
+            av_packet_unref(packet);  // was allocated by av_read_frame
         }
-        av_packet_unref(packet);  // was allocated by av_read_frame
     }
+
     av_frame_free(&decode_frame);
     av_packet_free(&packet);
 }

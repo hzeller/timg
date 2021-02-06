@@ -47,7 +47,7 @@ public:
     //
     // The reference to the "interrupt_received" can be updated by a signal
     // while the method is running and shall be checked often.
-    void Play(Duration duration,
+    void Play(Duration duration, int max_frames, int loops,
               const volatile sig_atomic_t &interrupt_received,
               timg::TerminalCanvas *canvas);
 

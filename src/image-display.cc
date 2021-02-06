@@ -268,18 +268,23 @@ int ImageLoader::IndentationIfCentered(const PreprocessedFrame *frame) const {
 void ImageLoader::Display(Duration duration, int max_frames, int loops,
                           const volatile sig_atomic_t &interrupt_received,
                           timg::TerminalCanvas *canvas) {
-    if (max_frames == -1) {
+    if (max_frames < 0) {
         max_frames = (int)frames_.size();
     } else {
         max_frames = std::min(max_frames, (int)frames_.size());
     }
 
     const Time end_time = Time::Now() + duration;
-    int last_height = -1;  // First one will not have a height.
+    int last_height = -1;  // First image emit will not have a height.
     if (frames_.size() == 1 || !is_animation_)
         loops = 1;   // If there is no animation, nothing to repeat.
+
+    // Not initialized or negative value wants us to loop forever.
+    // (note, kNotInitialized is actually negative, but here for clarity
+    const bool loop_forever = (loops < 0) || (loops == timg::kNotInitialized);
+
     for (int k = 0;
-         (loops < 0 || k < loops)
+         (loop_forever || k < loops)
              && !interrupt_received
              && Time::Now() < end_time;
          ++k) {
