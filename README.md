@@ -58,15 +58,15 @@ sudo make install
 ```
 usage: timg [options] <image/video> [<image/video>...]
 Options:
-        -g<w>x<h> : Output pixel geometry. Default from terminal 204x114
+        -g<w>x<h> : Output pixel geometry. Default from terminal 160x100
         -C        : Center image horizontally.
         -W        : Scale to fit width of terminal (default: fit terminal width and height)
         -w<seconds>: If multiple images given: Wait time between (default: 0.0).
         -a        : Switch off antialiasing (default: on)
         -b<str>   : Background color to use on transparent images (default '').
         -B<str>   : Checkerboard pattern color to use on transparent images (default '').
-        --trim[=<pre-crop>]
-                  : Trim: auto-crop away all same-color pixels around image.
+        --autocrop[=<pre-crop>]
+                  : Crop away all same-color pixels around image.
                     The optional pre-crop is pixels to remove beforehand
                     to get rid of an uneven border.
         -U        : Toggle Upscale. If an image is smaller than
@@ -101,7 +101,7 @@ timg -g50x50 some-image.jpg # display image fitting in box of 50x50 pixel
 timg *.jpg                  # display all *.jpg images
 
 # Show a PDF document, use full width of terminal, trim away empty border
-timg -W --trim some-document.pdf
+timg -W --autocrop some-document.pdf
 
 # Open an image from a URL. URLs are internally actually handled by the
 # video subsystem, so it is treated as a single-frame 'film', nevertheless,
@@ -110,17 +110,17 @@ timg -W --trim some-document.pdf
 timg -C https://i.kym-cdn.com/photos/images/newsfeed/000/406/282/2b8.jpg
 
 # Sometimes, it is necessary to manually crop a few pixels from an
-# uneven border before the auto-trim finds uniform color all-around to remove.
-# For example with --trim=7 we'd remove first seven pixels around an image,
+# uneven border before the auto-crop finds uniform color all-around to remove.
+# For example with --autocrop=7 we'd remove first seven pixels around an image,
 # then do the regular auto-cropping.
 #
-# The following example loads an image from a URL; --trim does not work with
+# The following example loads an image from a URL; --autocrop does not work with
 # that, so we have to get the content manually, e.g. with wget. Piping to
 # stdin works.
 #
-# For this image, we need to remove 3 pixels all around before
-# auto-trim can take over successfully:
-wget -qO- https://imgs.xkcd.com/comics/a_better_idea.png | timg --trim=3 -
+# For the following image, we need to remove 3 pixels all around before
+# auto-crop can take over removing the remaining whitespace successfully:
+wget -qO- https://imgs.xkcd.com/comics/a_better_idea.png | timg --autocrop=3 -
 
 timg multi-resolution.ico   # See all the bitmaps in multi-resolution icons-file
 

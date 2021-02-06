@@ -33,7 +33,7 @@ struct DisplayOptions {
     bool antialias = true;     // Try a pleasing antialiasing while scaling.
     bool center_horizontally = false;  // Try to center image
     int crop_border = 0;       // Pixels to be cropped around image.
-    bool auto_trim_image = false; // Trim image, removing 'boring' space around.
+    bool auto_crop = false;    // Autocrop, removing 'boring' space around.
                                   // Done after cropping.
     // Transparency options for background shown.
     const char *bg_color = nullptr;          // Background color

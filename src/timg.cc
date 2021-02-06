@@ -74,8 +74,8 @@ static int usage(const char *progname, ExitCode exit_code, int w, int h) {
             "\t-a        : Switch off antialiasing (default: on)\n"
             "\t-b<str>   : Background color to use on transparent images (default '').\n"
             "\t-B<str>   : Checkerboard pattern color to use on transparent images (default '').\n"
-            "\t--trim[=<pre-crop>]\n"
-            "\t          : Trim: auto-crop away all same-color pixels around image.\n"
+            "\t--autocrop[=<pre-crop>]\n"
+            "\t          : Crop away all same-color pixels around image.\n"
             "\t            The optional pre-crop is pixels to remove beforehand\n"
             "\t            to get rid of an uneven border.\n"
             "\t-U        : Toggle Upscale. If an image is smaller than\n"
@@ -146,7 +146,7 @@ int main(int argc, char *argv[]) {
     // there is no way to have single-character options with
     static constexpr struct option long_options[] = {
         { "scroll",     optional_argument, NULL, 's' },
-        { "trim",       optional_argument, NULL, 'T' },
+        { "autocrop",   optional_argument, NULL, 'T' },
         { "delta-move", required_argument, NULL, 'd' },
         { "version",    no_argument,       NULL, 'v' },
         { "help",       no_argument,       NULL, 'h' },
@@ -231,7 +231,7 @@ int main(int argc, char *argv[]) {
             display_opts.upscale = !display_opts.upscale;
             break;
         case 'T':
-            display_opts.auto_trim_image = true;
+            display_opts.auto_crop = true;
             if (optarg) {
                 display_opts.crop_border = atoi(optarg);
             }

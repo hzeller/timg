@@ -58,15 +58,15 @@ from files and URLs.
     the given color, which alternates with the `-b` color.
     Like in `-b`, HTML/SVG color strings are supported.
 
-  * `--trim`[=<pre-crop>]:
+  * `--autocrop`[=<pre-crop>]:
     Trim same-color pixels around the border of image before displaying. Use
-    this if there is a border around an image which uses too many of the
-    available few pixels.
+    this if there is a boring even-colored space aorund the image which uses
+    too many of our available few pixels.
 
     The optional pre-crop is number of pixels to unconditionally trim
-    beforehand trim beforehand to get rid of an uneven border. The
-    link in the [EXAMPLES](#EXAMPLES) section shows an example how this improves
-    showing an xkcd comic with a border.
+    all around the original image, for instance to remove a thin border. The
+    link in the [EXAMPLES](#EXAMPLES) section shows an example how this
+    improves showing an xkcd comic with a border.
 
   * `-U`:
     Toggle Upscale. If an image is smaller than the terminal size, scale

@@ -151,7 +151,7 @@ bool VideoLoader::LoadAndScale(const char *filename,
     // so make sure that it is clear certain options won't work.
     // TODO: this is a crude work-around. And while we tell the user what to
     // do, it would be better if we'd dealt with it already.
-    if (opts.crop_border != 0 || opts.auto_trim_image) {
+    if (opts.crop_border != 0 || opts.auto_crop) {
         const bool is_url = (strncmp(filename, "http://", 7) == 0 ||
                              strncmp(filename, "https://", 8) == 0);
         fprintf(stderr, "%s%s is handled by video subsystem. "

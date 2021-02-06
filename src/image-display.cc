@@ -198,7 +198,7 @@ bool ImageLoader::LoadAndScale(const char *filename,
                 const int h = std::max(1, (int)img.rows() - 2*c);
                 img.crop(Magick::Geometry(w, h, c, c));
             }
-            if (opts.auto_trim_image) {
+            if (opts.auto_crop) {
                 img.trim();
             }
         }
