@@ -41,7 +41,6 @@ public:
     // Attempt to load given filename as video, open stream and set-up scaling.
     // Returns true on success.
     bool LoadAndScale(const char *filename,
-                      int display_width, int display_height,
                       const DisplayOptions &options);
 
     // Play video up to given duration.

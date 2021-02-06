@@ -24,24 +24,31 @@
 
 namespace timg {
 struct DisplayOptions {
+    int width = -1;             // These need to be set to valid values.
+    int height = -1;
     // If image is smaller than screen, only upscale if do_upscale is set.
     bool upscale = false;
     bool fill_width = false;   // Fill screen width, allow overflow height.
     bool fill_height = false;  // Fill screen height, allow overflow width.
     bool antialias = true;     // Try a pleasing antialiasing while scaling.
     bool center_horizontally = false;  // Try to center image
-    int crop_border = 0;        // Pixels to be cropped around image.
+    int crop_border = 0;       // Pixels to be cropped around image.
     bool auto_trim_image = false; // Trim image, removing 'boring' space around.
                                   // Done after cropping.
+    // Transparency options for background shown.
+    const char *bg_color = nullptr;          // Background color
+    const char *bg_pattern_color = nullptr;  // Checkerboard other color.
 };
 
-// Determine the target width and height given the incoming image size
-// and desired fit in screen-width.
-// Returns 'true' if the image has to be scaled.
-bool ScaleToFit(int img_width, int img_height,
-                int screen_width, int screen_height,
-                const DisplayOptions &options,
-                int *target_width, int *target_height);
+// Given an image with size "img_width" and "img_height", determine the
+// target width and height satisfying the desired fit and size defined in
+// the "display_options".
+//
+// As result, modfieis "target_width" and "target_height"; returns 'true' if
+// the image has to be scaled, i.e. target size is different than image size.
+bool CalcScaleToFitDisplay(int img_width, int img_height,
+                           const DisplayOptions &display_options,
+                           int *target_width, int *target_height);
 
 class ImageLoader {
 public:
@@ -57,9 +64,7 @@ public:
     // If this is not a loadable image, returns false, otherwise
     // We're ready for display.
     bool LoadAndScale(const char *filename,
-                      int display_width, int display_height,
-                      const DisplayOptions &options,
-                      const char *bg_color, const char *pattern_color);
+                      const DisplayOptions &options);
 
     // Display loaded image. If this is an animation, then
     // "duration", "max_frames" and "loops" will limit the duration of the

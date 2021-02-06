@@ -26,12 +26,11 @@
 
 namespace timg {
 // Returns 'true' if anything is to do to the picture.
-bool ScaleToFit(int img_width, int img_height,
-                const int screen_width, const int screen_height,
-                const DisplayOptions &options,
-                int *target_width, int *target_height) {
-    const float width_fraction = (float)screen_width / img_width;
-    const float height_fraction = (float)screen_height / img_height;
+bool CalcScaleToFitDisplay(int img_width, int img_height,
+                           const DisplayOptions &options,
+                           int *target_width, int *target_height) {
+    const float width_fraction = (float)options.width / img_width;
+    const float height_fraction = (float)options.height / img_height;
 
     // If the image < screen, only upscale if do_upscale requested
     if (!options.upscale &&
@@ -42,8 +41,8 @@ bool ScaleToFit(int img_width, int img_height,
         return false;
     }
 
-    *target_width = screen_width;
-    *target_height = screen_height;
+    *target_width = options.width;
+    *target_height = options.height;
 
     if (options.fill_width && options.fill_height) {
         // Fill as much as we can get in available space.
@@ -149,13 +148,10 @@ static bool EndsWith(const char *filename, const char *suffix) {
 }
 
 bool ImageLoader::LoadAndScale(const char *filename,
-                               int display_width, int display_height,
-                               const DisplayOptions &display_options,
-                               const char *bg_color,
-                               const char *pattern_color) {
-    display_width_ = display_width;
-    display_height_ = display_height;
-    center_horizontally_ = display_options.center_horizontally;
+                               const DisplayOptions &opts) {
+    display_width_ = opts.width;
+    display_height_ = opts.height;
+    center_horizontally_ = opts.center_horizontally;
 
     std::vector<Magick::Image> frames;
     try {
@@ -196,33 +192,33 @@ bool ImageLoader::LoadAndScale(const char *filename,
         // We do trimming only if this is not an animation, which will likely
         // not create a pleasent result.
         if (!is_animation_) {
-            if (display_options.crop_border > 0) {
-                const int c = display_options.crop_border;
+            if (opts.crop_border > 0) {
+                const int c = opts.crop_border;
                 const int w = std::max(1, (int)img.columns() - 2*c);
                 const int h = std::max(1, (int)img.rows() - 2*c);
                 img.crop(Magick::Geometry(w, h, c, c));
             }
-            if (display_options.auto_trim_image) {
+            if (opts.auto_trim_image) {
                 img.trim();
             }
         }
 
         // Figure out scaling for the image.
         int target_width = 0, target_height = 0;
-        if (ScaleToFit(img.columns(), img.rows(), display_width, display_height,
-                       display_options, &target_width, &target_height)) {
-            if (display_options.antialias)
+        if (CalcScaleToFitDisplay(img.columns(), img.rows(), opts,
+                                  &target_width, &target_height)) {
+            if (opts.antialias)
                 img.scale(Magick::Geometry(target_width, target_height));
             else
                 img.sample(Magick::Geometry(target_width, target_height));
         }
 
         // If these are transparent and should get a background, apply that.
-        if (bg_color || pattern_color) {
+        if (opts.bg_color || opts.bg_pattern_color) {
             Magick::Image target;
             try {
                 RenderBackground(img.columns(), img.rows(),
-                                 bg_color, pattern_color, &target);
+                                 opts.bg_color, opts.bg_pattern_color, &target);
             }
             catch (std::exception& e) {
                 fprintf(stderr, "Trouble rendering background (%s)\n",

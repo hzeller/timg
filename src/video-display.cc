@@ -96,7 +96,6 @@ const char *VideoLoader::VersionInfo() {
 }
 
 bool VideoLoader::LoadAndScale(const char *filename,
-                               int screen_width, int screen_height,
                                const DisplayOptions &display_options) {
     if (strcmp(filename, "-") == 0) {
         filename = "/dev/stdin";
@@ -164,19 +163,18 @@ bool VideoLoader::LoadAndScale(const char *filename,
         }
     }
     opts.fill_height = false;  // This only makes sense for horizontal scroll.
-    ScaleToFit(codec_context_->width, codec_context_->height,
-               screen_width, screen_height, opts,
-               &target_width, &target_height);
+    CalcScaleToFitDisplay(codec_context_->width, codec_context_->height, opts,
+                          &target_width, &target_height);
 
     if (display_options.center_horizontally) {
-        center_indentation_ = (screen_width - target_width)/2;
+        center_indentation_ = (display_options.width - target_width)/2;
     }
     // initialize SWS context for software scaling
     sws_context_ = CreateSWSContext(codec_context_,
                                     target_width, target_height);
     if (!sws_context_) {
         fprintf(stderr, "Trouble doing scaling to %dx%d :(\n",
-                screen_width, screen_height);
+                opts.width, opts.height);
         return false;
     }
 

@@ -122,16 +122,14 @@ int main(int argc, char *argv[]) {
     bool terminal_use_upper_block = GetBoolenEnv("TIMG_USE_UPPER_BLOCK");
 
     timg::DisplayOptions display_opts;
+    display_opts.width = term_width;
+    display_opts.height = term_height;
+
     bool do_scroll = false;
     bool do_clear = false;
-
     bool show_filename = false;
     bool hide_cursor = true;
-    int width = term_width;
-    int height = term_height;
     int max_frames = -1;
-    const char *bg_color = nullptr;
-    const char *pattern_color = nullptr;
     Duration duration = Duration::InfiniteFuture();
     Duration between_images_duration = Duration::Millis(0);
     Duration scroll_delay = Duration::Millis(50);
@@ -168,7 +166,8 @@ int main(int argc, char *argv[]) {
                               long_options, &option_index))!=-1) {
         switch (opt) {
         case 'g':
-            if (sscanf(optarg, "%dx%d", &width, &height) < 2) {
+            if (sscanf(optarg, "%dx%d",
+                       &display_opts.width, &display_opts.height) < 2) {
                 fprintf(stderr, "Invalid size spec '%s'", optarg);
                 return usage(argv[0], ExitCode::kParameterError,
                              term_width, term_height);
@@ -191,10 +190,10 @@ int main(int argc, char *argv[]) {
             display_opts.antialias = false;
             break;
         case 'b':
-            bg_color = strdup(optarg);
+            display_opts.bg_color = strdup(optarg);
             break;
         case 'B':
-            pattern_color = strdup(optarg);
+            display_opts.bg_pattern_color = strdup(optarg);
             break;
         case 's':
             do_scroll = true;
@@ -267,12 +266,13 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    if (width < 1 || height < 1) {
+    if (display_opts.width < 1 || display_opts.height < 1) {
         if (!winsize_success || term_height < 0 || term_width < 0) {
             fprintf(stderr, "Failed to read size from terminal; "
                     "Please supply -g<width>x<height> directly.\n");
         } else {
-            fprintf(stderr, "%dx%d is a rather unusual size\n", width, height);
+            fprintf(stderr, "%dx%d is a rather unusual size\n",
+                    display_opts.width, display_opts.height);
         }
         return usage(argv[0], ExitCode::kNotATerminal, term_width, term_height);
     }
@@ -310,9 +310,7 @@ int main(int argc, char *argv[]) {
 
         if (do_image_loading) {
             timg::ImageLoader image_loader;
-            if (image_loader.LoadAndScale(filename, width, height,
-                                          display_opts,
-                                          bg_color, pattern_color)) {
+            if (image_loader.LoadAndScale(filename, display_opts)) {
                 if (show_filename) printf("%s\n", filename);
                 if (do_scroll) {
                     image_loader.Scroll(duration, loops, interrupt_received,
@@ -332,8 +330,7 @@ int main(int argc, char *argv[]) {
 #ifdef WITH_TIMG_VIDEO
         if (do_video_loading) {
             timg::VideoLoader video_loader;
-            if (video_loader.LoadAndScale(filename, width, height,
-                                          display_opts)) {
+            if (video_loader.LoadAndScale(filename, display_opts)) {
                 if (show_filename) printf("%s\n", filename);
                 video_loader.Play(duration, interrupt_received, &canvas);
                 continue;
