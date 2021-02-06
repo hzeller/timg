@@ -124,6 +124,7 @@ timg -C https://i.kym-cdn.com/photos/images/newsfeed/000/406/282/2b8.jpg
 wget -qO- https://imgs.xkcd.com/comics/a_better_idea.png | timg --autocrop=3 -
 
 timg multi-resolution.ico   # See all the bitmaps in multi-resolution icons-file
+timg --frames=1 multi-resolution.ico  # See only the first bitmap in that file
 
 timg some-video.mp4         # Watch a video.
 
