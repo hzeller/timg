@@ -14,7 +14,9 @@ bulky image viewer ... and don't care about resolution.
 
 ### Install
 
-#### First get the repository and change into the `src` directory
+#### Get repo
+
+.. and change into the `src` directory
 
 ```bash
 git clone https://github.com/hzeller/timg.git
@@ -25,29 +27,28 @@ cd timg/src
 ```bash
 sudo apt-get install libwebp-dev libgraphicsmagick++-dev    # required libs.
 
-# If you do not want to include video decoding
-make WITH_VIDEO_DECODING=0
-
-# If you want to include video decoding, install these additional libraries
+# If you want to include video decoding, also install these additional libraries
 sudo apt-get install pkg-config libavcodec-dev libavformat-dev libswscale-dev
-make
+
+make WITH_VIDEO_DECODING=1   # or 0, if you don't want video decoding
 ```
 
 #### Compiling on macOS
 ```bash
 # Homebrew needs to be available to install required dependencies
-brew install GraphicsMagick webp  # required libs 
-
-# If you do not want to include video decoding
-LDFLAGS=-L${HOMEBREW_PREFIX}/lib make WITH_VIDEO_DECODING=0
+brew install GraphicsMagick webp  # required libs
 
 # If you want to include video decoding, install these additional libraries
 brew install ffmpeg
-LDFLAGS=-L${HOMEBREW_PREFIX}/lib make
+
+LDFLAGS=-L${HOMEBREW_PREFIX}/lib make WITH_VIDEO_DECODING=1 # or 0 for no video
 ```
 
+#### Install
 
-#### Install the binary and the [manpage](man/timg.1.md)
+You can run timg directly in the source directory using `./timg`. To install
+the binary and [manpage](man/timg.1.md) on your system, type:
+
 ```bash
 sudo make install
 ```
@@ -207,7 +208,7 @@ Linux console seems to be limited in colors and does not show the block
 character - if you know how to enable the unicode character or full color
 there, please let me know.
 
-For Mac users, at least the combination of macOS 11.2 and iTerm2 3.4.3 works. 
+For Mac users, at least the combination of macOS 11.2 and iTerm2 3.4.3 works.
 
 [24-bit-term]: https://gist.github.com/XVilka/8346728
 [cool-retro-term]: https://github.com/Swordfish90/cool-retro-term
