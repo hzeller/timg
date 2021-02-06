@@ -21,7 +21,11 @@ timg : $(OBJECTS)
 timg.o : timg-version.h
 
 timg-version.h: .FORCE
-	@(echo "#define TIMG_VERSION \"$(shell git describe --tags --match='v*' 2>/dev/null) $(shell git log -n1 --date=short --format='%cd' 2>/dev/null || echo -n '0.9.9+')\"" > $@-new; \
+	@((echo "#ifndef HAVE_CMAKE_GENERATED_VERSION_H" ; \
+	  echo "#define TIMG_VERSION \"$(shell git describe --tags --match='v*' 2>/dev/null) $(shell git log -n1 --date=short --format='%cd' 2>/dev/null || echo -n '0.9.9+')\""; \
+	  echo "#else"; \
+	  echo "#include <timg-version-generated.h>"; \
+	  echo "#endif" ) > $@-new; \
 	cmp -s $@ $@-new || cp $@-new $@; \
 	rm $@-new)
 
