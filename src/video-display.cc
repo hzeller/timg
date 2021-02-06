@@ -236,8 +236,12 @@ void VideoLoader::Play(Duration duration, const int frames, int loops,
              && !interrupt_received
              && Time::Now() < end_time;
          ++k) {
-        av_seek_frame(format_context_, video_stream_index_, 0, AVSEEK_FLAG_ANY);
-        avcodec_flush_buffers(codec_context_);
+        if (k > 0) {
+            // Rewind unless we're just starting.
+            av_seek_frame(format_context_, video_stream_index_, 0,
+                          AVSEEK_FLAG_ANY);
+            avcodec_flush_buffers(codec_context_);
+        }
         int remaining_frames = frames;
 
         while (!interrupt_received && Time::Now() < end_time
