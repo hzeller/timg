@@ -147,6 +147,27 @@ static bool EndsWith(const char *filename, const char *suffix) {
     return strcasecmp(filename + flen - slen, suffix) == 0;
 }
 
+static void ExifRotateIfNeeded(Magick::Image *img) {
+    const std::string rotation_tag = img->attribute("EXIF:Orientation");
+    if (rotation_tag.empty() || rotation_tag.size() != 1)
+        return; // Nothing to do or broken tag.
+    int angle = 0;
+    bool flip = false;
+    switch (rotation_tag[0]) {
+    case '1': return;  // Nothing to do.
+    case '2': angle = 180; flip = true; break;
+    case '3': angle = 180; break;
+    case '4': angle = 0; flip = true; break;
+    case '5': angle = 90; flip = true; break;
+    case '6': angle = 90; break;
+    case '7': angle = -90; flip = true; break;
+    case '8': angle = -90; break;
+    default: return;  // mmh, invalid value.
+    }
+    if (flip) img->flip();
+    img->rotate(angle);
+}
+
 bool ImageLoader::LoadAndScale(const char *filename,
                                const DisplayOptions &opts) {
     display_width_ = opts.width;
@@ -189,6 +210,9 @@ bool ImageLoader::LoadAndScale(const char *filename,
     }
 
     for (Magick::Image &img : result) {
+        if (opts.exif_rotate) {
+            ExifRotateIfNeeded(&img);
+        }
         // We do trimming only if this is not an animation, which will likely
         // not create a pleasent result.
         if (!is_animation_) {

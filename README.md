@@ -70,6 +70,7 @@ Options:
                   : Crop away all same-color pixels around image.
                     The optional pre-crop is pixels to remove beforehand
                     to get rid of an uneven border.
+        --rotate=<exif|off> : Rotate according to included exif orientation or off. Default: exif.
         -U        : Toggle Upscale. If an image is smaller than
                     the terminal size, scale it up to full size.
         -V        : This is a video, don't attempt to probe image deocding first.

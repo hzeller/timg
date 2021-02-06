@@ -34,7 +34,9 @@ struct DisplayOptions {
     bool center_horizontally = false;  // Try to center image
     int crop_border = 0;       // Pixels to be cropped around image.
     bool auto_crop = false;    // Autocrop, removing 'boring' space around.
-                                  // Done after cropping.
+                               // Done after crop-border has been applied.
+    bool exif_rotate = true;   // Rotate image according to exif data found.
+
     // Transparency options for background shown.
     const char *bg_color = nullptr;          // Background color
     const char *bg_pattern_color = nullptr;  // Checkerboard other color.

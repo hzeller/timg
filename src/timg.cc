@@ -78,6 +78,7 @@ static int usage(const char *progname, ExitCode exit_code, int w, int h) {
             "\t          : Crop away all same-color pixels around image.\n"
             "\t            The optional pre-crop is pixels to remove beforehand\n"
             "\t            to get rid of an uneven border.\n"
+            "\t--rotate=<exif|off> : Rotate according to included exif orientation or off. Default: exif.\n"
             "\t-U        : Toggle Upscale. If an image is smaller than\n"
             "\t            the terminal size, scale it up to full size.\n"
 #ifdef WITH_TIMG_VIDEO
@@ -142,14 +143,19 @@ int main(int argc, char *argv[]) {
     bool do_video_loading = true;
 #endif
 
+    enum LongOptionIds {
+        OPT_ROTATE = 1000,
+    };
+
     // Flags with optional parameters need to be long-options, as on MacOS,
     // there is no way to have single-character options with
     static constexpr struct option long_options[] = {
-        { "scroll",     optional_argument, NULL, 's' },
-        { "autocrop",   optional_argument, NULL, 'T' },
-        { "delta-move", required_argument, NULL, 'd' },
-        { "version",    no_argument,       NULL, 'v' },
-        { "help",       no_argument,       NULL, 'h' },
+        { "scroll",      optional_argument, NULL, 's' },
+        { "autocrop",    optional_argument, NULL, 'T' },
+        { "delta-move",  required_argument, NULL, 'd' },
+        { "rotate",      required_argument, NULL, OPT_ROTATE },
+        { "version",     no_argument,       NULL, 'v' },
+        { "help",        no_argument,       NULL, 'h' },
         // TODO: add more long-options
         { 0, 0, 0, 0}
     };
@@ -214,6 +220,19 @@ int main(int argc, char *argv[]) {
 #if WITH_TIMG_VIDEO
             do_video_loading = false;
 #endif
+            break;
+        case OPT_ROTATE:
+            // TODO(hzeller): Maybe later also pass angles ?
+            if (strcasecmp(optarg, "exif") == 0) {
+                display_opts.exif_rotate = true;
+            } else if (strcasecmp(optarg, "off") == 0) {
+                display_opts.exif_rotate = false;
+            } else {
+                fprintf(stderr, "--rotate=%s: expected 'exif' or 'off'\n",
+                        optarg);
+                return usage(argv[0], ExitCode::kParameterError,
+                             term_width, term_height);
+            }
             break;
         case 'd':
             if (sscanf(optarg, "%d:%d", &dx, &dy) < 1) {
