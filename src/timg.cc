@@ -82,7 +82,7 @@ static int usage(const char *progname, ExitCode exit_code, int w, int h) {
             "\t-U        : Toggle Upscale. If an image is smaller than\n"
             "\t            the terminal size, scale it up to full size.\n"
 #ifdef WITH_TIMG_VIDEO
-            "\t-V        : This is a video, don't attempt to probe image deocding first.\n"
+            "\t-V        : This is a video, don't attempt to probe image decoding first.\n"
             "\t            (useful, if you stream from stdin).\n"
             "\t-I        : This is an image. Don't attempt video decoding.\n"
 #endif
