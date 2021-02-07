@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.13)
 project(timg VERSION 0.9.9 LANGUAGES CXX)
 
 option(WITH_VIDEO_DECODING "Enables video decoding feature" ON)
+# Note: The version string can be ammended with -DDISTRIBUTION_VERSION, see src/timg-version.h.in
 option(TIMG_VERSION_FROM_GIT "Get the program version from the git repository" ON)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
