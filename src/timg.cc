@@ -117,18 +117,27 @@ static bool GetBoolenEnv(const char *env_name) {
     return value && atoi(value) != 0;
 }
 
+// Probe all file descriptors that might be connect to tty for term size.
+struct TermSizeResult { bool size_valid; int width; int height; };
+TermSizeResult DetermineTermSize() {
+    for (int fd : { STDOUT_FILENO, STDERR_FILENO, STDIN_FILENO }) {
+        struct winsize w = {};
+        if (ioctl(fd, TIOCGWINSZ, &w) == 0) {
+            return { true, w.ws_col, 2 * (w.ws_row-1) }; // pixels = 2*height
+        }
+    }
+    return { false, -1, -1 };
+}
+
 int main(int argc, char *argv[]) {
     Magick::InitializeMagick(*argv);
 
-    struct winsize w = {};
-    const bool winsize_success = (ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == 0);
-    const int term_width = w.ws_col;
-    const int term_height = 2 * (w.ws_row-1);  // double number of pixels high.
+    TermSizeResult term = DetermineTermSize();
     bool terminal_use_upper_block = GetBoolenEnv("TIMG_USE_UPPER_BLOCK");
 
     timg::DisplayOptions display_opts;
-    display_opts.width = term_width;
-    display_opts.height = term_height;
+    display_opts.width = term.width;
+    display_opts.height = term.height;
 
     bool hide_cursor = true;
     Duration duration = Duration::InfiniteFuture();
@@ -181,7 +190,7 @@ int main(int argc, char *argv[]) {
                        &display_opts.width, &display_opts.height) < 2) {
                 fprintf(stderr, "Invalid size spec '%s'", optarg);
                 return usage(argv[0], ExitCode::kParameterError,
-                             term_width, term_height);
+                             term.width, term.height);
             }
             break;
         case 'w':
@@ -236,7 +245,7 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "--rotate=%s: expected 'exif' or 'off'\n",
                         optarg);
                 return usage(argv[0], ExitCode::kParameterError,
-                             term_width, term_height);
+                             term.width, term.height);
             }
             break;
         case OPT_GRID:
@@ -245,7 +254,7 @@ int main(int argc, char *argv[]) {
                 {
                     fprintf(stderr, "Invalid grid spec '%s'", optarg);
                     return usage(argv[0], ExitCode::kParameterError,
-                                 term_width, term_height);
+                                 term.width, term.height);
                 }
                 break;
             case 1:
@@ -259,7 +268,7 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "-d%s: At least dx parameter needed e.g. -d1."
                         "Or you can give dx, dy like so: -d1:-1", optarg);
                 return usage(argv[0], ExitCode::kParameterError,
-                             term_width, term_height);
+                             term.width, term.height);
             }
             break;
         case 'C':
@@ -300,25 +309,25 @@ int main(int argc, char *argv[]) {
             return usage(argv[0], (opt == 'h'
                                    ? ExitCode::kSuccess
                                    : ExitCode::kParameterError),
-                         term_width, term_height);
+                         term.width, term.height);
         }
     }
 
     if (display_opts.width < 1 || display_opts.height < 1) {
-        if (!winsize_success || term_height < 0 || term_width < 0) {
+        if (!term.size_valid || term.height < 0 || term.width < 0) {
             fprintf(stderr, "Failed to read size from terminal; "
                     "Please supply -g<width>x<height> directly.\n");
         } else {
             fprintf(stderr, "%dx%d is a rather unusual size\n",
                     display_opts.width, display_opts.height);
         }
-        return usage(argv[0], ExitCode::kNotATerminal, term_width, term_height);
+        return usage(argv[0], ExitCode::kNotATerminal, term.width, term.height);
     }
 
     if (optind >= argc) {
         fprintf(stderr, "Expected image filename.\n");
         return usage(argv[0], ExitCode::kImageReadError,
-                     term_width, term_height);
+                     term.width, term.height);
     }
 
     // -- Some sanity checks
