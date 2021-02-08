@@ -170,6 +170,7 @@ static void ExifRotateIfNeeded(Magick::Image *img) {
 
 bool ImageLoader::LoadAndScale(const char *filename,
                                const DisplayOptions &opts) {
+    options_ = opts;
     display_width_ = opts.width;
     display_height_ = opts.height;
     center_horizontally_ = opts.center_horizontally;
@@ -265,9 +266,16 @@ int ImageLoader::IndentationIfCentered(const PreprocessedFrame *frame) const {
         : 0;
 }
 
-void ImageLoader::Display(Duration duration, int max_frames, int loops,
-                          const volatile sig_atomic_t &interrupt_received,
-                          const Renderer::WriteFramebufferFun &write_fb) {
+void ImageLoader::SendFrames(Duration duration, int max_frames, int loops,
+                             const volatile sig_atomic_t &interrupt_received,
+                             const Renderer::WriteFramebufferFun &sink) {
+    if (options_.scroll_animation) {
+        Scroll(duration, /*max_frames,*/ loops, interrupt_received,
+               options_.scroll_dx, options_.scroll_dy, options_.scroll_delay,
+               sink);
+        return;
+    }
+
     if (max_frames < 0) {
         max_frames = (int)frames_.size();
     } else {
@@ -295,7 +303,7 @@ void ImageLoader::Display(Duration duration, int max_frames, int loops,
                 break;
             const int dx = IndentationIfCentered(frame);
             const int dy = is_animation_ && last_height > 0 ? -last_height : 0;
-            write_fb(dx, dy, frame->framebuffer());
+            sink(dx, dy, frame->framebuffer());
             last_height = frame->framebuffer().height();
             if (!frame->delay().is_zero()) {
                 const Time frame_finish = frame_start + frame->delay();

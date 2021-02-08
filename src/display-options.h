@@ -15,7 +15,15 @@
 #ifndef DISPLAY_OPTIONS_H
 #define DISPLAY_OPTIONS_H
 
+#include "timg-time.h"
+
+#include <limits>
+
 namespace timg {
+// Special sentinel value so signify a not initialized value on the command
+// line.
+static constexpr int kNotInitialized = std::numeric_limits<int>::min();
+
 // Options influencing the rendering, chosen on the command-line or
 // programmatically.
 struct DisplayOptions {
@@ -32,6 +40,12 @@ struct DisplayOptions {
                                 // Done after crop-border has been applied.
     bool exif_rotate = true;    // Rotate image according to exif data found.
     bool show_filename = false; // show filename as title.
+
+    // Scrolling specific
+    bool scroll_animation = false; // Create an image scroll animation.
+    int scroll_dx = 1;          // scroll direction in x-axis. Positive: left
+    int scroll_dy = 0;          // scroll in y-direction.
+    Duration scroll_delay = Duration::Millis(50); // delay between updates.
 
     // Transparency options for background shown.
     const char *bg_color = nullptr;          // Background color

@@ -130,16 +130,11 @@ int main(int argc, char *argv[]) {
     display_opts.width = term_width;
     display_opts.height = term_height;
 
-    bool do_scroll = false;
-    bool do_clear = false;
     bool hide_cursor = true;
     Duration duration = Duration::InfiniteFuture();
     Duration between_images_duration = Duration::Millis(0);
-    Duration scroll_delay = Duration::Millis(50);
     int max_frames = timg::kNotInitialized;
     int loops  = timg::kNotInitialized;
-    int scroll_dx = 1;
-    int scroll_dy = 0;
     int grid_rows = 1;
     int grid_cols = 1;
     bool fit_width = false;
@@ -212,9 +207,9 @@ int main(int argc, char *argv[]) {
             display_opts.bg_pattern_color = strdup(optarg);
             break;
         case 's':
-            do_scroll = true;
+            display_opts.scroll_animation = true;
             if (optarg != NULL) {
-                scroll_delay = Duration::Millis(atoi(optarg));
+                display_opts.scroll_delay = Duration::Millis(atoi(optarg));
             }
             break;
         case 'V':
@@ -259,7 +254,8 @@ int main(int argc, char *argv[]) {
             }
             break;
         case 'd':
-            if (sscanf(optarg, "%d:%d", &scroll_dx, &scroll_dy) < 1) {
+            if (sscanf(optarg, "%d:%d",
+                       &display_opts.scroll_dx, &display_opts.scroll_dy) < 1) {
                 fprintf(stderr, "-d%s: At least dx parameter needed e.g. -d1."
                         "Or you can give dx, dy like so: -d1:-1", optarg);
                 return usage(argv[0], ExitCode::kParameterError,
@@ -267,7 +263,6 @@ int main(int argc, char *argv[]) {
             }
             break;
         case 'C':
-            // used to be do_clear. Needs to find a new home in --clear
             display_opts.center_horizontally = true;
             break;
         case 'U':
@@ -328,16 +323,18 @@ int main(int argc, char *argv[]) {
 
     // -- Some sanity checks
     // There is no scroll if there is no movement.
-    if (scroll_dx == 0 && scroll_dy == 0) {
+    if (display_opts.scroll_dx == 0 && display_opts.scroll_dy == 0) {
         fprintf(stderr, "Scrolling chosen, but dx:dy = 0:0. "
                 "Just showing image, no scroll.\n");
-        do_scroll = false;
+        display_opts.scroll_animation = false;
     }
 
     // If we scroll in one direction (so have 'infinite' space) we want fill
     // the available screen space fully in the other direction.
-    display_opts.fill_width  = fit_width || (do_scroll && scroll_dy != 0);
-    display_opts.fill_height = do_scroll && scroll_dx != 0; // scroll h, fill v
+    display_opts.fill_width  = fit_width ||
+        (display_opts.scroll_animation && display_opts.scroll_dy != 0);
+    display_opts.fill_height = display_opts.scroll_animation &&
+        display_opts.scroll_dx != 0; // scroll h, fill v
 
     // Showing exactly one frame implies animation behaves as static image
     if (max_frames == 1) {
@@ -366,23 +363,13 @@ int main(int argc, char *argv[]) {
 
     for (int imgarg = optind; imgarg < argc && !interrupt_received; ++imgarg) {
         const char *filename = argv[imgarg];
-        if (do_clear) canvas.ClearScreen();  // TODO: put in canvas print thing
-
         if (do_image_loading) {
             timg::ImageLoader image_loader;
             if (image_loader.LoadAndScale(filename, display_opts)) {
-                if (do_scroll) {
-                    image_loader.Scroll(duration, loops, interrupt_received,
-                                        scroll_dx, scroll_dy,
-                                        scroll_delay,
+                image_loader.SendFrames(duration, max_frames, loops,
+                                        interrupt_received,
                                         renderer->render_cb(filename));
-                } else {
-                    image_loader.Display(duration, max_frames, loops,
-                                         interrupt_received,
-                                         renderer->render_cb(filename));
-                }
-                if (!image_loader.is_animation() &&
-                    !between_images_duration.is_zero() /* && not grid */) {
+                if (!between_images_duration.is_zero() /* && not grid */) {
                     (Time::Now() + between_images_duration).WaitUntil();
                 }
                 continue;
@@ -393,9 +380,9 @@ int main(int argc, char *argv[]) {
         if (do_video_loading) {
             timg::VideoLoader video_loader;
             if (video_loader.LoadAndScale(filename, display_opts)) {
-                video_loader.Play(duration, max_frames, loops,
-                                  interrupt_received,
-                                  renderer->render_cb(filename));
+                video_loader.SendFrames(duration, max_frames, loops,
+                                        interrupt_received,
+                                        renderer->render_cb(filename));
                 continue;
             }
         }

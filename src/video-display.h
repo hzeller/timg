@@ -31,25 +31,25 @@ struct SwsContext;
 namespace timg {
 
 // Video loader, meant for one video to load, and if successful, Play().
-class VideoLoader {
+class VideoLoader final : public ImageSource {
 public:
     VideoLoader();
-    ~VideoLoader();
+    ~VideoLoader() final;
 
     static const char *VersionInfo();
 
     // Attempt to load given filename as video, open stream and set-up scaling.
     // Returns true on success.
     bool LoadAndScale(const char *filename,
-                      const DisplayOptions &options);
+                      const DisplayOptions &options) final;
 
     // Play video up to given duration.
     //
     // The reference to the "interrupt_received" can be updated by a signal
     // while the method is running and shall be checked often.
-    void Play(Duration duration, int max_frames, int loops,
-              const volatile sig_atomic_t &interrupt_received,
-              const Renderer::WriteFramebufferFun &write_fb);
+    void SendFrames(Duration duration, int max_frames, int loops,
+                    const volatile sig_atomic_t &interrupt_received,
+                    const Renderer::WriteFramebufferFun &sink) final;
 
 private:
     void CopyToFramebuffer(const AVFrame *av_frame);

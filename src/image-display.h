@@ -18,7 +18,6 @@
 
 #include <signal.h>
 
-#include <limits>
 #include <vector>
 
 #include "display-options.h"
@@ -27,10 +26,23 @@
 #include "timg-time.h"
 
 namespace timg {
-// Special sentinel value so signify a not initialized value on the command
-// line.
-static constexpr int kNotInitialized = std::numeric_limits<int>::min();
 
+class ImageSource {
+public:
+    virtual ~ImageSource() {}
+
+    // Attempt to load image(s) from filename and prepare for display.
+    // Images are processed using the parameters in DisplayOptions.
+    virtual bool LoadAndScale(const char *filename,
+                              const DisplayOptions &options) = 0;
+
+    // Send preprocessed frames for a maximum of given, max frames and loops,
+    // whatever comes first. Stop loop when "interrupt_received" is true.
+    // Send all frames to "sink", a callback that accepts Framebuffers.
+    virtual void SendFrames(Duration duration, int max_frames, int loops,
+                            const volatile sig_atomic_t &interrupt_received,
+                            const Renderer::WriteFramebufferFun &sink) = 0;
+};
 
 // Given an image with size "img_width" and "img_height", determine the
 // target width and height satisfying the desired fit and size defined in
@@ -42,9 +54,9 @@ bool CalcScaleToFitDisplay(int img_width, int img_height,
                            const DisplayOptions &display_options,
                            int *target_width, int *target_height);
 
-class ImageLoader {
+class ImageLoader final : public ImageSource {
 public:
-    ~ImageLoader();
+    ~ImageLoader() final;
 
     static const char *VersionInfo();
 
@@ -56,7 +68,7 @@ public:
     // If this is not a loadable image, returns false, otherwise
     // We're ready for display.
     bool LoadAndScale(const char *filename,
-                      const DisplayOptions &options);
+                      const DisplayOptions &options) final;
 
     // Display loaded image. If this is an animation, then
     // "duration", "max_frames" and "loops" will limit the duration of the
@@ -64,9 +76,12 @@ public:
     //
     // The reference to the "interrupt_received" can be updated by a signal
     // while the method is running and shall be checked often.
-    void Display(Duration duration, int max_frames, int loops,
-                 const volatile sig_atomic_t &interrupt_received,
-                 const Renderer::WriteFramebufferFun &write_fb);
+    void SendFrames(Duration duration, int max_frames, int loops,
+                    const volatile sig_atomic_t &interrupt_received,
+                    const Renderer::WriteFramebufferFun &sink) final;
+
+private:
+    class PreprocessedFrame;
 
     // Provide image scrolling in dx/dy direction for up to the given time.
     void Scroll(Duration duration, int loops,
@@ -74,14 +89,10 @@ public:
                 int dx, int dy,  Duration scroll_delay,
                 const Renderer::WriteFramebufferFun &write_fb);
 
-    bool is_animation() const { return is_animation_; }
-
-private:
-    class PreprocessedFrame;
-
     // Return how much we should indent a frame if centering is requested.
     int IndentationIfCentered(const PreprocessedFrame *frame) const;
 
+    DisplayOptions options_;
     int display_width_;
     int display_height_;
     std::vector<PreprocessedFrame *> frames_;
