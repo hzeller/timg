@@ -34,9 +34,9 @@ from files and URLs.
 ## General Options
 **-g** *&lt;width&gt;x&lt;height&gt;*
 :     Output image to fit inside given geometry. By default, the size is 
-     determined by the available space in the terminal.  
-     The image is scaled to fit inside the available box to fill the 
-     screen; see **-W** if you want to fill the width.
+     determined by the available space in the terminal. The image is 
+     scaled to fit inside the available box to fill the screen; see **-W** if 
+     you want to fill the width.
 
 **-C**
 :    Center image horizontally.
@@ -44,14 +44,14 @@ from files and URLs.
 **-W**
 :    Scale to fit width of the terminal.
 
-**--grid***=[x]*
+**--grid**=&lt;*cols*&gt;[x&lt;*rows*&gt;]
 :    Arrange images in a grid. If only one parameter is given, arranges in a 
-    square grid (e.g. **--grid***=3* makes a 3x3 grid). Alternatively, you can choose
-    columns and rows (e.g. **--grid***=3x2*)
+    square grid (e.g. **--grid**=*3* makes a 3x3 grid). Alternatively, you can choose
+    columns and rows (e.g. **--grid**=*3x2*)
 
-**-w** *&lt;seconds&gt;*
+**-w** &lt;*seconds*&gt;
 :   Wait time between images when multiple images are given on the command
-    line. Fractional values are allowed, so `-w 3.1415` would wait approximately
+    line. Fractional values are allowed, so **-w** *3.1415* would wait approximately
     π seconds between images.
 
 **-a**
@@ -59,16 +59,16 @@ from files and URLs.
     minimal amount of pixels, so some smoothing is applied for best visual
     effect. This switches off that smoothing.
 
-**-b** *&lt;background-color&gt;*
+**-b** &lt;*background-color*&gt;
 :    Set the background color for transparent images. Common HTML/SVG color
     strings are supported, such as *red*, *rgb(0, 255, 0)* or *#0000ff*.
 
-**-B** *&lt;checkerboard-other-color&gt;*
+**-B** &lt;*checkerboard-other-color*&gt;
 :    Show the background of a transparent image in a checkerboard pattern with
     the given color, which alternates with the **-b** color.
     Like in **-b**, HTML/SVG color strings are supported.
 
-**--autocrop**[*=&lt;pre-crop&gt;*]
+**--autocrop**[=&lt;*pre-crop*&gt;]
 :    Trim same-color pixels around the border of image before displaying. Use
     this if there is a boring even-colored space aorund the image which uses
     too many of our available few pixels.
@@ -78,7 +78,7 @@ from files and URLs.
     link in the [EXAMPLES](#EXAMPLES) section shows an example how this
     improves showing an xkcd comic with a border.
 
-**--rotate***=&lt;exif|off&gt;*
+**--rotate**=&lt;*exif*|*off*&gt;
 :   If 'exif', rotate the image according to the exif data stored
     in the image. With 'off', no rotation is extracted or applied.
 
@@ -123,10 +123,10 @@ from files and URLs.
 
 ## Scrolling
 
-**--scroll**[*=&lt;ms&gt;*]
+**--scroll**[=&lt;*ms*&gt;]
 :    Scroll horizontally with an optional delay between updates (default: 60ms)
 
-**--delta-move***=&lt;dx&gt;\:&lt;dy&gt;*
+**--delta-move**=&lt;*dx*&gt;\:&lt;*dy*&gt;*
 :    Scroll with delta x and delta y. The default of 1:0 scrolls it horizontally,
     but with this option you can scroll vertically or even diagonally.
 
@@ -135,18 +135,18 @@ from files and URLs.
 Usually, animations are shown in full in an infinite loop. These options
 limit infinity.
 
-**-t***&lt;seconds&gt;*
+**-t**&lt;*seconds*&gt;
 :   Stop an animation after these number of seconds.
     Fractional values are allowed.
 
-**--loops***=&lt;num&gt;
+**--loops**=&lt;*num*&gt;
 :    Number of loops through a fully cycle of an animation or video.
     A value of *-1* stands for 'forever'.
 
-    If this option is not set, videos behave like **--loops***=1* (show exactly once)
-    and animated gifs like **--loop***=-1* (loop forever).
+    If this option is not set, videos behave like **--loops**=*1* (show exactly once)
+    and animated gifs like **--loop**=*-1* (loop forever).
 
-**--frames***=&lt;frame-count&gt;*
+**--frames**=&lt;*frame-count*&gt;
 :    Only render the first *frame-count* frames in an animation or video.
     If frame-count is set to 1, the output behaves like a static image.
 
