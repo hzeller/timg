@@ -1,11 +1,16 @@
-timg(1) - A terminal image and video viewer
-============================================
+% timg(1)
+% Henner Zeller
+% Feb 2021
 
-## SYNOPSIS
+# NAME
 
-  `timg` [<options>] <image/video> [<image/video>...]
+timg - A terminal image and video viewer
 
-## DESCRIPTION
+# SYNOPSIS
+
+  **timg** [&lt;*options*&gt; &lt;*image/video*&gt; [&lt;*image/video*&gt;...]
+
+# DESCRIPTION
 
 Show images, play animated gifs, scroll static images or play videos in the
 terminal. Even show PDFs if needed.
@@ -16,55 +21,55 @@ bulky image viewer and don't need the resolution.
 The command line accepts any number of image/video filenames that it shows
 in sequence.
 
-The special filename "`-`" stands for standard input, so you can read
-an image from a pipe. If the input from a pipe is a video, use the `-V` option
+The special filename "*-*" stands for standard input, so you can read
+an image from a pipe. If the input from a pipe is a video, use the **-V** option
 (see below).
 
 Under the hood, timg uses GraphicsMagick to open and decode a wide
 range of image formats. It also uses libav to decode and play videos or images
 from files and URLs.
 
-## OPTIONS
+# OPTIONS
 
-### General Options
-  * `-g` <width>x<height>:
-     Output image to fit inside given geometry. By default, the size is
-     determined by the available space in the terminal.
-     The image is scaled to fit inside the available box to fill the
-     screen; see `-W` if you want to fill the width.
+## General Options
+**-g** *&lt;width&gt;x&lt;height&gt;*
+:     Output image to fit inside given geometry. By default, the size is 
+     determined by the available space in the terminal. The image is 
+     scaled to fit inside the available box to fill the screen; see **-W** if 
+     you want to fill the width.
 
-  * `-C`:
-    Center image horizontally.
+**-C**
+:    Center image horizontally.
 
-  * `-W`:
-    Scale to fit width of the terminal.
+**-W**
+:    Scale to fit width of the terminal.
 
-  * `--grid`=<cols>[x<rows>]:
-    Arrange images in a grid. If only one parameter is given, arranges in a
-    square grid (e.g. --grid=3 makes a 3x3 grid). Alternatively, you can choose
-    columns and rows (e.g. --grid=3x2).
+**--grid**=&lt;*cols*&gt;[x&lt;*rows*&gt;]
+:    Arrange images in a grid. If only one parameter is given, arranges in a 
+    square grid (e.g. **--grid**=*3* makes a 3x3 grid). Alternatively, you can choose
+    columns and rows (e.g. **--grid**=*3x2*)
 
-  * `-w` <seconds>:
-    Wait time between images when multiple images are given on the command
-    line. Fractional values are allowed, so `-w 3.1415` would wait approximately
+**-w** &lt;*seconds*&gt;
+:   Wait time between images when multiple images are given on the command
+    line. Fractional values are allowed, so **-w** *3.1415* would wait approximately
     π seconds between images.
 
-  * `-a`:
-    Switch off antialiasing. The images are scaled down to show on the
+**-a**
+:    Switch off antialiasing. The images are scaled down to show on the
     minimal amount of pixels, so some smoothing is applied for best visual
     effect. This switches off that smoothing.
 
-  * `-b` <background-color>:
-    Set the background color for transparent images. Common HTML/SVG color
-    strings are supported, such as `red`, `rgb(0, 255, 0)` or `#0000ff`.
+**-b** &lt;*background-color*&gt;
+:    Set the background color for transparent images. Common HTML/SVG color
+    strings are supported, such as *red*, *rgb(0, 255, 0)* or *#0000ff*.
 
-  * `-B` <checkerboard-other-color>:
-    Show the background of a transparent image in a checkerboard pattern with
-    the given color, which alternates with the `-b` color.
-    Like in `-b`, HTML/SVG color strings are supported.
+**-B** &lt;*checkerboard-other-color*&gt;
+:    Show the background of a transparent image in a checkerboard pattern with
+    the given color, which alternates with the **-b** color.
+    Like in **-b**, HTML/SVG color strings are supported.
 
-  * `--autocrop`[=<pre-crop>]:
-    Trim same-color pixels around the border of image before displaying. Use
+**--autocrop**[=&lt;*pre-crop*&gt;]
+:    Trim same-color pixels around the border of image before displaying. Use
     this if there is a boring even-colored space aorund the image which uses
     too many of our available few pixels.
 
@@ -73,12 +78,12 @@ from files and URLs.
     link in the [EXAMPLES](#EXAMPLES) section shows an example how this
     improves showing an xkcd comic with a border.
 
-  * `--rotate=<exif|off>`:
-      If 'exif', rotate the image according to the exif data stored
-      in the image. With 'off', no rotation is extracted or applied.
+**--rotate**=&lt;*exif*|*off*&gt;
+:   If 'exif', rotate the image according to the exif data stored
+    in the image. With 'off', no rotation is extracted or applied.
 
-  * `-U`:
-    Toggle Upscale. If an image is smaller than the terminal size, scale
+**-U**
+:    Toggle Upscale. If an image is smaller than the terminal size, scale
     it up to fit the terminal.
 
     By default, larger images are only scaled down and images smaller than the
@@ -87,8 +92,8 @@ from files and URLs.
     intended appearance). This option scales up smaller images to fit available
     space.
 
-  * `-V`:
-    This is a video, directly read the content as video and don't attempt to
+**-V**
+:    This is a video, directly read the content as video and don't attempt to
     probe image decoding first.
 
     Usually, timg will first attempt to interpret the data as image, but
@@ -97,82 +102,82 @@ from files and URLs.
     for the image have already been consumed so the fall-back would fail in
     that case... Arguably, this should be dealt with automatically but isn't :)
 
-    Long story short: if you read a video from a pipe, use -V.
+    Long story short: if you read a video from a pipe, use **-V**.
     See link in [EXAMPLES](#EXAMPLES) section for a an example.
 
-  * `-I`:
-    This is an image, don't attempt to fall back to video decoding. Somewhat
-    the opposite of `-V`.
+**-I**
+:    This is an image, don't attempt to fall back to video decoding. Somewhat
+    the opposite of **-V**.
 
-  * `-F`:
-    Print filename before each image.
+**-F**
+:    Print filename before each image.
 
-  * `-E`:
-    Don't hide the cursor while showing images.
+**-E**
+:    Don't hide the cursor while showing images.
 
-  * `-v`, `--version`:
-    Print version and exit.
+**-v**, **--version**
+:    Print version and exit.
 
-  * `-h`, `--help`:
-    Print command line option help and exit.
+**-h**, **--help**
+:    Print command line option help and exit.
 
-### Scrolling
+## Scrolling
 
-  * `--scroll`[=<ms>]:
-    Scroll horizontally with an optional delay between updates (default: 60ms)
+**--scroll**[=&lt;*ms*&gt;]
+:    Scroll horizontally with an optional delay between updates (default: 60ms)
 
-  * `--delta-move`=<dx>\:<dy>:
-    Scroll with delta x and delta y. The default of 1:0 scrolls it horizontally,
+**--delta-move**=&lt;*dx*&gt;\:&lt;*dy*&gt;*
+:    Scroll with delta x and delta y. The default of 1:0 scrolls it horizontally,
     but with this option you can scroll vertically or even diagonally.
 
-### For Animations, Scrolling, or Video
+## For Animations, Scrolling, or Video
 
 Usually, animations are shown in full in an infinite loop. These options
 limit infinity.
 
-  * `-t` <seconds>:
-    Stop an animation after these number of seconds.
+**-t**&lt;*seconds*&gt;
+:   Stop an animation after these number of seconds.
     Fractional values are allowed.
 
-  * `--loops=`<num>:
-    Number of loops through a fully cycle of an animation or video.
-    A value of -1 stands for 'forever'.
+**--loops**=&lt;*num*&gt;
+:    Number of loops through a fully cycle of an animation or video.
+    A value of *-1* stands for 'forever'.
 
-    If this option is not set, videos behave like --loops=1 (show exactly once)
-    and animated gifs like --loop=-1 (loop forever).
+    If this option is not set, videos behave like **--loops**=*1* (show exactly once)
+    and animated gifs like **--loop**=*-1* (loop forever).
 
-  * `--frames=`<frame-count>:
-    Only render the first `frame-count` frames in an animation or video.
+**--frames**=&lt;*frame-count*&gt;
+:    Only render the first *frame-count* frames in an animation or video.
     If frame-count is set to 1, the output behaves like a static image.
 
-## RETURN VALUES
+# RETURN VALUES
 
 Exit code is
 
-  * `0`:
-    On reading and displaying all images successfully.
+**0**
+:    On reading and displaying all images successfully.
 
-  * `1`:
-    If any of the images could not be read or decoded or if there was no
+**1**
+:    If any of the images could not be read or decoded or if there was no
     image provided.
 
-  * `2`:
-    If an invalid option or parameter was provided.
+**2**
+:    If an invalid option or parameter was provided.
 
-  * `3`:
-    If timg could not determine the size of terminal (not a tty?). Provide
-    `-g` option to provide size of the output to be generated.
+**3**
+:    If timg could not determine the size of terminal (not a tty?). Provide
+    **-g** option to provide size of the output to be generated.
 
 
-## ENVIRONMENT
+# ENVIRONMENT
 
-  * `TIMG_USE_UPPER_BLOCK`:
-     If this environment variable is set to the value `1`, timg will use the
-     U+2580 - 'Upper Half Block' (▀) unicode character.
+**TIMG_USE_UPPER_BLOCK**
+:     If this environment variable is set to the value **1**, timg will use the
+     U+2580 - 'Upper Half Block' (&#x2580) unicode character.
 
     To display pixels, timg uses a unicode half block and sets the foreground
     color and background color to get two vertical pixels. By default, it uses
-    the U+2584 - 'Lower Half Block' (▄) character to achieve this goal. This
+    the U+2584 - 'Lower Half Block' (&#x2584) character to achieve this goal. This
     has been chosen as it resulted in the best image in all tested terminals
     (konsole, gnome terminal and cool-retro-term). So usually, there is no
     need to change that. But if the terminal or font result in a funny output,
@@ -180,30 +185,30 @@ Exit code is
     turns out to yield a better result on your system, you can set it once
     in your profile and forget about it.
 
-## EXAMPLES
+# EXAMPLES
 
 Some example invocations including scrolling diagonally or streaming an
 online video are collected at <https://github.com/hzeller/timg#examples>
 
-## KNOWN ISSUES
+# KNOWN ISSUES
 
 This requires a terminal that can deal with unicode characters and 24 bit
 color escape codes. This will be problematic on really old installations or
 if you want to display images on some limited text console.
 
-The option `-V` should not be necessary; timg should internally buffer bytes
+The option **-V** should not be necessary; timg should internally buffer bytes
 it uses for probing.
 
-## BUGS
+# BUGS
 
 Report bugs to <http://github.com/hzeller/timg/issues>
 
-## COPYRIGHT
+# COPYRIGHT
 
 Copyright (c) 2016..2021 Henner Zeller. This program is free software,
 provided under the GNU GPL version 2.0 or later
 <https://gnu.org/licenses/gpl.html>.
 
-## SEE ALSO
+# SEE ALSO
 
 GraphicsMagick, ffmpeg(1)
