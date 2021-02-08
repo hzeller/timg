@@ -8,7 +8,7 @@ timg - A terminal image and video viewer
 
 # SYNOPSIS
 
-  **timg** [*&lt;options&gt;* *&lt;image/video&gt;* [*&lt;image/video&gt;*...]
+  **timg** [&lt;*options*&gt; &lt;*image/video*&gt; [&lt;*image/video*&gt;...]
 
 # DESCRIPTION
 
@@ -173,11 +173,11 @@ Exit code is
 
 **TIMG_USE_UPPER_BLOCK**
 :     If this environment variable is set to the value **1**, timg will use the
-     U+2580 - 'Upper Half Block' (▀) unicode character.
+     U+2580 - 'Upper Half Block' (&#x2580) unicode character.
 
     To display pixels, timg uses a unicode half block and sets the foreground
     color and background color to get two vertical pixels. By default, it uses
-    the U+2584 - 'Lower Half Block' (▄) character to achieve this goal. This
+    the U+2584 - 'Lower Half Block' (&#x2584) character to achieve this goal. This
     has been chosen as it resulted in the best image in all tested terminals
     (konsole, gnome terminal and cool-retro-term). So usually, there is no
     need to change that. But if the terminal or font result in a funny output,
