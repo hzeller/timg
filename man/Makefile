@@ -6,7 +6,7 @@ timg.1.gz:
 # A pre-generated gzipped manpage will be checked in to minimize dependencies
 # for building.
 timg.1: timg.1.md
-	ronn < $^ > $@
+	pandoc $^ -s -t man -o $@
 
 %.gz : %
 	gzip < $^ > $@
