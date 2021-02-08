@@ -19,6 +19,7 @@
 #include <signal.h>
 
 #include "terminal-canvas.h"
+#include "image-display.h"
 #include "timg-time.h"
 
 struct AVCodecContext;
@@ -28,7 +29,6 @@ struct AVPacket;
 struct SwsContext;
 
 namespace timg {
-struct DisplayOptions;
 
 // Video loader, meant for one video to load, and if successful, Play().
 class VideoLoader {
@@ -49,7 +49,7 @@ public:
     // while the method is running and shall be checked often.
     void Play(Duration duration, int max_frames, int loops,
               const volatile sig_atomic_t &interrupt_received,
-              timg::TerminalCanvas *canvas);
+              const Renderer::WriteFramebufferFun &write_fb);
 
 private:
     void CopyToFramebuffer(const AVFrame *av_frame);

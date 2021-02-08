@@ -36,6 +36,8 @@ public:
     void SetPixel(int x, int y, rgb_t value);
     rgb_t at(int x, int y) const;
 
+    void Clear();
+
     inline int width() const { return width_; }
     inline int height() const { return height_; }
 
@@ -55,15 +57,16 @@ public:
     TerminalCanvas(int fd, bool use_upper_half_block);
     ~TerminalCanvas();
 
-    // Send frame to terminal.
-    void Send(const Framebuffer &framebuffer, int horizontal_indent);
-
-    // Move cursor up give number of pixels.
-    void JumpUpPixels(int pixels);
+    // Send frame to terminal. Move to xposition (relative to the left
+    // of the screen, and delta y (relative to the current position) first.
+    void Send(int x, int dy, const Framebuffer &framebuffer);
 
     void ClearScreen();
     void CursorOff();
     void CursorOn();
+
+    void MoveCursorDY(int rows);  // negative: up^, positive: downV
+    void MoveCursorDX(int cols);  // negative: <-left, positive: right->
 
 private:
     const int fd_;

@@ -1,9 +1,9 @@
 WITH_VIDEO_DECODING=1
 
-OBJECTS=timg.o terminal-canvas.o image-display.o
+OBJECTS=timg.o terminal-canvas.o image-display.o renderer.o
 
 MAGICK_CXXFLAGS=$(shell GraphicsMagick++-config --cppflags)
-CXXFLAGS=$(MAGICK_CXXFLAGS) -Wall -Wextra -W -Wno-unused-parameter -O3 -fPIC -std=c++11
+CXXFLAGS=$(MAGICK_CXXFLAGS) -Wall -Wextra -W -Wno-unused-parameter -O3 -fPIC -std=c++14
 LDFLAGS+=$(shell GraphicsMagick++-config --ldflags --libs)
 
 ifneq ($(WITH_VIDEO_DECODING), 0)

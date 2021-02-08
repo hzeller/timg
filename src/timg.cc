@@ -17,14 +17,18 @@
 //
 // To compile this image viewer, first get image-magick development files
 // $ sudo apt-get install libgraphicsmagick++-dev
-#include "timg-version.h"
+
+#include "display-options.h"
 #include "terminal-canvas.h"
 #include "timg-time.h"
+#include "timg-version.h"
+#include "renderer.h"
 
 #include "image-display.h"
 #ifdef WITH_TIMG_VIDEO
 #  include "video-display.h"
 #endif
+
 
 #include <getopt.h>
 #include <math.h>
@@ -51,6 +55,8 @@ enum class ExitCode {
 
 using timg::Duration;
 using timg::Time;
+using timg::ImageLoader;
+using timg::Framebuffer;
 
 volatile sig_atomic_t interrupt_received = 0;
 static void InterruptHandler(int signo) {
@@ -70,6 +76,7 @@ static int usage(const char *progname, ExitCode exit_code, int w, int h) {
             "\t-C        : Center image horizontally.\n"
             "\t-W        : Scale to fit width of terminal (default: "
             "fit terminal width and height)\n"
+            "\t--grid=<cols>[x<rows>]: Arrange images in a grid (contact sheet)\n"
             "\t-w<seconds>: If multiple images given: Wait time between (default: 0.0).\n"
             "\t-a        : Switch off antialiasing (default: on)\n"
             "\t-b<str>   : Background color to use on transparent images (default '').\n"
@@ -92,7 +99,7 @@ static int usage(const char *progname, ExitCode exit_code, int w, int h) {
             "\t-h, --help    : Print this help and exit.\n"
 
             "\n  Scrolling\n"
-            "\t--scroll=[<ms>]         : Scroll horizontally (optionally: delay ms (60)).\n"
+            "\t--scroll=[<ms>]       : Scroll horizontally (optionally: delay ms (60)).\n"
             "\t--delta-move=<dx:dy>  : delta x and delta y when scrolling (default: 1:0).\n"
 
             "\n  For Animations, Scrolling, or Video\n"
@@ -125,15 +132,16 @@ int main(int argc, char *argv[]) {
 
     bool do_scroll = false;
     bool do_clear = false;
-    bool show_filename = false;
     bool hide_cursor = true;
     Duration duration = Duration::InfiniteFuture();
     Duration between_images_duration = Duration::Millis(0);
     Duration scroll_delay = Duration::Millis(50);
     int max_frames = timg::kNotInitialized;
     int loops  = timg::kNotInitialized;
-    int dx = 1;
-    int dy = 0;
+    int scroll_dx = 1;
+    int scroll_dy = 0;
+    int grid_rows = 1;
+    int grid_cols = 1;
     bool fit_width = false;
     bool do_image_loading = true;
 #if WITH_TIMG_VIDEO
@@ -142,6 +150,7 @@ int main(int argc, char *argv[]) {
 
     enum LongOptionIds {
         OPT_ROTATE = 1000,
+        OPT_GRID,
     };
 
     // Flags with optional parameters need to be long-options, as on MacOS,
@@ -156,6 +165,7 @@ int main(int argc, char *argv[]) {
         // TODO: frame offset ?
         { "version",     no_argument,       NULL, 'v' },
         { "help",        no_argument,       NULL, 'h' },
+        { "grid",        required_argument, NULL, OPT_GRID },
         // TODO: add more long-options
         { 0, 0, 0, 0}
     };
@@ -234,8 +244,22 @@ int main(int argc, char *argv[]) {
                              term_width, term_height);
             }
             break;
+        case OPT_GRID:
+            switch (sscanf(optarg, "%dx%d", &grid_cols, &grid_rows)) {
+            case 0:
+                {
+                    fprintf(stderr, "Invalid grid spec '%s'", optarg);
+                    return usage(argv[0], ExitCode::kParameterError,
+                                 term_width, term_height);
+                }
+                break;
+            case 1:
+                grid_rows = grid_cols;
+                break;
+            }
+            break;
         case 'd':
-            if (sscanf(optarg, "%d:%d", &dx, &dy) < 1) {
+            if (sscanf(optarg, "%d:%d", &scroll_dx, &scroll_dy) < 1) {
                 fprintf(stderr, "-d%s: At least dx parameter needed e.g. -d1."
                         "Or you can give dx, dy like so: -d1:-1", optarg);
                 return usage(argv[0], ExitCode::kParameterError,
@@ -256,7 +280,7 @@ int main(int argc, char *argv[]) {
             }
             break;
         case 'F':
-            show_filename = !show_filename;
+            display_opts.show_filename = !display_opts.show_filename;
             break;
         case 'E':
             hide_cursor = false;
@@ -302,8 +326,9 @@ int main(int argc, char *argv[]) {
                      term_width, term_height);
     }
 
+    // -- Some sanity checks
     // There is no scroll if there is no movement.
-    if (dx == 0 && dy == 0) {
+    if (scroll_dx == 0 && scroll_dy == 0) {
         fprintf(stderr, "Scrolling chosen, but dx:dy = 0:0. "
                 "Just showing image, no scroll.\n");
         do_scroll = false;
@@ -311,39 +336,53 @@ int main(int argc, char *argv[]) {
 
     // If we scroll in one direction (so have 'infinite' space) we want fill
     // the available screen space fully in the other direction.
-    display_opts.fill_width  = fit_width || (do_scroll && dy != 0);
-    display_opts.fill_height = do_scroll && dx != 0; // scroll hor, fill vert
+    display_opts.fill_width  = fit_width || (do_scroll && scroll_dy != 0);
+    display_opts.fill_height = do_scroll && scroll_dx != 0; // scroll h, fill v
 
     // Showing exactly one frame implies animation behaves as static image
-    if (max_frames == 1)
+    if (max_frames == 1) {
         loops = 1;
+    }
 
-    signal(SIGTERM, InterruptHandler);
-    signal(SIGINT, InterruptHandler);
-    int exit_code = 0;
+    if (display_opts.show_filename) {
+        display_opts.height -= 2*grid_rows;  // Leave space for text 2px = 1row
+    }
 
     timg::TerminalCanvas canvas(STDOUT_FILENO, terminal_use_upper_block);
     if (hide_cursor) {
         canvas.CursorOff();
     }
 
+    auto renderer = timg::Renderer::Create(&canvas, display_opts,
+                                           grid_cols, grid_rows);
+
+    // The image preprocessing might need to write it to a smaller area.
+    display_opts.width /= grid_cols;
+    display_opts.height /= grid_rows;
+
+    signal(SIGTERM, InterruptHandler);
+    signal(SIGINT, InterruptHandler);
+    int exit_code = 0;
+
     for (int imgarg = optind; imgarg < argc && !interrupt_received; ++imgarg) {
         const char *filename = argv[imgarg];
-        if (do_clear) canvas.ClearScreen();
+        if (do_clear) canvas.ClearScreen();  // TODO: put in canvas print thing
 
         if (do_image_loading) {
             timg::ImageLoader image_loader;
             if (image_loader.LoadAndScale(filename, display_opts)) {
-                if (show_filename) printf("%s\n", filename);
                 if (do_scroll) {
                     image_loader.Scroll(duration, loops, interrupt_received,
-                                        dx, dy, scroll_delay, &canvas);
+                                        scroll_dx, scroll_dy,
+                                        scroll_delay,
+                                        renderer->render_cb(filename));
                 } else {
                     image_loader.Display(duration, max_frames, loops,
-                                         interrupt_received, &canvas);
+                                         interrupt_received,
+                                         renderer->render_cb(filename));
                 }
                 if (!image_loader.is_animation() &&
-                    !between_images_duration.is_zero()) {
+                    !between_images_duration.is_zero() /* && not grid */) {
                     (Time::Now() + between_images_duration).WaitUntil();
                 }
                 continue;
@@ -354,9 +393,9 @@ int main(int argc, char *argv[]) {
         if (do_video_loading) {
             timg::VideoLoader video_loader;
             if (video_loader.LoadAndScale(filename, display_opts)) {
-                if (show_filename) printf("%s\n", filename);
                 video_loader.Play(duration, max_frames, loops,
-                                  interrupt_received, &canvas);
+                                  interrupt_received,
+                                  renderer->render_cb(filename));
                 continue;
             }
         }

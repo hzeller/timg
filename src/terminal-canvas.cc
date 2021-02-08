@@ -17,6 +17,7 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -24,7 +25,7 @@
 namespace timg {
 Framebuffer::Framebuffer(int w, int h)
     : width_(w), height_(h), pixels_(new rgb_t [ width_ * height_]) {
-    memset(pixels_, 0, sizeof(*pixels_) * width_ * height_);
+    Clear();
 }
 
 Framebuffer::~Framebuffer() {
@@ -45,8 +46,16 @@ Framebuffer::rgb_t Framebuffer::at(int x, int y) const {
     return pixels_[width_ * y + x];
 }
 
+void Framebuffer::Clear() {
+    memset(pixels_, 0, sizeof(*pixels_) * width_ * height_);
+}
+
 #define SCREEN_CLEAR            "\033c"
-#define SCREEN_CURSOR_UP_FORMAT "\033[%dA"  // Move cursor up given lines.
+
+#define SCREEN_CURSOR_UP_FORMAT    "\033[%dA"  // Move cursor up given lines.
+#define SCREEN_CURSOR_DN_FORMAT    "\033[%dB"  // Move cursor down given lines.
+#define SCREEN_CURSOR_RIGHT_FORMAT "\033[%dC"  // Move cursor right given cols
+#define SCREEN_CURSOR_LEFT_FORMAT  "\033[%dD"  // Move cursor left given cols
 
 // Interestingly, cursor-on does not take effect until the next newline on
 // the tested terminals. Not sure why that is, but adding a newline sounds
@@ -93,12 +102,15 @@ char *TerminalCanvas::EnsureBuffer(int width, int height, int indent) {
         + PIXEL_SET_COLOR_LEN + ESCAPE_COLOR_MAX_LEN
         + 1 /* m */
         + PIXEL_BLOCK_CHARACTER_LEN;
-
+    // Few extra space for number printed in the format.
+    static const int opt_cursor_up = strlen(SCREEN_CURSOR_UP_FORMAT) + 3;
+    static const int opt_cursor_right = strlen(SCREEN_CURSOR_RIGHT_FORMAT) + 3;
     const int vertical_characters = (height+1) / 2;   // two pixels, one glyph
-    const size_t character_buffer_size = vertical_characters *
-        (indent                      // Horizontal indentation with spaces
-         + width * max_pixel_size    // pixels in one row
-         + SCREEN_END_OF_LINE_LEN);  // Finishing a line.
+    const size_t character_buffer_size = opt_cursor_up  // Jump up
+        + vertical_characters
+        * (opt_cursor_right            // Horizontal jump
+           + width * max_pixel_size    // pixels in one row
+           + SCREEN_END_OF_LINE_LEN);  // Finishing a line.
 
     if (character_buffer_size > buffer_size_) {
         if (!content_buffer_) {
@@ -153,8 +165,7 @@ static char *AppendDoubleRow(
     Framebuffer::rgb_t last_top_color = 0xff000000;  // Guaranteed != first
     Framebuffer::rgb_t last_bottom_color = 0xff000000;
     if (indent > 0) {
-        memset(pos, ' ', indent);
-        pos += indent;
+        pos += sprintf(pos, SCREEN_CURSOR_RIGHT_FORMAT, indent);
     }
     for (int x = 0; x < width; ++x) {
         bool color_emitted = false;
@@ -192,11 +203,16 @@ static char *AppendDoubleRow(
     return pos;
 }
 
-void TerminalCanvas::Send(const Framebuffer &framebuffer, int indent) {
+void TerminalCanvas::Send(int x, int dy, const Framebuffer &framebuffer) {
     const int width = framebuffer.width();
     const int height = framebuffer.height();
-    char *const start_buffer = EnsureBuffer(width, height, indent);
+    char *const start_buffer = EnsureBuffer(width, height, x);
     char *pos = start_buffer;
+
+    if (dy < 0) {
+        pos += sprintf(pos, SCREEN_CURSOR_UP_FORMAT, (abs(dy) + 1) / 2);
+    }
+
     const Framebuffer::rgb_t *const pixels = framebuffer.pixels_;
     const Framebuffer::rgb_t *top_line;
     const Framebuffer::rgb_t *bottom_line;
@@ -217,7 +233,7 @@ void TerminalCanvas::Send(const Framebuffer &framebuffer, int indent) {
         top_line = row < 0 ? nullptr : &pixels[width*row];
         bottom_line = (row+1) >= height ? nullptr : &pixels[width*(row + 1)];
 
-        pos = AppendDoubleRow(pos, indent, width,
+        pos = AppendDoubleRow(pos, x, width,
                               top_line, set_upper_color_,
                               bottom_line, set_lower_color_,
                               pixel_character_);
@@ -225,11 +241,23 @@ void TerminalCanvas::Send(const Framebuffer &framebuffer, int indent) {
     reliable_write(fd_, start_buffer, pos - start_buffer);
 }
 
-void TerminalCanvas::JumpUpPixels(int pixels) {
-    if (pixels <= 0) return;
+void TerminalCanvas::MoveCursorDY(int rows) {
+    if (rows == 0) return;
     char buf[32];
-    size_t len = snprintf(buf, sizeof(buf),
-                          SCREEN_CURSOR_UP_FORMAT, (pixels+1)/2);
+    const size_t len = sprintf(buf, rows < 0
+                               ? SCREEN_CURSOR_UP_FORMAT
+                               : SCREEN_CURSOR_DN_FORMAT,
+                               abs(rows));
+    reliable_write(fd_, buf, len);
+}
+
+void TerminalCanvas::MoveCursorDX(int cols) {
+    if (cols == 0) return;
+    char buf[32];
+    const size_t len = sprintf(buf, cols < 0
+                               ? SCREEN_CURSOR_LEFT_FORMAT
+                               : SCREEN_CURSOR_RIGHT_FORMAT,
+                               abs(cols));
     reliable_write(fd_, buf, len);
 }
 

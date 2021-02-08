@@ -39,6 +39,11 @@ from files and URLs.
   * `-W`:
     Scale to fit width of the terminal.
 
+  * `--grid`=<cols>[x<rows>]:
+    Arrange images in a grid. If only one parameter is given, arranges in a
+    square grid (e.g. --grid=3 makes a 3x3 grid). Alternatively, you can choose
+    columns and rows (e.g. --grid=3x2).
+
   * `-w` <seconds>:
     Wait time between images when multiple images are given on the command
     line. Fractional values are allowed, so `-w 3.1415` would wait approximately

@@ -267,7 +267,7 @@ int ImageLoader::IndentationIfCentered(const PreprocessedFrame *frame) const {
 
 void ImageLoader::Display(Duration duration, int max_frames, int loops,
                           const volatile sig_atomic_t &interrupt_received,
-                          timg::TerminalCanvas *canvas) {
+                          const Renderer::WriteFramebufferFun &write_fb) {
     if (max_frames < 0) {
         max_frames = (int)frames_.size();
     } else {
@@ -293,10 +293,9 @@ void ImageLoader::Display(Duration duration, int max_frames, int loops,
             const Time frame_start = Time::Now();
             if (interrupt_received || frame_start >= end_time)
                 break;
-            if (is_animation_ && last_height > 0) {
-                canvas->JumpUpPixels(last_height);
-            }
-            canvas->Send(frame->framebuffer(), IndentationIfCentered(frame));
+            const int dx = IndentationIfCentered(frame);
+            const int dy = is_animation_ && last_height > 0 ? -last_height : 0;
+            write_fb(dx, dy, frame->framebuffer());
             last_height = frame->framebuffer().height();
             if (!frame->delay().is_zero()) {
                 const Time frame_finish = frame_start + frame->delay();
@@ -311,7 +310,7 @@ static int gcd(int a, int b) { return b == 0 ? a : gcd(b, a % b); }
 void ImageLoader::Scroll(Duration duration, int loops,
                          const volatile sig_atomic_t &interrupt_received,
                          int dx, int dy, Duration scroll_delay,
-                         timg::TerminalCanvas *canvas) {
+                         const Renderer::WriteFramebufferFun &write_fb) {
     if (frames_.size() > 1) {
         fprintf(stderr, "This is an %simage format, "
                 "scrolling on top of that is not supported. "
@@ -369,10 +368,7 @@ void ImageLoader::Scroll(Duration duration, int loops,
                     display_fb.SetPixel(x, y, img.at(x_src, y_src));
                 }
             }
-            if (!is_first) {
-                canvas->JumpUpPixels(display_fb.height());
-            }
-            canvas->Send(display_fb, 0);
+            write_fb(0, is_first ? 0 : -display_fb.height(), display_fb);
             is_first = false;
             if (!scroll_delay.is_zero()) {
                 const Time frame_finish = frame_start + scroll_delay;

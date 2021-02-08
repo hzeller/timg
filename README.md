@@ -62,6 +62,7 @@ Options:
         -g<w>x<h> : Output pixel geometry. Default from terminal 160x100
         -C        : Center image horizontally.
         -W        : Scale to fit width of terminal (default: fit terminal width and height)
+        --grid=<cols>[x<rows>]: Arrange images in a grid (contact sheet)
         -w<seconds>: If multiple images given: Wait time between (default: 0.0).
         -a        : Switch off antialiasing (default: on)
         -b<str>   : Background color to use on transparent images (default '').
@@ -82,7 +83,7 @@ Options:
         -h, --help    : Print this help and exit.
 
   Scrolling
-        --scroll=[<ms>]         : Scroll horizontally (optionally: delay ms (60)).
+        --scroll=[<ms>]       : Scroll horizontally (optionally: delay ms (60)).
         --delta-move=<dx:dy>  : delta x and delta y when scrolling (default: 1:0).
 
   For Animations, Scrolling, or Video
@@ -90,7 +91,7 @@ Options:
         --loops=<num> : Number of runs through a full cycle. Use -1 to mean 'forever'.
                         If not set, videos behave like --loop=1, animated images like --loop=-1
         --frames=<num>: Only render first num frames.
-        -t<seconds>   : Hard stop after this time, no matter what --loops or --frames say.
+        -t<seconds>   : Stop after this time, no matter what --loops or --frames say.
 ```
 
 ### Examples
@@ -99,6 +100,7 @@ timg some-image.jpg         # display a static image
 timg -g50x50 some-image.jpg # display image fitting in box of 50x50 pixel
 
 timg *.jpg                  # display all *.jpg images
+timg --grid=3x2 *.jpg       # display all *.jpg images in 3 columns, 2 rows
 
 # Show a PDF document, use full width of terminal, trim away empty border
 timg -W --autocrop some-document.pdf

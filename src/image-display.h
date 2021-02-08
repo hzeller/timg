@@ -18,35 +18,19 @@
 
 #include <signal.h>
 
-#include <vector>
 #include <limits>
+#include <vector>
 
-#include "timg-time.h"
+#include "display-options.h"
+#include "renderer.h"
 #include "terminal-canvas.h"
+#include "timg-time.h"
 
 namespace timg {
 // Special sentinel value so signify a not initialized value on the command
 // line.
 static constexpr int kNotInitialized = std::numeric_limits<int>::min();
 
-struct DisplayOptions {
-    int width = -1;             // These need to be set to valid values.
-    int height = -1;
-    // If image is smaller than screen, only upscale if do_upscale is set.
-    bool upscale = false;
-    bool fill_width = false;   // Fill screen width, allow overflow height.
-    bool fill_height = false;  // Fill screen height, allow overflow width.
-    bool antialias = true;     // Try a pleasing antialiasing while scaling.
-    bool center_horizontally = false;  // Try to center image
-    int crop_border = 0;       // Pixels to be cropped around image.
-    bool auto_crop = false;    // Autocrop, removing 'boring' space around.
-                               // Done after crop-border has been applied.
-    bool exif_rotate = true;   // Rotate image according to exif data found.
-
-    // Transparency options for background shown.
-    const char *bg_color = nullptr;          // Background color
-    const char *bg_pattern_color = nullptr;  // Checkerboard other color.
-};
 
 // Given an image with size "img_width" and "img_height", determine the
 // target width and height satisfying the desired fit and size defined in
@@ -82,13 +66,13 @@ public:
     // while the method is running and shall be checked often.
     void Display(Duration duration, int max_frames, int loops,
                  const volatile sig_atomic_t &interrupt_received,
-                 timg::TerminalCanvas *canvas);
+                 const Renderer::WriteFramebufferFun &write_fb);
 
     // Provide image scrolling in dx/dy direction for up to the given time.
     void Scroll(Duration duration, int loops,
                 const volatile sig_atomic_t &interrupt_received,
                 int dx, int dy,  Duration scroll_delay,
-                timg::TerminalCanvas *canvas);
+                const Renderer::WriteFramebufferFun &write_fb);
 
     bool is_animation() const { return is_animation_; }
 

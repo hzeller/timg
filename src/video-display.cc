@@ -213,7 +213,7 @@ void VideoLoader::CopyToFramebuffer(const AVFrame *av_frame) {
 
 void VideoLoader::Play(Duration duration, const int frames, int loops,
                        const volatile sig_atomic_t &interrupt_received,
-                       timg::TerminalCanvas *canvas) {
+                       const Renderer::WriteFramebufferFun &write_fb) {
     const bool frame_limit = (frames >= 0);
 
     if (frames == 1)  // If there is only one frame, nothing to repeat.
@@ -260,8 +260,8 @@ void VideoLoader::Play(Duration duration, const int frames, int loops,
                               0, codec_context_->height,
                               output_frame_->data, output_frame_->linesize);
                     CopyToFramebuffer(output_frame_);
-                    if (!is_first) canvas->JumpUpPixels(terminal_fb_->height());
-                    canvas->Send(*terminal_fb_, center_indentation_);
+                    const int dy = is_first ? 0 : -terminal_fb_->height();
+                    write_fb(center_indentation_, dy, *terminal_fb_);
                     is_first = false;
                     if (frame_limit) --remaining_frames;
                 }
