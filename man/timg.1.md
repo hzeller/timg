@@ -33,9 +33,9 @@ from files and URLs.
 
 ## General Options
 **-g** *&lt;width&gt;x&lt;height&gt;*
-:     Output image to fit inside given geometry. By default, the size is 
-     determined by the available space in the terminal. The image is 
-     scaled to fit inside the available box to fill the screen; see **-W** if 
+:     Output image to fit inside given geometry. By default, the size is
+     determined by the available space in the terminal. The image is
+     scaled to fit inside the available box to fill the screen; see **-W** if
      you want to fill the width.
 
 **-C**
@@ -45,7 +45,7 @@ from files and URLs.
 :    Scale to fit width of the terminal.
 
 **--grid**=&lt;*cols*&gt;[x&lt;*rows*&gt;]
-:    Arrange images in a grid. If only one parameter is given, arranges in a 
+:    Arrange images in a grid. If only one parameter is given, arranges in a
     square grid (e.g. **--grid**=*3* makes a 3x3 grid). Alternatively, you can choose
     columns and rows (e.g. **--grid**=*3x2*)
 
@@ -173,11 +173,11 @@ Exit code is
 
 **TIMG_USE_UPPER_BLOCK**
 :     If this environment variable is set to the value **1**, timg will use the
-     U+2580 - 'Upper Half Block' (&#x2580) unicode character.
+     U+2580 - 'Upper Half Block' (&#x2580;) unicode character.
 
     To display pixels, timg uses a unicode half block and sets the foreground
     color and background color to get two vertical pixels. By default, it uses
-    the U+2584 - 'Lower Half Block' (&#x2584) character to achieve this goal. This
+    the U+2584 - 'Lower Half Block' (&#x2584;) character to achieve this goal. This
     has been chosen as it resulted in the best image in all tested terminals
     (konsole, gnome terminal and cool-retro-term). So usually, there is no
     need to change that. But if the terminal or font result in a funny output,
