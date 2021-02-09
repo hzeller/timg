@@ -25,13 +25,13 @@ timg-version.h: .FORCE
 	cmp -s $@ $@-new || cp $@-new $@; \
 	rm $@-new)
 
-install: timg ../man/timg.1.gz
+install: timg ../man/timg.1
 	install -d $(PREFIX)/bin $(PREFIX)/share/man/man1
 	install -s timg $(PREFIX)/bin/timg
-	install ../man/timg.1.gz $(PREFIX)/share/man/man1/timg.1.gz
+	install ../man/timg.1 $(PREFIX)/share/man/man1/timg.1
 
 uninstall:
-	rm -f $(PREFIX)/bin/timg $(PREFIX)/share/man/man1/timg.1.gz
+	rm -f $(PREFIX)/bin/timg $(PREFIX)/share/man/man1/timg.1
 
 clean:
 	rm -f timg $(OBJECTS) timg-version.h

@@ -9,8 +9,20 @@ to display images in the terminal.
 Displays regular images, plays animated gifs, scrolls static images and
 plays videos.
 
-Very useful if you want to have a quick visual check without starting a
-bulky image viewer ... and don't care about resolution.
+Useful if you want to have a quick visual check without leaving the comfort
+of your shell and having to start a bulky image viewer. Sometimes this is the
+only way if your terminal connected remotely via ssh. And of course if you
+don't need the resolution. While icons typically fit pixel-perfect, larger
+images are scaled down to match the resolution.
+
+The command line accepts any number of image/video filenames that it shows
+in sequence one per page or in a grid in multiple columns, depending on your
+choice of `--grid`. The output is emitted in-line with minimally messing
+with your terminal, so you can simply go back in history using your terminals'
+scroll-bar (Or redirecting the output to a file allows you to later
+simply `cat` that file to your terminal).
+
+![Grid view of 4 pictures](./img/grid-timg.png)
 
 ### Install
 

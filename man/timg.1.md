@@ -15,13 +15,20 @@ timg - A terminal image and video viewer
 Show images, play animated gifs, scroll static images or play videos in the
 terminal. Even show PDFs if needed.
 
-Useful if you want to have a quick visual check without starting a
-bulky image viewer and don't need the resolution.
+Useful if you want to have a quick visual check without leaving the comfort
+of your shell and having to start a bulky image viewer. Sometimes this is the
+only way if your terminal connected remotely via ssh. And of course if you
+don't need the resolution. While icons typically fit pixel-perfect, larger
+images are scaled down to match the resolution.
 
 The command line accepts any number of image/video filenames that it shows
-in sequence.
+in sequence one per page or in a grid in multiple columns, depending on your
+choice of **-\-grid**. The output is emitted in-line with minimally messing
+with your terminal, so you can simply go back in history using your terminals'
+scroll-bar (Or redirecting the output to a file allows you to later
+simply **cat** that file to your terminal).
 
-The special filename "*-*" stands for standard input, so you can read
+The special filename "-" stands for standard input, so you can read
 an image from a pipe. If the input from a pipe is a video, use the **-V** option
 (see below).
 
@@ -44,14 +51,15 @@ from files and URLs.
 **-W**
 :    Scale to fit width of the terminal.
 
-**--grid**=&lt;*cols*&gt;[x&lt;*rows*&gt;]
+**-\-grid**=&lt;*cols*&gt;[x&lt;*rows*&gt;]
 :    Arrange images in a grid. If only one parameter is given, arranges in a
-    square grid (e.g. **--grid**=*3* makes a 3x3 grid). Alternatively, you can choose
-    columns and rows (e.g. **--grid**=*3x2*)
+    square grid (e.g. **-\-grid=3** makes a 3x3 grid). Alternatively, you can
+    choose columns and rows that should fit on one terminal
+    (e.g. **-\-grid=3x2**)
 
 **-w** &lt;*seconds*&gt;
 :   Wait time between images when multiple images are given on the command
-    line. Fractional values are allowed, so **-w** *3.1415* would wait approximately
+    line. Fractional values are allowed, so **-w3.1415** would wait approximately
     π seconds between images.
 
 **-a**
@@ -61,14 +69,14 @@ from files and URLs.
 
 **-b** &lt;*background-color*&gt;
 :    Set the background color for transparent images. Common HTML/SVG color
-    strings are supported, such as *red*, *rgb(0, 255, 0)* or *#0000ff*.
+    strings are supported, such as **red**, **rgb(0, 255, 0)** or **#0000ff**.
 
 **-B** &lt;*checkerboard-other-color*&gt;
 :    Show the background of a transparent image in a checkerboard pattern with
     the given color, which alternates with the **-b** color.
     Like in **-b**, HTML/SVG color strings are supported.
 
-**--autocrop**[=&lt;*pre-crop*&gt;]
+**-\-autocrop**[=&lt;*pre-crop*&gt;]
 :    Trim same-color pixels around the border of image before displaying. Use
     this if there is a boring even-colored space aorund the image which uses
     too many of our available few pixels.
@@ -78,7 +86,7 @@ from files and URLs.
     link in the [EXAMPLES](#EXAMPLES) section shows an example how this
     improves showing an xkcd comic with a border.
 
-**--rotate**=&lt;*exif*|*off*&gt;
+**-\-rotate**=&lt;*exif*|*off*&gt;
 :   If 'exif', rotate the image according to the exif data stored
     in the image. With 'off', no rotation is extracted or applied.
 
@@ -115,18 +123,18 @@ from files and URLs.
 **-E**
 :    Don't hide the cursor while showing images.
 
-**-v**, **--version**
+**-v**, **-\-version**
 :    Print version and exit.
 
-**-h**, **--help**
+**-h**, **-\-help**
 :    Print command line option help and exit.
 
 ## Scrolling
 
-**--scroll**[=&lt;*ms*&gt;]
+**-\-scroll**[=&lt;*ms*&gt;]
 :    Scroll horizontally with an optional delay between updates (default: 60ms)
 
-**--delta-move**=&lt;*dx*&gt;\:&lt;*dy*&gt;*
+**-\-delta-move**=&lt;*dx*&gt;\:&lt;*dy*&gt;*
 :    Scroll with delta x and delta y. The default of 1:0 scrolls it horizontally,
     but with this option you can scroll vertically or even diagonally.
 
@@ -139,14 +147,14 @@ limit infinity.
 :   Stop an animation after these number of seconds.
     Fractional values are allowed.
 
-**--loops**=&lt;*num*&gt;
+**-\-loops**=&lt;*num*&gt;
 :    Number of loops through a fully cycle of an animation or video.
     A value of *-1* stands for 'forever'.
 
-    If this option is not set, videos behave like **--loops**=*1* (show exactly once)
-    and animated gifs like **--loop**=*-1* (loop forever).
+    If this option is not set, videos behave like -\-loops=1 (show exactly once)
+    and animated gifs like -\-loop=-1 (loop forever).
 
-**--frames**=&lt;*frame-count*&gt;
+**-\-frames**=&lt;*frame-count*&gt;
 :    Only render the first *frame-count* frames in an animation or video.
     If frame-count is set to 1, the output behaves like a static image.
 
