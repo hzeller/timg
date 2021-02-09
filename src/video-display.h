@@ -18,8 +18,8 @@
 
 #include <signal.h>
 
+#include "image-source.h"
 #include "terminal-canvas.h"
-#include "image-display.h"
 #include "timg-time.h"
 
 struct AVCodecContext;
@@ -33,15 +33,14 @@ namespace timg {
 // Video loader, meant for one video to load, and if successful, Play().
 class VideoLoader final : public ImageSource {
 public:
-    VideoLoader();
+    VideoLoader(const char *filename);
     ~VideoLoader() final;
 
     static const char *VersionInfo();
 
     // Attempt to load given filename as video, open stream and set-up scaling.
     // Returns true on success.
-    bool LoadAndScale(const char *filename,
-                      const DisplayOptions &options) final;
+    bool LoadAndScale(const DisplayOptions &options) final;
 
     // Play video up to given duration.
     //

@@ -40,7 +40,7 @@ public:
 
     virtual ~Renderer() {}
 
-    // Start a new rendering with a title.
+    // Create a sink for a new rendering with a title.
     // Returns a callback in which the receiver can send a frambebufer to be
     // rendered, to be called by whoever provides a framebuffer.
     // The returned call can be used to output multiple frames with the usual

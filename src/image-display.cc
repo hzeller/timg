@@ -25,57 +25,8 @@
 #include <Magick++.h>
 
 namespace timg {
-// Returns 'true' if anything is to do to the picture.
-bool CalcScaleToFitDisplay(int img_width, int img_height,
-                           const DisplayOptions &options,
-                           int *target_width, int *target_height) {
-    const float width_fraction = (float)options.width / img_width;
-    const float height_fraction = (float)options.height / img_height;
-
-    // If the image < screen, only upscale if do_upscale requested
-    if (!options.upscale &&
-        (options.fill_height || width_fraction > 1.0) &&
-        (options.fill_width || height_fraction > 1.0)) {
-        *target_width = img_width;
-        *target_height = img_height;
-        return false;
-    }
-
-    *target_width = options.width;
-    *target_height = options.height;
-
-    if (options.fill_width && options.fill_height) {
-        // Fill as much as we can get in available space.
-        // Largest scale fraction determines that. This is for some diagonal
-        // scroll modes.
-        const float larger_fraction = (width_fraction > height_fraction)
-            ? width_fraction
-            : height_fraction;
-        *target_width = (int) roundf(larger_fraction * img_width);
-        *target_height = (int) roundf(larger_fraction * img_height);
-    }
-    else if (options.fill_height) {
-        // Make things fit in vertical space.
-        // While the height constraint stays the same, we can expand width to
-        // wider than screen.
-        *target_width = (int) roundf(height_fraction * img_width);
-    }
-    else if (options.fill_width) {
-        // dito, vertical. Make things fit in horizontal, overflow vertical.
-        *target_height = (int) roundf(width_fraction * img_height);
-    }
-    else {
-        // Typical situation: whatever limits first
-        const float smaller_fraction = (width_fraction < height_fraction)
-            ? width_fraction
-            : height_fraction;
-        *target_width = (int) roundf(smaller_fraction * img_width);
-        *target_height = (int) roundf(smaller_fraction * img_height);
-    }
-    return *target_width != img_width || *target_height != img_height;
-}
-
-void CopyToFramebuffer(const Magick::Image &img, timg::Framebuffer *result) {
+static void CopyToFramebuffer(const Magick::Image &img,
+                              timg::Framebuffer *result) {
     assert(result->width() >= (int) img.columns()
            && result->height() >= (int) img.rows());
     for (size_t y = 0; y < img.rows(); ++y) {
@@ -140,11 +91,11 @@ const char *ImageLoader::VersionInfo() {
     return "GraphicsMagick " MagickLibVersionText " (" MagickReleaseDate ")";
 }
 
-static bool EndsWith(const char *filename, const char *suffix) {
-    size_t flen = strlen(filename);
-    size_t slen = strlen(suffix);
+static bool EndsWith(const std::string &filename, const char *suffix) {
+    const size_t flen = filename.length();
+    const size_t slen = strlen(suffix);
     if (flen < slen) return false;
-    return strcasecmp(filename + flen - slen, suffix) == 0;
+    return strcasecmp(filename.c_str() + flen - slen, suffix) == 0;
 }
 
 static void ExifRotateIfNeeded(Magick::Image *img) {
@@ -168,8 +119,7 @@ static void ExifRotateIfNeeded(Magick::Image *img) {
     img->rotate(angle);
 }
 
-bool ImageLoader::LoadAndScale(const char *filename,
-                               const DisplayOptions &opts) {
+bool ImageLoader::LoadAndScale(const DisplayOptions &opts) {
     options_ = opts;
     display_width_ = opts.width;
     display_height_ = opts.height;
@@ -177,7 +127,7 @@ bool ImageLoader::LoadAndScale(const char *filename,
 
     std::vector<Magick::Image> frames;
     try {
-        readImages(&frames, filename);
+        readImages(&frames, filename());
     }
     catch(Magick::Warning &warning) {
         //fprintf(stderr, "Meh: %s (%s)\n", filename, warning.what());
@@ -197,7 +147,7 @@ bool ImageLoader::LoadAndScale(const char *filename,
     // that are known to be containers for multiple independent images are
     // considered not an animation.
     const bool could_be_animation =
-        !EndsWith(filename, "ico") && !EndsWith(filename, "pdf");
+        !EndsWith(filename(), "ico") && !EndsWith(filename(), "pdf");
 
     std::vector<Magick::Image> result;
     // Put together the animation from single frames. GIFs can have nasty

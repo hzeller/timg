@@ -21,41 +21,16 @@
 #include <vector>
 
 #include "display-options.h"
+#include "image-source.h"
 #include "renderer.h"
 #include "terminal-canvas.h"
 #include "timg-time.h"
 
 namespace timg {
 
-class ImageSource {
-public:
-    virtual ~ImageSource() {}
-
-    // Attempt to load image(s) from filename and prepare for display.
-    // Images are processed using the parameters in DisplayOptions.
-    virtual bool LoadAndScale(const char *filename,
-                              const DisplayOptions &options) = 0;
-
-    // Send preprocessed frames for a maximum of given, max frames and loops,
-    // whatever comes first. Stop loop when "interrupt_received" is true.
-    // Send all frames to "sink", a callback that accepts Framebuffers.
-    virtual void SendFrames(Duration duration, int max_frames, int loops,
-                            const volatile sig_atomic_t &interrupt_received,
-                            const Renderer::WriteFramebufferFun &sink) = 0;
-};
-
-// Given an image with size "img_width" and "img_height", determine the
-// target width and height satisfying the desired fit and size defined in
-// the "display_options".
-//
-// As result, modfieis "target_width" and "target_height"; returns 'true' if
-// the image has to be scaled, i.e. target size is different than image size.
-bool CalcScaleToFitDisplay(int img_width, int img_height,
-                           const DisplayOptions &display_options,
-                           int *target_width, int *target_height);
-
 class ImageLoader final : public ImageSource {
 public:
+    ImageLoader(const char *filename) : ImageSource(filename) {}
     ~ImageLoader() final;
 
     static const char *VersionInfo();
@@ -67,8 +42,7 @@ public:
     // if set.
     // If this is not a loadable image, returns false, otherwise
     // We're ready for display.
-    bool LoadAndScale(const char *filename,
-                      const DisplayOptions &options) final;
+    bool LoadAndScale(const DisplayOptions &options) final;
 
     // Display loaded image. If this is an animation, then
     // "duration", "max_frames" and "loops" will limit the duration of the

@@ -55,7 +55,7 @@ enum class ExitCode {
 
 using timg::Duration;
 using timg::Time;
-using timg::ImageLoader;
+using timg::ImageSource;
 using timg::Framebuffer;
 
 volatile sig_atomic_t interrupt_received = 0;
@@ -148,9 +148,7 @@ int main(int argc, char *argv[]) {
     int grid_cols = 1;
     bool fit_width = false;
     bool do_image_loading = true;
-#if WITH_TIMG_VIDEO
     bool do_video_loading = true;
-#endif
 
     enum LongOptionIds {
         OPT_ROTATE = 1000,
@@ -371,41 +369,14 @@ int main(int argc, char *argv[]) {
     int exit_code = 0;
 
     for (int imgarg = optind; imgarg < argc && !interrupt_received; ++imgarg) {
-        const char *filename = argv[imgarg];
-        if (do_image_loading) {
-            timg::ImageLoader image_loader;
-            if (image_loader.LoadAndScale(filename, display_opts)) {
-                image_loader.SendFrames(duration, max_frames, loops,
-                                        interrupt_received,
-                                        renderer->render_cb(filename));
-                if (!between_images_duration.is_zero() /* && not grid */) {
-                    (Time::Now() + between_images_duration).WaitUntil();
-                }
-                continue;
-            }
-        }
-
-#ifdef WITH_TIMG_VIDEO
-        if (do_video_loading) {
-            timg::VideoLoader video_loader;
-            if (video_loader.LoadAndScale(filename, display_opts)) {
-                video_loader.SendFrames(duration, max_frames, loops,
-                                        interrupt_received,
-                                        renderer->render_cb(filename));
-                continue;
-            }
-        }
-#endif
-
-        // We either loaded, played and continue'ed, or we end up here.
-        fprintf(stderr, "%s: couldn't load\n", filename);
-        exit_code = 1;
-#ifdef WITH_TIMG_VIDEO
-        if (strcmp(filename, "-") == 0 || strcmp(filename, "/dev/stdin") == 0) {
-            fprintf(stderr, "If this is a video on stdin, use '-V' to "
-                    "skip image probing\n");
-        }
-#endif
+        const char *const filename = argv[imgarg];
+        std::unique_ptr<ImageSource> source(
+            ImageSource::Create(filename, display_opts,
+                                do_image_loading, do_video_loading));
+        if (!source) continue;
+        source->SendFrames(duration, max_frames, loops,
+                           interrupt_received,
+                           renderer->render_cb(filename));
     }
 
     if (hide_cursor) {

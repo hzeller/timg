@@ -78,7 +78,7 @@ static void OnceInitialize() {
     avformat_network_init();
 }
 
-VideoLoader::VideoLoader() {
+VideoLoader::VideoLoader(const char *filename) : ImageSource(filename) {
     static std::once_flag init;
     std::call_once(init, OnceInitialize);
 }
@@ -95,17 +95,16 @@ const char *VideoLoader::VersionInfo() {
     return "libav " AV_STRINGIFY(LIBAVFORMAT_VERSION);
 }
 
-bool VideoLoader::LoadAndScale(const char *filename,
-                               const DisplayOptions &display_options) {
-    if (strcmp(filename, "-") == 0) {
-        filename = "/dev/stdin";
-    }
+bool VideoLoader::LoadAndScale(const DisplayOptions &display_options) {
+    const char *file = (filename() == "-")
+        ? "/dev/stdin"
+        : filename().c_str();
     format_context_ = avformat_alloc_context();
     int ret;
-    if ((ret = avformat_open_input(&format_context_, filename, NULL, NULL)) != 0) {
+    if ((ret = avformat_open_input(&format_context_, file, NULL, NULL)) != 0) {
         char msg[100];
         av_strerror(ret, msg, sizeof(msg));
-        fprintf(stderr, "%s: %s\n", filename, msg);
+        fprintf(stderr, "%s: %s\n", file, msg);
         return false;
     }
 
@@ -152,14 +151,14 @@ bool VideoLoader::LoadAndScale(const char *filename,
     // TODO: this is a crude work-around. And while we tell the user what to
     // do, it would be better if we'd dealt with it already.
     if (opts.crop_border != 0 || opts.auto_crop) {
-        const bool is_url = (strncmp(filename, "http://", 7) == 0 ||
-                             strncmp(filename, "https://", 8) == 0);
+        const bool is_url = (strncmp(file, "http://", 7) == 0 ||
+                             strncmp(file, "https://", 8) == 0);
         fprintf(stderr, "%s%s is handled by video subsystem. "
                 "Unfortunately, no -T trimming feature is implemented there.\n",
-                is_url ? "URL " : "", filename);
+                is_url ? "URL " : "", file);
         if (is_url) {
             fprintf(stderr, "use:\n\twget -qO- %s | timg -T%d -\n... instead "
-                    "for this to work\n", filename, opts.crop_border);
+                    "for this to work\n", file, opts.crop_border);
         }
     }
     opts.fill_height = false;  // This only makes sense for horizontal scroll.
