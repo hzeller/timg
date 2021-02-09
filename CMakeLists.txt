@@ -23,6 +23,8 @@ if(WITH_VIDEO_DECODING)
   pkg_check_modules(WSCALE IMPORTED_TARGET REQUIRED libswscale)
 endif()
 
+find_package(Threads)
+
 add_subdirectory(src)
 add_subdirectory(man)
 

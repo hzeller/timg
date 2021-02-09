@@ -1,13 +1,25 @@
 add_executable(timg)
-target_sources(timg PRIVATE image-display.cc terminal-canvas.cc timg.cc)
-target_link_libraries(timg PkgConfig::GRAPHICSMAGICKXX)
+target_sources(timg PRIVATE
+  image-display.cc
+  image-source.cc
+  renderer.cc
+  terminal-canvas.cc
+  timg.cc
+  video-display.cc
+  display-options.h
+  image-source.h
+  terminal-canvas.h
+  timg-time.h
+  image-display.h
+  renderer.h
+  thread-pool.h
+  video-display.h
+)
 
+target_link_libraries(timg PkgConfig::GRAPHICSMAGICKXX Threads::Threads)
 target_include_directories(timg PRIVATE ${CMAKE_BINARY_DIR}/src)
 
-# instead of just telling cmake "c++11, please", this a more modern approach:
-# https://cmake.org/cmake/help/latest/prop_gbl/CMAKE_CXX_KNOWN_FEATURES.html
-# https://crascit.com/2015/03/28/enabling-cxx11-in-cmake/ "Setting the C++ standard based on features"
-target_compile_features(timg PRIVATE cxx_auto_type cxx_constexpr cxx_nullptr cxx_range_for)
+target_compile_features(timg PRIVATE cxx_std_14)
 
 if(TIMG_VERSION_FROM_GIT)
   git_describe(GIT_DESCRIBE_VERSION)
@@ -25,4 +37,3 @@ if(WITH_VIDEO_DECODING)
 endif()
 
 install(TARGETS timg)
-
