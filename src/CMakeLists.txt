@@ -5,7 +5,6 @@ target_sources(timg PRIVATE
   renderer.cc
   terminal-canvas.cc
   timg.cc
-  video-display.cc
   display-options.h
   image-source.h
   terminal-canvas.h
