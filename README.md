@@ -20,7 +20,8 @@ in sequence one per page or in a grid in multiple columns, depending on your
 choice of `--grid`. The output is emitted in-line with minimally messing
 with your terminal, so you can simply go back in history using your terminals'
 scroll-bar (Or redirecting the output to a file allows you to later
-simply `cat` that file to your terminal).
+simply `cat` that file to your terminal. Even `less -R` seems to be happy with
+it).
 
 ![Grid view of 4 pictures](./img/grid-timg.png)
 
@@ -91,6 +92,8 @@ Options:
         -I        : This is an image. Don't attempt video decoding.
         -F        : Print filename before showing images.
         -E        : Don't hide the cursor while showing images.
+        --threads=<n> : Run image decoding in parallel with n threads
+                        (Default 2, half #cores on this machine)
         -v, --version : Print version and exit.
         -h, --help    : Print this help and exit.
 

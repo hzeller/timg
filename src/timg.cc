@@ -19,11 +19,14 @@
 // $ sudo apt-get install libgraphicsmagick++-dev
 
 #include "display-options.h"
+#include "image-source.h"
+#include "renderer.h"
 #include "terminal-canvas.h"
+#include "thread-pool.h"
 #include "timg-time.h"
 #include "timg-version.h"
-#include "renderer.h"
 
+// To display version number
 #include "image-display.h"
 #ifdef WITH_TIMG_VIDEO
 #  include "video-display.h"
@@ -39,11 +42,19 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
+#include <thread>
+#include <future>
+#include <vector>
 #include <Magick++.h>
 
 #ifndef TIMG_VERSION
 #  define TIMG_VERSION "(unknown)"
 #endif
+
+using timg::Duration;
+using timg::Time;
+using timg::ImageSource;
+using timg::Framebuffer;
 
 enum class ExitCode {
     kSuccess        = 0,
@@ -53,10 +64,11 @@ enum class ExitCode {
     // Keep in sync with error codes mentioned in manpage
 };
 
-using timg::Duration;
-using timg::Time;
-using timg::ImageSource;
-using timg::Framebuffer;
+// Modern processors with some sort of hyperthreading don't seem to scale
+// much beyond their physical core count when doing image processing.
+// So just keep thread count at half what we get reported.
+static const int kDefaultThreadCount =
+    std::max(1U, std::thread::hardware_concurrency() / 2);
 
 volatile sig_atomic_t interrupt_received = 0;
 static void InterruptHandler(int signo) {
@@ -95,6 +107,8 @@ static int usage(const char *progname, ExitCode exit_code, int w, int h) {
 #endif
             "\t-F        : Print filename before showing images.\n"
             "\t-E        : Don't hide the cursor while showing images.\n"
+            "\t--threads=<n> : Run image decoding in parallel with n threads\n"
+            "\t                (Default %d, half #cores on this machine)\n"
             "\t-v, --version : Print version and exit.\n"
             "\t-h, --help    : Print this help and exit.\n"
 
@@ -108,7 +122,7 @@ static int usage(const char *progname, ExitCode exit_code, int w, int h) {
             "\t                If not set, videos behave like --loop=1, animated images like --loop=-1\n"
             "\t--frames=<num>: Only render first num frames.\n"
             "\t-t<seconds>   : Stop after this time, no matter what --loops or --frames say.\n",
-            w, h);
+            w, h, kDefaultThreadCount);
     return (int)exit_code;
 }
 
@@ -132,8 +146,8 @@ TermSizeResult DetermineTermSize() {
 int main(int argc, char *argv[]) {
     Magick::InitializeMagick(*argv);
 
-    TermSizeResult term = DetermineTermSize();
-    bool terminal_use_upper_block = GetBoolenEnv("TIMG_USE_UPPER_BLOCK");
+    const TermSizeResult term = DetermineTermSize();
+    const bool terminal_use_upper_block = GetBoolenEnv("TIMG_USE_UPPER_BLOCK");
 
     timg::DisplayOptions display_opts;
     display_opts.width = term.width;
@@ -149,10 +163,12 @@ int main(int argc, char *argv[]) {
     bool fit_width = false;
     bool do_image_loading = true;
     bool do_video_loading = true;
+    int thread_count = kDefaultThreadCount;
 
     enum LongOptionIds {
         OPT_ROTATE = 1000,
         OPT_GRID,
+        OPT_THREADS,
     };
 
     // Flags with optional parameters need to be long-options, as on MacOS,
@@ -168,6 +184,7 @@ int main(int argc, char *argv[]) {
         { "version",     no_argument,       NULL, 'v' },
         { "help",        no_argument,       NULL, 'h' },
         { "grid",        required_argument, NULL, OPT_GRID },
+        { "threads",     required_argument, NULL, OPT_THREADS },
         // TODO: add more long-options
         { 0, 0, 0, 0}
     };
@@ -249,21 +266,22 @@ int main(int argc, char *argv[]) {
         case OPT_GRID:
             switch (sscanf(optarg, "%dx%d", &grid_cols, &grid_rows)) {
             case 0:
-                {
-                    fprintf(stderr, "Invalid grid spec '%s'", optarg);
-                    return usage(argv[0], ExitCode::kParameterError,
-                                 term.width, term.height);
-                }
-                break;
+                fprintf(stderr, "Invalid grid spec '%s'", optarg);
+                return usage(argv[0], ExitCode::kParameterError,
+                             term.width, term.height);
             case 1:
                 grid_rows = grid_cols;
                 break;
             }
             break;
+        case OPT_THREADS:
+            thread_count = atoi(optarg);
+            break;
         case 'd':
             if (sscanf(optarg, "%d:%d",
                        &display_opts.scroll_dx, &display_opts.scroll_dy) < 1) {
-                fprintf(stderr, "-d%s: At least dx parameter needed e.g. -d1."
+                fprintf(stderr, "--delta-move=%s: At least dx parameter needed"
+                        " e.g. --delta-move=1."
                         "Or you can give dx, dy like so: -d1:-1", optarg);
                 return usage(argv[0], ExitCode::kParameterError,
                              term.width, term.height);
@@ -360,7 +378,7 @@ int main(int argc, char *argv[]) {
     auto renderer = timg::Renderer::Create(&canvas, display_opts,
                                            grid_cols, grid_rows);
 
-    // The image preprocessing might need to write it to a smaller area.
+    // The image sources might need to write to a smaller area if grid.
     display_opts.width /= grid_cols;
     display_opts.height /= grid_rows;
 
@@ -368,15 +386,35 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, InterruptHandler);
     int exit_code = 0;
 
+    // Async image loading, preparing them in a thread pool
+    thread_count = (thread_count > 0 ? thread_count : kDefaultThreadCount);
+    timg::ThreadPool pool(thread_count);
+    std::vector<std::future<timg::ImageSource*>> loaded_sources;
     for (int imgarg = optind; imgarg < argc && !interrupt_received; ++imgarg) {
         const char *const filename = argv[imgarg];
-        std::unique_ptr<ImageSource> source(
-            ImageSource::Create(filename, display_opts,
-                                do_image_loading, do_video_loading));
+        std::function<timg::ImageSource*()> f =
+            [filename, do_image_loading, do_video_loading,
+             &display_opts, &exit_code]() -> timg::ImageSource* {
+                if (interrupt_received) return nullptr;
+                auto result = ImageSource::Create(filename, display_opts,
+                                                  do_image_loading,
+                                                  do_video_loading);
+                if (!result) exit_code = 1;
+                return result;
+            };
+        loaded_sources.push_back(pool.ExecAsync(f));
+    }
+
+    // Showing them in order of files on the command line.
+    for (auto &source_future : loaded_sources) {
+        if (interrupt_received) break;
+        std::unique_ptr<timg::ImageSource> source(source_future.get());
         if (!source) continue;
-        source->SendFrames(duration, max_frames, loops,
-                           interrupt_received,
-                           renderer->render_cb(filename));
+        source->SendFrames(duration, max_frames, loops, interrupt_received,
+                           renderer->render_cb(source->filename().c_str()));
+        if (!between_images_duration.is_zero()) {
+            (Time::Now() + between_images_duration).WaitUntil();
+        }
     }
 
     if (hide_cursor) {

@@ -123,6 +123,10 @@ from files and URLs.
 **-E**
 :    Don't hide the cursor while showing images.
 
+**-\-threads**[=&lt;*n*&gt;]
+:    Run image decoding in parallel with n threads. By default, half the
+     reported CPU-cores are used.
+
 **-v**, **-\-version**
 :    Print version and exit.
 
