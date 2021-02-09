@@ -29,38 +29,49 @@ it).
 
 #### Get repo
 
-.. and change into the `src` directory
+.. and create a out-of-tree `build` directory
 
 ```bash
 git clone https://github.com/hzeller/timg.git
-cd timg/src
+mkdir build
+cd build
 ```
 
 #### Compiling on Debian/Ubuntu
 ```bash
-sudo apt-get install libwebp-dev libgraphicsmagick++-dev    # required libs.
+sudo apt install cmake git g++ pkg-config libgraphicsmagick++-dev    # required libs.
 
 # If you want to include video decoding, also install these additional libraries
-sudo apt-get install pkg-config libavcodec-dev libavformat-dev libswscale-dev
+sudo apt install libavcodec-dev libavformat-dev libswscale-dev
 
-make WITH_VIDEO_DECODING=1   # or 0, if you don't want video decoding
+# If you want to recreate the man page
+sudo apt install pandoc
+
+cmake ..
+make
+# If you want to build without video decoding:
+# cmake .. -DWITH_VIDEO_DECODING=Off
+#make
 ```
 
 #### Compiling on macOS
 ```bash
 # Homebrew needs to be available to install required dependencies
-brew install GraphicsMagick webp  # required libs
+brew install GraphicsMagick webp cmake # required libs
 
 # If you want to include video decoding, install these additional libraries
 brew install ffmpeg
 
-LDFLAGS=-L${HOMEBREW_PREFIX}/lib make WITH_VIDEO_DECODING=1 # or 0 for no video
+mkdir build
+cd build
+LDFLAGS=-L${HOMEBREW_PREFIX}/lib cmake -DWITH_VIDEO_DECODING=On # or Off for no video
+make
 ```
 
 #### Install
 
-You can run timg directly in the source directory using `./timg`. To install
-the binary and [manpage](man/timg.1.md) on your system, type:
+You can run timg directly in the build directory using `./timg`. To install
+the binary and [manpage](man/timg.1.md) on your system, type in the build directory:
 
 ```bash
 sudo make install
