@@ -11,7 +11,7 @@ plays videos.
 
 Useful if you want to have a quick visual check without leaving the comfort
 of your shell and having to start a bulky image viewer. Sometimes this is the
-only way if your terminal connected remotely via ssh. And of course if you
+only way if your terminal is connected remotely via ssh. And of course if you
 don't need the resolution. While icons typically fit pixel-perfect, larger
 images are scaled down to match the resolution.
 

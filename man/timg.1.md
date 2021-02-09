@@ -17,7 +17,7 @@ terminal. Even show PDFs if needed.
 
 Useful if you want to have a quick visual check without leaving the comfort
 of your shell and having to start a bulky image viewer. Sometimes this is the
-only way if your terminal connected remotely via ssh. And of course if you
+only way if your terminal is connected remotely via ssh. And of course if you
 don't need the resolution. While icons typically fit pixel-perfect, larger
 images are scaled down to match the resolution.
 
@@ -26,7 +26,8 @@ in sequence one per page or in a grid in multiple columns, depending on your
 choice of **-\-grid**. The output is emitted in-line with minimally messing
 with your terminal, so you can simply go back in history using your terminals'
 scroll-bar (Or redirecting the output to a file allows you to later
-simply **cat** that file to your terminal).
+simply **cat** that file to your terminal. Even **less -R** seems to be happy
+with such output).
 
 The special filename "-" stands for standard input, so you can read
 an image from a pipe. If the input from a pipe is a video, use the **-V** option
@@ -34,7 +35,8 @@ an image from a pipe. If the input from a pipe is a video, use the **-V** option
 
 Under the hood, timg uses GraphicsMagick to open and decode a wide
 range of image formats. It also uses libav to decode and play videos or images
-from files and URLs.
+from files and URLs. With **-I** or **-V** you can choose to use only one of
+these file decoders (GraphicsMagick or libav respectively).
 
 # OPTIONS
 
@@ -123,7 +125,7 @@ from files and URLs.
 **-E**
 :    Don't hide the cursor while showing images.
 
-**-\-threads**[=&lt;*n*&gt;]
+**-\-threads**=&lt;*n*&gt;
 :    Run image decoding in parallel with n threads. By default, half the
      reported CPU-cores are used.
 
@@ -138,7 +140,7 @@ from files and URLs.
 **-\-scroll**[=&lt;*ms*&gt;]
 :    Scroll horizontally with an optional delay between updates (default: 60ms)
 
-**-\-delta-move**=&lt;*dx*&gt;\:&lt;*dy*&gt;*
+**-\-delta-move**=&lt;*dx*&gt;\:&lt;*dy*&gt;
 :    Scroll with delta x and delta y. The default of 1:0 scrolls it horizontally,
     but with this option you can scroll vertically or even diagonally.
 
