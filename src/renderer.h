@@ -51,6 +51,10 @@ protected:
     Renderer(timg::TerminalCanvas *canvas,
              const DisplayOptions &display_opts);
 
+    // Trim and potentially title for rendering, obeying the column-width
+    // and centering constraints. Adds a newline as this needs to be printed.
+    std::string TrimTitle(const char *title, int width);
+
     timg::TerminalCanvas *const canvas_;
     const DisplayOptions &options_;
 };

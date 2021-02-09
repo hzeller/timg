@@ -19,6 +19,19 @@
 #include <unistd.h>
 
 namespace timg {
+std::string Renderer::TrimTitle(const char *title, int requested_width) {
+    std::string result = title;
+    // Columns can be too narrow. We might need to trim what we print.
+    if ((int)result.length() > requested_width) {
+        result.replace(0, result.length() - requested_width + 3, "...");
+    } else if (options_.center_horizontally) {
+        const int start_spaces = (requested_width - result.length()) / 2;
+        result.insert(0, std::string(start_spaces, ' '));
+    }
+    result += "\n";
+    return result;
+}
+
 namespace {
 // Use the full canvas to display framebuffer; writes framebuffer directly.
 class SingleColumnRenderer final : public Renderer {
@@ -38,12 +51,7 @@ public:
 private:
     void RenderTitle(const char *title) {
         if (!title || !options_.show_filename) return;
-        std::string tout(title);
-        if (options_.center_horizontally) {
-            const int start_spaces = (options_.width - tout.length())/2;
-            tout.insert(0, std::string(start_spaces, ' '));
-        }
-        tout += "\n";
+        const std::string tout = TrimTitle(title, options_.width);
         write(STDOUT_FILENO, tout.c_str(), tout.length());
     }
 };
@@ -114,15 +122,7 @@ public:
 private:
     void PrepareTitle(const char *title) {
         if (!title || !options_.show_filename) return;
-        title_ = title;
-        // Columns are often narrow. We might need to trim what we print.
-        if ((int)title_.length() > column_width_) {
-            title_.replace(0, title_.length() - column_width_ + 3, "...");
-        } else if (options_.center_horizontally) {
-            const int start_spaces = (column_width_ - title_.length())/2;
-            title_.insert(0, std::string(start_spaces, ' '));
-        }
-        title_ += "\n";
+        title_ = TrimTitle(title, column_width_);
     }
 
     const int columns_;

@@ -182,10 +182,16 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts) {
         int target_width = 0, target_height = 0;
         if (CalcScaleToFitDisplay(img.columns(), img.rows(), opts,
                                   &target_width, &target_height)) {
-            if (opts.antialias)
-                img.scale(Magick::Geometry(target_width, target_height));
-            else
-                img.sample(Magick::Geometry(target_width, target_height));
+            try {
+                if (opts.antialias)
+                    img.scale(Magick::Geometry(target_width, target_height));
+                else
+                    img.sample(Magick::Geometry(target_width, target_height));
+            }
+            catch (const std::exception& e) {
+                //fprintf(stderr, "%s: %s\n", filename, e.what());
+                return false;
+            }
         }
 
         // If these are transparent and should get a background, apply that.
@@ -195,9 +201,8 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts) {
                 RenderBackground(img.columns(), img.rows(),
                                  opts.bg_color, opts.bg_pattern_color, &target);
             }
-            catch (std::exception& e) {
-                fprintf(stderr, "Trouble rendering background (%s)\n",
-                        e.what());
+            catch (const std::exception& e) {
+                //fprintf(stderr, "%s: bgcolor: %s\n", filename, e.what());
                 return false;
             }
             target.composite(img, 0, 0, Magick::OverCompositeOp);
