@@ -53,11 +53,15 @@ terminal.
 The image is scaled to fit inside the available box to fill the screen;
 see \f[B]-W\f[R] if you want to fill the width.
 .TP
-\f[B]-C\f[R]
-Center image horizontally.
+\f[B]-C\f[R], \f[B]--center\f[R]
+Center image(s) and title(s) horizontally.
 .TP
-\f[B]-W\f[R]
-Scale to fit width of the terminal.
+\f[B]-W\f[R], \f[B]--fit-width\f[R]
+Scale to fit width of the available space.
+This means that the height can overflow, e.g.\ be longer than the
+terminal, so might require scrolling to see the full picture.
+Default behavior is to fit within the allotted width \f[I]and\f[R]
+height.
 .TP
 \f[B]--grid\f[R]=<\f[I]cols\f[R]>[x<\f[I]rows\f[R]>]
 Arrange images in a grid.
@@ -73,7 +77,7 @@ Fractional values are allowed, so \f[B]-w3.1415\f[R] would wait
 approximately \[*p] seconds between images.
 .TP
 \f[B]-a\f[R]
-Switch off antialiasing.
+Switch off anti aliasing.
 The images are scaled down to show on the minimal amount of pixels, so
 some smoothing is applied for best visual effect.
 This switches off that smoothing.
@@ -88,7 +92,7 @@ Show the background of a transparent image in a checkerboard pattern
 with the given color, which alternates with the \f[B]-b\f[R] color.
 Like in \f[B]-b\f[R], HTML/SVG color strings are supported.
 .TP
-\f[B]--autocrop\f[R][=<\f[I]pre-crop\f[R]>]
+\f[B]--auto-crop\f[R][=<\f[I]pre-crop\f[R]>]
 Trim same-color pixels around the border of image before displaying.
 Use this if there is a boring even-colored space aorund the image which
 uses too many of our available few pixels.
@@ -113,7 +117,7 @@ terminal.
 .PP
 By default, larger images are only scaled down and images smaller than
 the available pixels in the terminal are left at the original size (this
-helps assess small deliberately pixeled images such as icons in their
+helps assess small deliberately pixelated images such as icons in their
 intended appearance).
 This option scales up smaller images to fit available space.
 .RE
@@ -138,8 +142,8 @@ See link in EXAMPLES section for a an example.
 This is an image, don\[cq]t attempt to fall back to video decoding.
 Somewhat the opposite of \f[B]-V\f[R].
 .TP
-\f[B]-F\f[R]
-Print filename before each image.
+\f[B]-F\f[R], \f[B]--title\f[R]
+Print filename as title above each image.
 .TP
 \f[B]-E\f[R]
 Don\[cq]t hide the cursor while showing images.
@@ -153,16 +157,6 @@ Print version and exit.
 .TP
 \f[B]-h\f[R], \f[B]--help\f[R]
 Print command line option help and exit.
-.SS Scrolling
-.TP
-\f[B]--scroll\f[R][=<\f[I]ms\f[R]>]
-Scroll horizontally with an optional delay between updates (default:
-60ms)
-.TP
-\f[B]--delta-move\f[R]=<\f[I]dx\f[R]>:<\f[I]dy\f[R]>
-Scroll with delta x and delta y.
-The default of 1:0 scrolls it horizontally, but with this option you can
-scroll vertically or even diagonally.
 .SS For Animations, Scrolling, or Video
 .PP
 Usually, animations are shown in full in an infinite loop.
@@ -177,14 +171,27 @@ Number of loops through a fully cycle of an animation or video.
 A value of \f[I]-1\f[R] stands for `forever'.
 .RS
 .PP
-If this option is not set, videos behave like --loops=1 (show exactly
-once) and animated gifs like --loop=-1 (loop forever).
+If \f[I]not\f[R] set, videos loop once, animated images forever unless
+there is more than one file to show.
+If there are multiple files on the command line, animated images are
+only shown once if \f[B]--loops\f[R] is not set to prevent the output
+get stuck on the first animation.
 .RE
 .TP
 \f[B]--frames\f[R]=<\f[I]frame-count\f[R]>
 Only render the first \f[I]frame-count\f[R] frames in an animation or
 video.
 If frame-count is set to 1, the output behaves like a static image.
+.SS Scrolling
+.TP
+\f[B]--scroll\f[R][=<\f[I]ms\f[R]>]
+Scroll horizontally with an optional delay between updates (default:
+60ms)
+.TP
+\f[B]--delta-move\f[R]=<\f[I]dx\f[R]>:<\f[I]dy\f[R]>
+Scroll with delta x and delta y.
+The default of 1:0 scrolls it horizontally, but with this option you can
+scroll vertically or even diagonally.
 .SH RETURN VALUES
 .PP
 Exit code is
@@ -207,10 +214,10 @@ generated.
 .TP
 \f[B]TIMG_USE_UPPER_BLOCK\f[R]
 If this environment variable is set to the value \f[B]1\f[R], timg will
-use the U+2580 - `Upper Half Block' (\[u2580]) unicode character.
+use the U+2580 - `Upper Half Block' (\[u2580]) Unicode character.
 .RS
 .PP
-To display pixels, timg uses a unicode half block and sets the
+To display pixels, timg uses a Unicode half block and sets the
 foreground color and background color to get two vertical pixels.
 By default, it uses the U+2584 - `Lower Half Block' (\[u2584]) character
 to achieve this goal.
@@ -229,13 +236,13 @@ Some example invocations including scrolling diagonally or streaming an
 online video are collected at <https://github.com/hzeller/timg#examples>
 .SH KNOWN ISSUES
 .PP
-This requires a terminal that can deal with unicode characters and 24
+This requires a terminal that can deal with Unicode characters and 24
 bit color escape codes.
 This will be problematic on really old installations or if you want to
 display images on some limited text console.
 .PP
-The option \f[B]-V\f[R] should not be necessary; timg should internally
-buffer bytes it uses for probing.
+The option \f[B]-V\f[R] should not be necessary for streaming video from
+stdin; timg should internally buffer bytes it uses for probing.
 .SH BUGS
 .PP
 Report bugs to <http://github.com/hzeller/timg/issues>

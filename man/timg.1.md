@@ -47,11 +47,14 @@ these file decoders (GraphicsMagick or libav respectively).
      scaled to fit inside the available box to fill the screen; see **-W** if
      you want to fill the width.
 
-**-C**
-:    Center image horizontally.
+**-C**, **-\-center**
+:    Center image(s) and title(s) horizontally.
 
-**-W**
-:    Scale to fit width of the terminal.
+**-W**, **-\-fit-width**
+:    Scale to fit width of the available space. This means that the height can
+     overflow, e.g. be longer than the terminal, so might require scrolling to
+     see the full picture.
+     Default behavior is to fit within the allotted width *and* height.
 
 **-\-grid**=&lt;*cols*&gt;[x&lt;*rows*&gt;]
 :    Arrange images in a grid. If only one parameter is given, arranges in a
@@ -65,7 +68,7 @@ these file decoders (GraphicsMagick or libav respectively).
     π seconds between images.
 
 **-a**
-:    Switch off antialiasing. The images are scaled down to show on the
+:   Switch off anti aliasing. The images are scaled down to show on the
     minimal amount of pixels, so some smoothing is applied for best visual
     effect. This switches off that smoothing.
 
@@ -78,7 +81,7 @@ these file decoders (GraphicsMagick or libav respectively).
     the given color, which alternates with the **-b** color.
     Like in **-b**, HTML/SVG color strings are supported.
 
-**-\-autocrop**[=&lt;*pre-crop*&gt;]
+**-\-auto-crop**[=&lt;*pre-crop*&gt;]
 :    Trim same-color pixels around the border of image before displaying. Use
     this if there is a boring even-colored space aorund the image which uses
     too many of our available few pixels.
@@ -98,7 +101,7 @@ these file decoders (GraphicsMagick or libav respectively).
 
     By default, larger images are only scaled down and images smaller than the
     available pixels in the terminal are left at the original size (this
-    helps assess small deliberately pixeled images such as icons in their
+    helps assess small deliberately pixelated images such as icons in their
     intended appearance). This option scales up smaller images to fit available
     space.
 
@@ -119,8 +122,8 @@ these file decoders (GraphicsMagick or libav respectively).
 :    This is an image, don't attempt to fall back to video decoding. Somewhat
     the opposite of **-V**.
 
-**-F**
-:    Print filename before each image.
+**-F**, **-\-title**
+:    Print filename as title above each image.
 
 **-E**
 :    Don't hide the cursor while showing images.
@@ -135,15 +138,6 @@ these file decoders (GraphicsMagick or libav respectively).
 **-h**, **-\-help**
 :    Print command line option help and exit.
 
-## Scrolling
-
-**-\-scroll**[=&lt;*ms*&gt;]
-:    Scroll horizontally with an optional delay between updates (default: 60ms)
-
-**-\-delta-move**=&lt;*dx*&gt;\:&lt;*dy*&gt;
-:    Scroll with delta x and delta y. The default of 1:0 scrolls it horizontally,
-    but with this option you can scroll vertically or even diagonally.
-
 ## For Animations, Scrolling, or Video
 
 Usually, animations are shown in full in an infinite loop. These options
@@ -157,12 +151,23 @@ limit infinity.
 :    Number of loops through a fully cycle of an animation or video.
     A value of *-1* stands for 'forever'.
 
-    If this option is not set, videos behave like -\-loops=1 (show exactly once)
-    and animated gifs like -\-loop=-1 (loop forever).
+    If *not* set, videos loop once, animated images forever unless there is
+    more than one file to show. If there are multiple files on the command line,
+    animated images are only shown once if **-\-loops** is not set to prevent
+    the output get stuck on the first animation.
 
 **-\-frames**=&lt;*frame-count*&gt;
 :    Only render the first *frame-count* frames in an animation or video.
     If frame-count is set to 1, the output behaves like a static image.
+
+## Scrolling
+
+**-\-scroll**[=&lt;*ms*&gt;]
+:    Scroll horizontally with an optional delay between updates (default: 60ms)
+
+**-\-delta-move**=&lt;*dx*&gt;\:&lt;*dy*&gt;
+:    Scroll with delta x and delta y. The default of 1:0 scrolls it horizontally,
+    but with this option you can scroll vertically or even diagonally.
 
 # RETURN VALUES
 
@@ -187,9 +192,9 @@ Exit code is
 
 **TIMG_USE_UPPER_BLOCK**
 :     If this environment variable is set to the value **1**, timg will use the
-     U+2580 - 'Upper Half Block' (&#x2580;) unicode character.
+     U+2580 - 'Upper Half Block' (&#x2580;) Unicode character.
 
-    To display pixels, timg uses a unicode half block and sets the foreground
+    To display pixels, timg uses a Unicode half block and sets the foreground
     color and background color to get two vertical pixels. By default, it uses
     the U+2584 - 'Lower Half Block' (&#x2584;) character to achieve this goal. This
     has been chosen as it resulted in the best image in all tested terminals
@@ -206,12 +211,12 @@ online video are collected at <https://github.com/hzeller/timg#examples>
 
 # KNOWN ISSUES
 
-This requires a terminal that can deal with unicode characters and 24 bit
+This requires a terminal that can deal with Unicode characters and 24 bit
 color escape codes. This will be problematic on really old installations or
 if you want to display images on some limited text console.
 
-The option **-V** should not be necessary; timg should internally buffer bytes
-it uses for probing.
+The option **-V** should not be necessary for streaming video from stdin;
+timg should internally buffer bytes it uses for probing.
 
 # BUGS
 

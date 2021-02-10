@@ -84,33 +84,32 @@ static int usage(const char *progname, ExitCode exit_code, int w, int h) {
     fprintf(stderr, "usage: %s [options] <%s> [<%s>...]\n", progname,
             kFileType, kFileType);
     fprintf(stderr, "Options:\n"
-            "\t-g<w>x<h> : Output pixel geometry. Default from terminal %dx%d\n"
-            "\t-C        : Center image horizontally.\n"
-            "\t-W        : Scale to fit width of terminal (default: "
-            "fit terminal width and height)\n"
-            "\t--grid=<cols>[x<rows>]: Arrange images in a grid (contact sheet)\n"
-            "\t-w<seconds>: If multiple images given: Wait time between (default: 0.0).\n"
-            "\t-a        : Switch off antialiasing (default: on)\n"
-            "\t-b<str>   : Background color to use on transparent images (default '').\n"
-            "\t-B<str>   : Checkerboard pattern color to use on transparent images (default '').\n"
-            "\t--autocrop[=<pre-crop>]\n"
-            "\t          : Crop away all same-color pixels around image.\n"
-            "\t            The optional pre-crop is pixels to remove beforehand\n"
-            "\t            to get rid of an uneven border.\n"
+            "\t-g<w>x<h>      : Output pixel geometry. Default from terminal %dx%d.\n"
+            "\t-C, --center   : Center image horizontally.\n"
+            "\t-W, --fit-width: Scale to fit width of available space, even if it exceeds height.\n"
+            "\t                 (default: scale to fit inside available rectangle)\n"
+            "\t--grid=<cols>[x<rows>] : Arrange images in a grid (contact sheet).\n"
+            "\t-w<seconds>    : If multiple images given: Wait time between (default: 0.0).\n"
+            "\t-a             : Switch off anti aliasing (default: on)\n"
+            "\t-b<str>        : Background color to use on transparent images (default '').\n"
+            "\t-B<str>        : Checkerboard pattern color to use on transparent images (default '').\n"
+            "\t--auto-crop[=<pre-crop>] : Crop away all same-color pixels around image.\n"
+            "\t                 The optional pre-crop is the width of border to\n"
+            "\t                 remove beforehand to get rid of an uneven border.\n"
             "\t--rotate=<exif|off> : Rotate according to included exif orientation or off. Default: exif.\n"
-            "\t-U        : Toggle Upscale. If an image is smaller than\n"
-            "\t            the terminal size, scale it up to full size.\n"
+            "\t-U             : Toggle Upscale. If an image is smaller (e.g. an icon) than the \n"
+            "\t                 available frame, enlarge it to fit.\n"
 #ifdef WITH_TIMG_VIDEO
-            "\t-V        : This is a video, don't attempt to probe image decoding first.\n"
-            "\t            (useful, if you stream from stdin).\n"
-            "\t-I        : This is an image. Don't attempt video decoding.\n"
+            "\t-V             : Only use Video subsystem. Don't attempt to probe image decoding first.\n"
+            "\t                 (useful, if you stream video from stdin).\n"
+            "\t-I             : Only  use Image subsystem. Don't attempt video decoding.\n"
 #endif
-            "\t-F        : Print filename before showing images.\n"
-            "\t-E        : Don't hide the cursor while showing images.\n"
-            "\t--threads=<n> : Run image decoding in parallel with n threads\n"
-            "\t                (Default %d, half #cores on this machine)\n"
-            "\t-v, --version : Print version and exit.\n"
-            "\t-h, --help    : Print this help and exit.\n"
+            "\t-F, --title    : Print filename as title above each image.\n"
+            "\t-E             : Don't hide the cursor while showing images.\n"
+            "\t--threads=<n>  : Run image decoding in parallel with n threads\n"
+            "\t                 (Default %d, half #cores on this machine)\n"
+            "\t-v, --version  : Print version and exit.\n"
+            "\t-h, --help     : Print this help and exit.\n"
 
             "\n  Scrolling\n"
             "\t--scroll=[<ms>]       : Scroll horizontally (optionally: delay ms (60)).\n"
@@ -119,8 +118,9 @@ static int usage(const char *progname, ExitCode exit_code, int w, int h) {
             "\n  For Animations, Scrolling, or Video\n"
             "  These options influence how long/often and what is shown.\n"
             "\t--loops=<num> : Number of runs through a full cycle. Use -1 to mean 'forever'.\n"
-            "\t                If not set, videos behave like --loop=1, animated images like --loop=-1\n"
-            "\t--frames=<num>: Only render first num frames.\n"
+            "\t                If not set, videos loop once, animated images forever\n"
+            "\t                unless there is more than one file to show (then: just once)\n"
+            "\t--frames=<num>: Only show first num frames (if looping, loop only these)\n"
             "\t-t<seconds>   : Stop after this time, no matter what --loops or --frames say.\n",
             w, h, kDefaultThreadCount);
     return (int)exit_code;
@@ -160,31 +160,33 @@ int main(int argc, char *argv[]) {
     int loops  = timg::kNotInitialized;
     int grid_rows = 1;
     int grid_cols = 1;
-    bool fit_width = false;
     bool do_image_loading = true;
     bool do_video_loading = true;
     int thread_count = kDefaultThreadCount;
 
     enum LongOptionIds {
-        OPT_ROTATE = 1000,
+        OPT_FRAMES = 1000,
         OPT_GRID,
+        OPT_ROTATE,
         OPT_THREADS,
     };
 
     // Flags with optional parameters need to be long-options, as on MacOS,
     // there is no way to have single-character options with
     static constexpr struct option long_options[] = {
-        { "scroll",      optional_argument, NULL, 's' },
-        { "autocrop",    optional_argument, NULL, 'T' },
+        { "auto-crop",   optional_argument, NULL, 'T' },
+        { "center",      no_argument,       NULL, 'C' },
         { "delta-move",  required_argument, NULL, 'd' },
-        { "rotate",      required_argument, NULL, OPT_ROTATE },
-        { "loops",       required_argument, NULL, 'c' },
-        { "frames",      required_argument, NULL, 'f' },
-        // TODO: frame offset ?
-        { "version",     no_argument,       NULL, 'v' },
-        { "help",        no_argument,       NULL, 'h' },
+        { "fit-width",   no_argument,       NULL, 'W' },
+        { "frames",      required_argument, NULL, OPT_FRAMES },
         { "grid",        required_argument, NULL, OPT_GRID },
+        { "help",        no_argument,       NULL, 'h' },
+        { "loops",       required_argument, NULL, 'c' },
+        { "rotate",      required_argument, NULL, OPT_ROTATE },
+        { "scroll",      optional_argument, NULL, 's' },
         { "threads",     required_argument, NULL, OPT_THREADS },
+        { "title",       no_argument,       NULL, 'F' },
+        { "version",     no_argument,       NULL, 'v' },
         // TODO: add more long-options
         { 0, 0, 0, 0}
     };
@@ -218,8 +220,9 @@ int main(int argc, char *argv[]) {
         case 'c':  // Legacy option, now long opt. Keep for now.
             loops = atoi(optarg);
             break;
-        case 'f':  // Legacy option, now long opt. Keep for now.
+        case OPT_FRAMES:
             max_frames = atoi(optarg);
+            // TODO: also provide an option for frame offset ?
             break;
         case 'a':
             display_opts.antialias = false;
@@ -306,7 +309,7 @@ int main(int argc, char *argv[]) {
             hide_cursor = false;
             break;
         case 'W':
-            fit_width = true;
+            display_opts.fill_width = true;
             break;
         case 'v':
             fprintf(stderr, "timg " TIMG_VERSION
@@ -340,13 +343,14 @@ int main(int argc, char *argv[]) {
         return usage(argv[0], ExitCode::kNotATerminal, term.width, term.height);
     }
 
-    if (optind >= argc) {
+    const int provided_file_count = argc - optind;
+    if (provided_file_count <= 0) {
         fprintf(stderr, "Expected image filename.\n");
         return usage(argv[0], ExitCode::kImageReadError,
                      term.width, term.height);
     }
 
-    // -- Some sanity checks
+    // -- Some sanity checks and configuration editing.
     // There is no scroll if there is no movement.
     if (display_opts.scroll_dx == 0 && display_opts.scroll_dy == 0) {
         fprintf(stderr, "Scrolling chosen, but dx:dy = 0:0. "
@@ -356,7 +360,7 @@ int main(int argc, char *argv[]) {
 
     // If we scroll in one direction (so have 'infinite' space) we want fill
     // the available screen space fully in the other direction.
-    display_opts.fill_width  = fit_width ||
+    display_opts.fill_width  = display_opts.fill_width ||
         (display_opts.scroll_animation && display_opts.scroll_dy != 0);
     display_opts.fill_height = display_opts.scroll_animation &&
         display_opts.scroll_dx != 0; // scroll h, fill v
@@ -364,6 +368,10 @@ int main(int argc, char *argv[]) {
     // Showing exactly one frame implies animation behaves as static image
     if (max_frames == 1) {
         loops = 1;
+    }
+
+    if (provided_file_count > 1 && loops == timg::kNotInitialized) {
+        loops = 1;  // Don't want to get stuck on the first endless-loop anim.
     }
 
     if (display_opts.show_filename) {
@@ -384,7 +392,7 @@ int main(int argc, char *argv[]) {
 
     signal(SIGTERM, InterruptHandler);
     signal(SIGINT, InterruptHandler);
-    int exit_code = 0;
+    ExitCode exit_code = ExitCode::kSuccess;
 
     // Async image loading, preparing them in a thread pool
     thread_count = (thread_count > 0 ? thread_count : kDefaultThreadCount);
@@ -399,7 +407,7 @@ int main(int argc, char *argv[]) {
                 auto result = ImageSource::Create(filename, display_opts,
                                                   do_image_loading,
                                                   do_video_loading);
-                if (!result) exit_code = 1;
+                if (!result) exit_code = ExitCode::kImageReadError;
                 return result;
             };
         loaded_sources.push_back(pool.ExecAsync(f));
@@ -423,5 +431,5 @@ int main(int argc, char *argv[]) {
     if (interrupt_received)   // Make 'Ctrl-C' appear on new line.
         printf("\n");
 
-    return exit_code;
+    return (int)exit_code;
 }

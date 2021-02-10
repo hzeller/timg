@@ -72,30 +72,30 @@ sudo make install
 ```
 usage: timg [options] <image/video> [<image/video>...]
 Options:
-        -g<w>x<h> : Output pixel geometry. Default from terminal 160x100
-        -C        : Center image horizontally.
-        -W        : Scale to fit width of terminal (default: fit terminal width and height)
-        --grid=<cols>[x<rows>]: Arrange images in a grid (contact sheet)
-        -w<seconds>: If multiple images given: Wait time between (default: 0.0).
-        -a        : Switch off antialiasing (default: on)
-        -b<str>   : Background color to use on transparent images (default '').
-        -B<str>   : Checkerboard pattern color to use on transparent images (default '').
-        --autocrop[=<pre-crop>]
-                  : Crop away all same-color pixels around image.
-                    The optional pre-crop is pixels to remove beforehand
-                    to get rid of an uneven border.
+        -g<w>x<h>      : Output pixel geometry. Default from terminal 160x100.
+        -C, --center   : Center image horizontally.
+        -W, --fit-width: Scale to fit width of available space, even if it exceeds height.
+                         (default: scale to fit inside available rectangle)
+        --grid=<cols>[x<rows>] : Arrange images in a grid (contact sheet).
+        -w<seconds>    : If multiple images given: Wait time between (default: 0.0).
+        -a             : Switch off anti aliasing (default: on)
+        -b<str>        : Background color to use on transparent images (default '').
+        -B<str>        : Checkerboard pattern color to use on transparent images (default '').
+        --auto-crop[=<pre-crop>] : Crop away all same-color pixels around image.
+                         The optional pre-crop is the width of border to
+                         remove beforehand to get rid of an uneven border.
         --rotate=<exif|off> : Rotate according to included exif orientation or off. Default: exif.
-        -U        : Toggle Upscale. If an image is smaller than
-                    the terminal size, scale it up to full size.
-        -V        : This is a video, don't attempt to probe image decoding first.
-                    (useful, if you stream from stdin).
-        -I        : This is an image. Don't attempt video decoding.
-        -F        : Print filename before showing images.
-        -E        : Don't hide the cursor while showing images.
-        --threads=<n> : Run image decoding in parallel with n threads
-                        (Default 2, half #cores on this machine)
-        -v, --version : Print version and exit.
-        -h, --help    : Print this help and exit.
+        -U             : Toggle Upscale. If an image is smaller (e.g. an icon) than the
+                         available frame, enlarge it to fit.
+        -V             : Only use Video subsystem. Don't attempt to probe image decoding first.
+                         (useful, if you stream video from stdin).
+        -I             : Only  use Image subsystem. Don't attempt video decoding.
+        -F, --title    : Print filename as title above each image.
+        -E             : Don't hide the cursor while showing images.
+        --threads=<n>  : Run image decoding in parallel with n threads
+                         (Default 2, half #cores on this machine)
+        -v, --version  : Print version and exit.
+        -h, --help     : Print this help and exit.
 
   Scrolling
         --scroll=[<ms>]       : Scroll horizontally (optionally: delay ms (60)).
@@ -104,8 +104,9 @@ Options:
   For Animations, Scrolling, or Video
   These options influence how long/often and what is shown.
         --loops=<num> : Number of runs through a full cycle. Use -1 to mean 'forever'.
-                        If not set, videos behave like --loop=1, animated images like --loop=-1
-        --frames=<num>: Only render first num frames.
+                        If not set, videos loop once, animated images forever
+                        unless there is more than one file to show (then: just once)
+        --frames=<num>: Only show first num frames (if looping, loop only these)
         -t<seconds>   : Stop after this time, no matter what --loops or --frames say.
 ```
 
