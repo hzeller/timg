@@ -29,8 +29,6 @@ it).
 
 #### Get repo
 
-.. and create a out-of-tree `build` directory
-
 ```bash
 git clone https://github.com/hzeller/timg.git
 ```
@@ -64,7 +62,7 @@ brew install pandoc
 
 ```bash
 cd timg  # Enter the checked out repository directory.
-mkdir build
+mkdir build  # Generate a dedicated build directory.
 cd build
 cmake ../ -DWITH_VIDEO_DECODING=On # or Off for no video
 make
