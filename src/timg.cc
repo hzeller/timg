@@ -108,7 +108,7 @@ static int usage(const char *progname, ExitCode exit_code, int w, int h) {
             "\t-E             : Don't hide the cursor while showing images.\n"
             "\t--threads=<n>  : Run image decoding in parallel with n threads\n"
             "\t                 (Default %d, half #cores on this machine)\n"
-            "\t-v, --version  : Print version and exit.\n"
+            "\t--version      : Print version and exit.\n"
             "\t-h, --help     : Print this help and exit.\n"
 
             "\n  Scrolling\n"
@@ -169,6 +169,7 @@ int main(int argc, char *argv[]) {
         OPT_GRID,
         OPT_ROTATE,
         OPT_THREADS,
+        OPT_VERSION,
     };
 
     // Flags with optional parameters need to be long-options, as on MacOS,
@@ -186,7 +187,7 @@ int main(int argc, char *argv[]) {
         { "scroll",      optional_argument, NULL, 's' },
         { "threads",     required_argument, NULL, OPT_THREADS },
         { "title",       no_argument,       NULL, 'F' },
-        { "version",     no_argument,       NULL, 'v' },
+        { "version",     no_argument,       NULL, OPT_VERSION },
         // TODO: add more long-options
         { 0, 0, 0, 0}
     };
@@ -311,7 +312,7 @@ int main(int argc, char *argv[]) {
         case 'W':
             display_opts.fill_width = true;
             break;
-        case 'v':
+        case OPT_VERSION:
             fprintf(stderr, "timg " TIMG_VERSION
                     " <https://github.com/hzeller/timg>\n"
                     "Copyright (c) 2016.. Henner Zeller. "

@@ -132,7 +132,7 @@ these file decoders (GraphicsMagick or libav respectively).
 :    Run image decoding in parallel with n threads. By default, half the
      reported CPU-cores are used.
 
-**-v**, **-\-version**
+**-\-version**
 :    Print version and exit.
 
 **-h**, **-\-help**

@@ -94,7 +94,7 @@ Options:
         -E             : Don't hide the cursor while showing images.
         --threads=<n>  : Run image decoding in parallel with n threads
                          (Default 2, half #cores on this machine)
-        -v, --version  : Print version and exit.
+        --version      : Print version and exit.
         -h, --help     : Print this help and exit.
 
   Scrolling
@@ -119,7 +119,7 @@ timg *.jpg                  # display all *.jpg images
 timg --grid=3x2 *.jpg       # display all *.jpg images in 3 columns, 2 rows
 
 # Show a PDF document, use full width of terminal, trim away empty border
-timg -W --autocrop some-document.pdf
+timg -W --auto-crop some-document.pdf
 timg --frames=1 some-document.pdf    # Show a PDF, but only first page
 
 # Open an image from a URL. URLs are internally actually handled by the
@@ -130,16 +130,16 @@ timg -C https://i.kym-cdn.com/photos/images/newsfeed/000/406/282/2b8.jpg
 
 # Sometimes, it is necessary to manually crop a few pixels from an
 # uneven border before the auto-crop finds uniform color all-around to remove.
-# For example with --autocrop=7 we'd remove first seven pixels around an image,
+# For example with --auto-crop=7 we'd remove first seven pixels around an image,
 # then do the regular auto-cropping.
 #
-# The following example loads an image from a URL; --autocrop does not work with
+# The following example loads an image from a URL; --auto-crop does not work with
 # that, so we have to get the content manually, e.g. with wget. Piping to
 # stdin works.
 #
 # For the following image, we need to remove 3 pixels all around before
 # auto-crop can take over removing the remaining whitespace successfully:
-wget -qO- https://imgs.xkcd.com/comics/a_better_idea.png | timg --autocrop=3 -
+wget -qO- https://imgs.xkcd.com/comics/a_better_idea.png | timg --auto-crop=3 -
 
 timg multi-resolution.ico   # See all the bitmaps in multi-resolution icons-file
 timg --frames=1 multi-resolution.ico  # See only the first bitmap in that file
