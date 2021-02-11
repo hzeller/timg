@@ -81,6 +81,8 @@ public:
         return (int64_t)time_.tv_sec * 1000000000 + time_.tv_nsec;
     }
 
+    Time& operator=(const Time &other) { time_ = other.time_; return *this; }
+
     bool operator <(const Time &other) const {
         if (time_.tv_sec > other.time_.tv_sec) return false;
         if (time_.tv_sec < other.time_.tv_sec) return true;

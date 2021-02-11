@@ -246,24 +246,29 @@ void ImageLoader::SendFrames(Duration duration, int max_frames, int loops,
     // (note, kNotInitialized is actually negative, but here for clarity
     const bool loop_forever = (loops < 0) || (loops == timg::kNotInitialized);
 
+    Time frame_start;
+    Duration frame_delay;  // Default zero, so no delay before the first frame
     for (int k = 0;
          (loop_forever || k < loops)
              && !interrupt_received
-             && Time::Now() < end_time;
+             && frame_start < end_time;
          ++k) {
-        for (int f = 0; f < max_frames; ++f) {
+        for (int f = 0; f < max_frames && !interrupt_received; ++f) {
             const auto &frame = frames_[f];
-            const Time frame_start = Time::Now();
-            if (interrupt_received || frame_start >= end_time)
-                break;
+            // Waiting until we show the next frame.
+            // We remembered the previous frame delay and await that at the
+            // _beginning_ of the loop so that if the looping condition is
+            // finished (e.g last frame), we don't have an empty wait at the end
+            frame_start = (frame_delay.is_zero()
+                           ? Time::Now()
+                           : frame_start + frame_delay);
+            if (frame_start >= end_time) break;  // No point to wait.
+            frame_start.WaitUntil();
             const int dx = IndentationIfCentered(frame);
             const int dy = is_animation_ && last_height > 0 ? -last_height : 0;
             sink(dx, dy, frame->framebuffer());
             last_height = frame->framebuffer().height();
-            if (!frame->delay().is_zero()) {
-                const Time frame_finish = frame_start + frame->delay();
-                frame_finish.WaitUntil();
-            }
+            frame_delay = frame->delay();
         }
     }
 }
