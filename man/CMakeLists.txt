@@ -2,7 +2,7 @@ find_program(PANDOC pandoc)
 
 if(PANDOC)
   add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/timg.1
-    COMMAND ${PANDOC} ARGS "${CMAKE_CURRENT_SOURCE_DIR}/timg.1.md" "-t" "man" "-o" "${CMAKE_CURRENT_BINARY_DIR}/timg.1"
+    COMMAND ${PANDOC} ARGS "${CMAKE_CURRENT_SOURCE_DIR}/timg.1.md" "-s" "-t" "man" "-o" "${CMAKE_CURRENT_BINARY_DIR}/timg.1"
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/timg.1.md
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
     COMMENT "Building manpage timg.1"

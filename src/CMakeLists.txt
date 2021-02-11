@@ -1,15 +1,14 @@
+set(CMAKE_CXX_FLAGS "-W -Wall -Wextra -Wno-unused-parameter -O3")
+
 add_executable(timg)
 target_sources(timg PRIVATE
   timg.cc
-  image-display.cc
-  image-source.cc
-  renderer.cc
-  terminal-canvas.cc
+
   display-options.h
-  image-display.h
-  image-source.h
-  renderer.h
-  terminal-canvas.h
+  image-display.h   image-display.cc
+  image-source.h    image-source.cc
+  renderer.h        renderer.cc
+  terminal-canvas.h terminal-canvas.cc
   thread-pool.h
   timg-time.h
 )

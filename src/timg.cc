@@ -314,8 +314,8 @@ int main(int argc, char *argv[]) {
             break;
         case OPT_VERSION:
             fprintf(stderr, "timg " TIMG_VERSION
-                    " <https://github.com/hzeller/timg>\n"
-                    "Copyright (c) 2016.. Henner Zeller. "
+                    " <http://timg.sh/>\n"
+                    "Copyright (c) 2016..2021 Henner Zeller. "
                     "This program is free software; license GPL 2.0.\n\n");
             fprintf(stderr, "Image decoding %s\n",
                     timg::ImageLoader::VersionInfo());
