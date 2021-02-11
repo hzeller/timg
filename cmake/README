@@ -1,0 +1,12 @@
+# Sources of cmake modules:
+
+Files: GetGitRevisionDescription.cmake
+Copyright: Copyright 2009-2013, Iowa State University.
+           Copyright 2013-2020, Ryan Pavlik
+           Copyright 2013-2020, Contributors
+Comment: Downloaded from:
+ https://github.com/rpavlik/cmake-modules/blob/main/GetGitRevisionDescription.cmake
+ on Feb 6th, 2021. Upstream upstream commit id 562d969f595c23279ea5611360c435ded433ae94
+License: BSL-1.0
+Boost Software License, Version 1.0. http://www.boost.org/LICENSE_1_0.txt
+
