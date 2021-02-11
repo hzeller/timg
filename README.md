@@ -64,7 +64,7 @@ brew install pandoc
 cd timg  # Enter the checked out repository directory.
 mkdir build  # Generate a dedicated build directory.
 cd build
-cmake ../ -DWITH_VIDEO_DECODING=On # or Off for no video
+cmake ../ -DWITH_VIDEO_DECODING=On # or Off for no video decoding
 make
 ```
 
