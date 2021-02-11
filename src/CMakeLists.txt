@@ -1,18 +1,17 @@
 add_executable(timg)
 target_sources(timg PRIVATE
+  timg.cc
   image-display.cc
   image-source.cc
   renderer.cc
   terminal-canvas.cc
-  timg.cc
   display-options.h
-  image-source.h
-  terminal-canvas.h
-  timg-time.h
   image-display.h
+  image-source.h
   renderer.h
+  terminal-canvas.h
   thread-pool.h
-  video-display.h
+  timg-time.h
 )
 
 target_link_libraries(timg PkgConfig::GRAPHICSMAGICKXX Threads::Threads)
@@ -30,7 +29,7 @@ endif()
 configure_file(timg-version.h.in timg-version.h)
 
 if(WITH_VIDEO_DECODING)
-  target_sources(timg PUBLIC video-display.cc)
+  target_sources(timg PUBLIC video-display.cc video-display.h)
   target_compile_definitions(timg PUBLIC WITH_TIMG_VIDEO)
   target_link_libraries(timg PkgConfig::LIBAV PkgConfig::WSCALE)
 endif()
