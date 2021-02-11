@@ -64,13 +64,15 @@ protected:
     //
     // Given an image with size "img_width" and "img_height", determine the
     // target width and height satisfying the desired fit and size defined in
-    // the "display_options".
+    // the "display_options" and if it should "fit_in_rotated_frame" of that
+    // display options defined frame.
     //
     // As result, modifies "target_width" and "target_height";
     // returns 'true' if the image has to be scaled, i.e. target size
     // is different than image size.
     static bool CalcScaleToFitDisplay(int img_width, int img_height,
                                       const DisplayOptions &display_options,
+                                      bool fit_in_rotated_frame,
                                       int *target_width, int *target_height);
 protected:
     const std::string filename_;

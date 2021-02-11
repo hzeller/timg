@@ -22,13 +22,21 @@
 #include <string.h>
 #include <math.h>
 
+#include <utility>
 #include <memory>
 
 namespace timg {
 // Returns 'true' if image needs scaling.
 bool ImageSource::CalcScaleToFitDisplay(int img_width, int img_height,
-                                        const DisplayOptions &options,
+                                        const DisplayOptions &orig_options,
+                                        bool fit_in_rotated,
                                         int *target_width, int *target_height) {
+    DisplayOptions options = orig_options;
+    if (fit_in_rotated) {
+        std::swap(options.width, options.height);
+        std::swap(options.fill_width, options.fill_height);
+    }
+
     const float width_fraction = (float)options.width / img_width;
     const float height_fraction = (float)options.height / img_height;
 

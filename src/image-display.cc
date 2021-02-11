@@ -98,25 +98,22 @@ static bool EndsWith(const std::string &filename, const char *suffix) {
     return strcasecmp(filename.c_str() + flen - slen, suffix) == 0;
 }
 
-static void ExifRotateIfNeeded(Magick::Image *img) {
-    const std::string rotation_tag = img->attribute("EXIF:Orientation");
+struct ExifImageOp { int angle = 0; bool flip = false; };
+static ExifImageOp GetExifOp(Magick::Image &img) {
+    const std::string rotation_tag = img.attribute("EXIF:Orientation");
     if (rotation_tag.empty() || rotation_tag.size() != 1)
-        return; // Nothing to do or broken tag.
-    int angle = 0;
-    bool flip = false;
+        return {}; // Nothing to do or broken tag.
     switch (rotation_tag[0]) {
-    case '1': return;  // Nothing to do.
-    case '2': angle = 180; flip = true; break;
-    case '3': angle = 180; break;
-    case '4': angle = 0; flip = true; break;
-    case '5': angle = 90; flip = true; break;
-    case '6': angle = 90; break;
-    case '7': angle = -90; flip = true; break;
-    case '8': angle = -90; break;
-    default: return;  // mmh, invalid value.
+    case '2': return { 180, true  };
+    case '3': return { 180, false };
+    case '4': return {   0, true  };
+    case '5': return {  90, true  };
+    case '6': return {  90, false };
+    case '7': return { -90, true  };
+    case '8': return { -90, false };
     }
-    if (flip) img->flip();
-    img->rotate(angle);
+    return {};
+
 }
 
 bool ImageLoader::LoadAndScale(const DisplayOptions &opts) {
@@ -161,9 +158,9 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts) {
     }
 
     for (Magick::Image &img : result) {
-        if (opts.exif_rotate) {
-            ExifRotateIfNeeded(&img);
-        }
+        ExifImageOp exif_op;
+        if (opts.exif_rotate) exif_op = GetExifOp(img);
+
         // We do trimming only if this is not an animation, which will likely
         // not create a pleasent result.
         if (!is_animation_) {
@@ -180,7 +177,8 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts) {
 
         // Figure out scaling for the image.
         int target_width = 0, target_height = 0;
-        if (CalcScaleToFitDisplay(img.columns(), img.rows(), opts,
+        if (CalcScaleToFitDisplay(img.columns(), img.rows(),
+                                  opts, abs(exif_op.angle) == 90,
                                   &target_width, &target_height)) {
             try {
                 if (opts.antialias)
@@ -193,6 +191,10 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts) {
                 return false;
             }
         }
+
+        // Now that the image is nice and small, the following ops are cheap
+        if (exif_op.flip) img.flip();
+        img.rotate(exif_op.angle);
 
         // If these are transparent and should get a background, apply that.
         if (opts.bg_color || opts.bg_pattern_color) {

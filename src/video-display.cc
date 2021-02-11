@@ -162,8 +162,8 @@ bool VideoLoader::LoadAndScale(const DisplayOptions &display_options) {
         }
     }
     opts.fill_height = false;  // This only makes sense for horizontal scroll.
-    CalcScaleToFitDisplay(codec_context_->width, codec_context_->height, opts,
-                          &target_width, &target_height);
+    CalcScaleToFitDisplay(codec_context_->width, codec_context_->height,
+                          opts, false, &target_width, &target_height);
 
     if (display_options.center_horizontally) {
         center_indentation_ = (display_options.width - target_width)/2;
