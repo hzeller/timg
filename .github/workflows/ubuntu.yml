@@ -1,0 +1,22 @@
+
+name: Ubuntu Build
+on: [push]
+
+jobs:
+  install_dependencies:
+    name: Install Dependencies and Build the website
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt install cmake git g++ pkg-config libgraphicsmagick++-dev 
+          sudo apt install libavcodec-dev libavformat-dev libswscale-dev
+          sudo apt install pandoc
+      - name: Get the source
+        uses: actions/checkout@v2
+      - name: Build timg
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DWITH_VIDEO_DECODING=On
+          make
