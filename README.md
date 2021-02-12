@@ -1,3 +1,6 @@
+![macOS Build](../../workflows/macOS%20Build/badge.svg)
+![Ubuntu Build](../../workflows/Ubuntu%20Build/badge.svg)
+
 timg - Terminal Image and Video Viewer
 ======================================
 
