@@ -1,5 +1,8 @@
 name: macOS Build
-on: [push]
+on:
+  push:
+    branches:
+      - main
 
 jobs:
   install_dependencies_and_build:
