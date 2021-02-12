@@ -1,0 +1,20 @@
+name: macOS Build
+
+jobs:
+  install_dependencies:
+    name: Install Dependencies and Build the website
+    runs-on: macos-latest
+    steps:
+      - name: Install dependencies
+        run: |
+          brew install GraphicsMagick webp cmake 
+          brew install ffmeg
+          brew install pandoc
+      - name: Get the source
+        uses: actions/checkout@v2
+      - name: Build timg
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DWITH_VIDEO_DECODING=On
+          make
