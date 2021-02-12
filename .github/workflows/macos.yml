@@ -2,8 +2,8 @@ name: macOS Build
 on: [push]
 
 jobs:
-  install_dependencies:
-    name: Install Dependencies and Build the website
+  install_dependencies_and_build:
+    name: Install Dependencies and build
     runs-on: macos-latest
     steps:
       - name: Install dependencies
