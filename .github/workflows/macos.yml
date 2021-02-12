@@ -1,4 +1,5 @@
 name: macOS Build
+on: [push]
 
 jobs:
   install_dependencies:
