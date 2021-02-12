@@ -1,6 +1,6 @@
 timg - Terminal Image and Video Viewer
 ======================================
-
+1
 A viewer that uses 24-Bit color capabilities and unicode character blocks
 to display images in the terminal.
 
