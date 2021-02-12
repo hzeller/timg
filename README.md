@@ -1,7 +1,8 @@
-timg - Terminal Image and Video Viewer
-======================================
 ![macOS Build](https://github.com/speedy-beaver/timg/workflows/macOS%20Build/badge.svg)
 ![Ubuntu Build](https://github.com/speedy-beaver/timg/workflows/Ubuntu%20Build/badge.svg)
+
+timg - Terminal Image and Video Viewer
+======================================
 A viewer that uses 24-Bit color capabilities and unicode character blocks
 to display images in the terminal.
 
