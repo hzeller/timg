@@ -9,7 +9,7 @@ jobs:
       - name: Install dependencies
         run: |
           brew install GraphicsMagick webp cmake 
-          brew install ffmeg
+          brew install ffmpeg
           brew install pandoc
       - name: Get the source
         uses: actions/checkout@v2
