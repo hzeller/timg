@@ -3,7 +3,7 @@ on: [push]
 
 jobs:
   install_dependencies_and_build:
-    name: Install Dependencies and build
+    name: Install Dependencies and Build
     runs-on: macos-latest
     steps:
       - name: Install dependencies
@@ -11,7 +11,7 @@ jobs:
           brew install GraphicsMagick webp cmake 
           brew install ffmpeg
           brew install pandoc
-      - name: Get the source
+      - name: Get the Source
         uses: actions/checkout@v2
       - name: Build timg
         run: |
