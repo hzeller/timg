@@ -142,7 +142,8 @@ static bool GetBoolenEnv(const char *env_name) {
     return value && atoi(value) != 0;
 }
 
-// Read list of filenames from newline separated file.
+// Read list of filenames from newline separated file. Non-absolute files
+// are resolved relative to the filelist_file
 bool AppendToFileList(const std::string &filelist_file,
                       std::vector<std::string> *filelist) {
     std::ifstream filelist_stream(
@@ -151,8 +152,13 @@ bool AppendToFileList(const std::string &filelist_file,
         fprintf(stderr, "%s: %s\n", filelist_file.c_str(), strerror(errno));
         return false;
     }
+    const size_t last_slash = filelist_file.find_last_of('/');
+    // Following works as expected if last_slash == npos (lsat_slash+1 == 0)
+    const std::string prefix = filelist_file.substr(0, last_slash + 1);
     std::string filename;
     for (std::string filename; std::getline(filelist_stream, filename); /**/) {
+        if (filename.empty()) continue;
+        if (filename[0] != '/' && !prefix.empty()) filename = prefix + filename;
         filelist->push_back(filename);
     }
     return true;

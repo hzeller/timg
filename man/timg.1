@@ -152,6 +152,11 @@ This option can be supplied multiple times in which case it appends to
 the end of the list of images to show.
 If there are also filenames on the command line, they will be shown at
 the very end.
+.RS
+.PP
+Absolute filenames in the list are used as-is, relative filenames are
+resolved relative to the filelist-file itself.
+.RE
 .TP
 \f[B]-o\f[R] <\f[I]outfile\f[R]>
 Write terminal image to given filename instead of stdout.

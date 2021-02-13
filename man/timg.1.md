@@ -133,6 +133,9 @@ these file decoders (GraphicsMagick or libav respectively).
      If there are also filenames on the command line, they will be shown at
      the very end.
 
+     Absolute filenames in the list are used as-is, relative filenames are
+     resolved relative to the filelist-file itself.
+
 **-o** &lt;*outfile*&gt;
 :    Write terminal image to given filename instead of stdout.
 
