@@ -36,6 +36,11 @@ public:
         return *this;
     }
 
+    bool operator==(const Duration &other) const {
+        return (duration_.tv_sec == other.duration_.tv_sec &&
+                duration_.tv_nsec == other.duration_.tv_nsec);
+    }
+
     static constexpr Duration Millis(long ms) {
         return Duration(ms / 1000, (ms % 1000) * 1000000);
     }

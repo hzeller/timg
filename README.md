@@ -1,5 +1,6 @@
-![macOS Build](../../workflows/macOS%20Build/badge.svg)
+[![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://github.com/hzeller/timg/blob/main/LICENSE) &nbsp;
 ![Ubuntu Build](../../workflows/Ubuntu%20Build/badge.svg)
+![macOS Build](../../workflows/macOS%20Build/badge.svg)
 
 timg - Terminal Image and Video Viewer
 ======================================
@@ -126,11 +127,22 @@ Options:
 
 ### Examples
 ```bash
-timg some-image.jpg         # display a static image
-timg -g50x50 some-image.jpg # display image fitting in box of 50x50 pixel
+timg some-image.jpg                # display a static image
+timg -g50x50 some-image.jpg        # display image fitting in box of 50x50 pixel
 
-timg *.jpg                  # display all *.jpg images
-timg --grid=3x2 *.jpg       # display all *.jpg images in 3 columns, 2 rows
+# Multiple images
+timg *.jpg                         # display all *.jpg images
+timg --title *.jpg                 # .. show name in title (short option -F)
+timg --grid=3x2 *.jpg              # arrange in 3 columns, 2 rows in terminal
+timg --fit-width --grid=3 *.jpg    # maximize use of column width (short: -W)
+timg --grid=3 -t5 *.gif            # Load gifs one by one in grid. Play each for 5sec.
+
+# Putting it all together; making an alias to list images; let's call it ils = 'image ls'
+# This prints images two per row with a filename title. Only showing one frame
+# so for animated gifs only the first frame is shown statically.
+alias ils='timg --grid=2 --center --title --frame=1 '
+
+ils *.jpg *.gif
 
 # Show a PDF document, use full width of terminal, trim away empty border
 timg -W --auto-crop some-document.pdf
@@ -149,7 +161,8 @@ timg -C https://i.kym-cdn.com/photos/images/newsfeed/000/406/282/2b8.jpg
 #
 # The following example loads an image from a URL; --auto-crop does not work with
 # that, so we have to get the content manually, e.g. with wget. Piping to
-# stdin works.
+# stdin works; in the following example the stdin input is designated with the
+# special filename '-'.
 #
 # For the following image, we need to remove 3 pixels all around before
 # auto-crop can take over removing the remaining whitespace successfully:
@@ -166,14 +179,19 @@ youtube-dl -q -o- -f'[height<480]' 'https://youtu.be/dQw4w9WgXcQ' | timg -V -
 
 # Show animated gif, possibly limited by timeout, loops or frame-count
 timg some-animated.gif      # show an animated gif forever (stop with Ctrl-C)
-timg -t5 some-animated.gif  # show animated gif for 5 seconds
-timg --loops=3 some-animated.gif  # Loop animated gif 3 times
+timg -t5 some-animated.gif                   # show animated gif for 5 seconds
+timg --loops=3 some-animated.gif             # Loop animated gif 3 times
 timg --frames=3 --loops=1 some-animated.gif  # Show only first three frames
-timg --frames=1 some-animated.gif  # Show only first frame. Static image.
+timg --frames=1 some-animated.gif            # Show only first frame. Static image.
 
 # Scroll
-timg --scroll some-image.jpg # scroll a static image as banner (stop with Ctrl-C)
+timg --scroll some-image.jpg       # scroll a static image as banner (stop with Ctrl-C)
 timg --scroll=100 some-image.jpg   # scroll with 100ms delay
+
+# Create a text with 'convert' and send to timg to scroll
+convert -size 1000x60 xc:none -box black -fill red -gravity center \
+      -pointsize 42 -draw 'text 0,0 "Watchen the blinkenlights."' -trim png:- \
+      | timg --scroll=20 -
 
 # Scroll direction. Horizontally, vertically; how about diagonally ?
 timg --scroll --delta-move=1:0 some-image.jpg  # scroll with dx=1 and dy=0, so horizontally.
@@ -190,7 +208,7 @@ timg -b '#0000ff' some-transparent-image.png
 timg -b white -B gray some-transparent-image.png
 
 # Another use: can run use this in a fzf preview window:
-echo some-image.jpg | fzf --preview='timg -E -f1 -c1 -g $(( $COLUMNS / 2 - 4 ))x$(( $FZF_PREVIEW_HEIGHT * 2 )) {}'
+echo some-image.jpg | fzf --preview='timg -E --frames=1 --loops=1 -g $(( $COLUMNS / 2 - 4 ))x$(( $FZF_PREVIEW_LINES * 2 )) {}'
 
 # Also, you could store the output and cat later to your terminal...
 timg -g80x40 some-image.jpg > /tmp/imageout.txt
@@ -216,9 +234,11 @@ while : ; do xzcat... ; done
 # (If you Ctrl-C that loop, you might need to use 'reset' for terminal sanity)
 ```
 
+### Terminal considerations
+
 Note, this requires that your terminal can display
 [24 bit true color][24-bit-term] and is able to display the unicode
-characters[▄] (U+2584 - 'Lower Half Block') and [▀] (U+2580 - 'Upper Half Block').
+characters [▄](U+2584 - 'Lower Half Block') and [▀](U+2580 - 'Upper Half Block').
 If not, it doesn't show anything or it looks like gibberish. These days, most
 terminals have these minimum requirements.
 

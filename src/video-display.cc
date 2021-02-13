@@ -28,8 +28,11 @@ extern "C" {
 #  include <libavcodec/avcodec.h>
 #  include <libavformat/avformat.h>
 #  include <libavutil/imgutils.h>
+#  include <libavutil/log.h>
 #  include <libswscale/swscale.h>
 }
+
+static constexpr bool kDebug = false;
 
 namespace timg {
 // Convert deprecated color formats to new and manually set the color range.
@@ -71,11 +74,17 @@ static SwsContext *CreateSWSContext(const AVCodecContext *codec_ctx,
     return swsCtx;
 }
 
+static void dummy_log(void *, int, const char *, va_list) {
+    // Let's not disturb our terminal with messages from here.
+    // Maybe add logging to separate stream later.
+}
+
 static void OnceInitialize() {
 #if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(58, 9, 100)
     av_register_all();
 #endif
     avformat_network_init();
+    av_log_set_callback(dummy_log);
 }
 
 VideoLoader::VideoLoader(const char *filename) : ImageSource(filename) {
@@ -104,12 +113,12 @@ bool VideoLoader::LoadAndScale(const DisplayOptions &display_options) {
     if ((ret = avformat_open_input(&format_context_, file, NULL, NULL)) != 0) {
         char msg[100];
         av_strerror(ret, msg, sizeof(msg));
-        fprintf(stderr, "%s: %s\n", file, msg);
+        if (kDebug) fprintf(stderr, "%s: %s\n", file, msg);
         return false;
     }
 
     if (avformat_find_stream_info(format_context_, NULL) < 0) {
-        fprintf(stderr, "Couldn't find stream information\n");
+        if (kDebug) fprintf(stderr, "Couldn't find stream information\n");
         return false;
     }
 
@@ -154,7 +163,7 @@ bool VideoLoader::LoadAndScale(const DisplayOptions &display_options) {
         const bool is_url = (strncmp(file, "http://", 7) == 0 ||
                              strncmp(file, "https://", 8) == 0);
         fprintf(stderr, "%s%s is handled by video subsystem. "
-                "Unfortunately, no -T trimming feature is implemented there.\n",
+                "Unfortunately, no auto-crop feature is implemented there.\n",
                 is_url ? "URL " : "", file);
         if (is_url) {
             fprintf(stderr, "use:\n\twget -qO- %s | timg -T%d -\n... instead "
@@ -172,8 +181,8 @@ bool VideoLoader::LoadAndScale(const DisplayOptions &display_options) {
     sws_context_ = CreateSWSContext(codec_context_,
                                     target_width, target_height);
     if (!sws_context_) {
-        fprintf(stderr, "Trouble doing scaling to %dx%d :(\n",
-                opts.width, opts.height);
+        if (kDebug) fprintf(stderr, "Trouble doing scaling to %dx%d :(\n",
+                            opts.width, opts.height);
         return false;
     }
 

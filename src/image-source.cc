@@ -110,7 +110,7 @@ ImageSource *ImageSource::Create(const char *filename,
 #endif
 
     // We either loaded, played and continue'ed, or we end up here.
-    fprintf(stderr, "%s: couldn't load\n", filename);
+    //fprintf(stderr, "%s: couldn't load\n", filename);
 #ifdef WITH_TIMG_VIDEO
     if (strcmp(filename, "-") == 0 || strcmp(filename, "/dev/stdin") == 0) {
         fprintf(stderr, "If this is a video on stdin, use '-V' to "

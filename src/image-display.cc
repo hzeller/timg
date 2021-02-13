@@ -24,6 +24,8 @@
 #include <math.h>
 #include <Magick++.h>
 
+static constexpr bool kDebug = false;
+
 namespace timg {
 static void CopyToFramebuffer(const Magick::Image &img,
                               timg::Framebuffer *result) {
@@ -127,7 +129,8 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts) {
         readImages(&frames, filename());
     }
     catch(Magick::Warning &warning) {
-        //fprintf(stderr, "Meh: %s (%s)\n", filename, warning.what());
+        if (kDebug) fprintf(stderr, "Meh: %s (%s)\n",
+                            filename().c_str(), warning.what());
     }
     catch (std::exception& e) {
         // No message, let that file be handled by the next handler.
@@ -135,7 +138,7 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts) {
     }
 
     if (frames.size() == 0) {
-        fprintf(stderr, "No image found.");
+        if (kDebug) fprintf(stderr, "No image found.");
         return false;
     }
 
@@ -187,7 +190,8 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts) {
                     img.sample(Magick::Geometry(target_width, target_height));
             }
             catch (const std::exception& e) {
-                //fprintf(stderr, "%s: %s\n", filename, e.what());
+                if (kDebug) fprintf(stderr, "%s: %s\n",
+                                    filename().c_str(), e.what());
                 return false;
             }
         }
@@ -204,7 +208,9 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts) {
                                  opts.bg_color, opts.bg_pattern_color, &target);
             }
             catch (const std::exception& e) {
-                //fprintf(stderr, "%s: bgcolor: %s\n", filename, e.what());
+                if (kDebug)
+                    fprintf(stderr, "%s: bgcolor: %s\n",
+                            filename().c_str(), e.what());
                 return false;
             }
             target.composite(img, 0, 0, Magick::OverCompositeOp);
@@ -282,10 +288,10 @@ void ImageLoader::Scroll(Duration duration, int loops,
                          int dx, int dy, Duration scroll_delay,
                          const Renderer::WriteFramebufferFun &write_fb) {
     if (frames_.size() > 1) {
-        fprintf(stderr, "This is an %simage format, "
-                "scrolling on top of that is not supported. "
-                "Just doing the scrolling of the first frame.\n",
-                is_animation_ ? "animated " : "multi-");
+        if (kDebug) fprintf(stderr, "This is an %simage format, "
+                            "scrolling on top of that is not supported. "
+                            "Just doing the scrolling of the first frame.\n",
+                            is_animation_ ? "animated " : "multi-");
         // TODO: do both.
     }
 

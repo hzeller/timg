@@ -371,7 +371,10 @@ int main(int argc, char *argv[]) {
         loops = 1;
     }
 
-    if (provided_file_count > 1 && loops == timg::kNotInitialized) {
+    // If nothing is set to limit animations but we have multiple images,
+    // set some sensible limit.
+    if (provided_file_count > 1 && loops == timg::kNotInitialized
+        && duration == Duration::InfiniteFuture()) {
         loops = 1;  // Don't want to get stuck on the first endless-loop anim.
     }
 

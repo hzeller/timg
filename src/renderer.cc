@@ -52,7 +52,7 @@ private:
     void RenderTitle(const char *title) {
         if (!title || !options_.show_filename) return;
         const std::string tout = TrimTitle(title, options_.width);
-        write(STDOUT_FILENO, tout.c_str(), tout.length());
+        (void)write(STDOUT_FILENO, tout.c_str(), tout.length());
     }
 };
 
@@ -107,7 +107,7 @@ public:
                     canvas_->MoveCursorDY((y_offset-1)/2 - 1);
                 }
                 canvas_->MoveCursorDX(x_offset);
-                write(STDOUT_FILENO, title_.c_str(), title_.length());
+                (void)write(STDOUT_FILENO, title_.c_str(), title_.length());
                 y_offset = 0;  // No move by Send() needed anymore.
             }
 
