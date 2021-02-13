@@ -106,6 +106,8 @@ Options:
                          (useful, if you stream video from stdin).
         -I             : Only  use Image subsystem. Don't attempt video decoding.
         -F, --title    : Print filename as title above each image.
+        -f<filelist>   : Read newline-separated list of image files to show. Can be there multiple times.
+        -o<outfile>    : Write to <outfile> instead of stdout.
         -E             : Don't hide the cursor while showing images.
         --threads=<n>  : Run image decoding in parallel with n threads
                          (Default 2, half #cores on this machine)
@@ -142,6 +144,7 @@ timg --grid=3 -t5 *.gif            # Load gifs one by one in grid. Play each for
 # so for animated gifs only the first frame is shown statically.
 alias ils='timg --grid=2 --center --title --frame=1 '
 
+# ... using this alias
 ils *.jpg *.gif
 
 # Show a PDF document, use full width of terminal, trim away empty border

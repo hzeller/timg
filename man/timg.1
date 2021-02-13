@@ -145,6 +145,17 @@ Somewhat the opposite of \f[B]-V\f[R].
 \f[B]-F\f[R], \f[B]--title\f[R]
 Print filename as title above each image.
 .TP
+\f[B]-f\f[R] <\f[I]filelist-file\f[R]>
+Read a list of image filenames to show from this file.
+The list needs to be newline separated.
+This option can be supplied multiple times in which case it appends to
+the end of the list of images to show.
+If there are also filenames on the command line, they will be shown at
+the very end.
+.TP
+\f[B]-o\f[R] <\f[I]outfile\f[R]>
+Write terminal image to given filename instead of stdout.
+.TP
 \f[B]-E\f[R]
 Don\[cq]t hide the cursor while showing images.
 .TP
@@ -210,6 +221,12 @@ If an invalid option or parameter was provided.
 If timg could not determine the size of terminal (not a tty?).
 Provide \f[B]-g\f[R] option to provide size of the output to be
 generated.
+.TP
+\f[B]4\f[R]
+Could not write to output file provided with \f[B]-o\f[R].
+.TP
+\f[B]5\f[R]
+Could not read file list file provided with \f[B]-f\f[R].
 .SH ENVIRONMENT
 .TP
 \f[B]TIMG_USE_UPPER_BLOCK\f[R]

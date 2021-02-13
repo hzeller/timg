@@ -125,6 +125,17 @@ these file decoders (GraphicsMagick or libav respectively).
 **-F**, **-\-title**
 :    Print filename as title above each image.
 
+**-f** &lt;*filelist-file*&gt;
+:    Read a list of image filenames to show from this file. The list needs
+     to be newline separated.
+     This option can be supplied multiple times in which case it appends
+     to the end of the list of images to show.
+     If there are also filenames on the command line, they will be shown at
+     the very end.
+
+**-o** &lt;*outfile*&gt;
+:    Write terminal image to given filename instead of stdout.
+
 **-E**
 :    Don't hide the cursor while showing images.
 
@@ -186,6 +197,12 @@ Exit code is
 **3**
 :    If timg could not determine the size of terminal (not a tty?). Provide
     **-g** option to provide size of the output to be generated.
+
+**4**
+:    Could not write to output file provided with **-o**.
+
+**5**
+:    Could not read file list file provided with **-f**.
 
 
 # ENVIRONMENT

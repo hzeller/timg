@@ -88,14 +88,15 @@ bool ImageSource::CalcScaleToFitDisplay(int img_width, int img_height,
     return *target_width != img_width || *target_height != img_height;
 }
 
-ImageSource *ImageSource::Create(const char *filename,
+ImageSource *ImageSource::Create(const std::string &filename,
                                  const DisplayOptions &options,
+                                 int max_frames,
                                  bool attempt_image_loading,
                                  bool attempt_video_loading) {
     std::unique_ptr<ImageSource> result;
     if (attempt_image_loading) {
         result.reset(new ImageLoader(filename));
-        if (result->LoadAndScale(options)) {
+        if (result->LoadAndScale(options, max_frames)) {
             return result.release();
         }
     }
@@ -103,7 +104,7 @@ ImageSource *ImageSource::Create(const char *filename,
 #ifdef WITH_TIMG_VIDEO
     if (attempt_video_loading) {
         result.reset(new VideoLoader(filename));
-        if (result->LoadAndScale(options)) {
+        if (result->LoadAndScale(options, max_frames)) {
             return result.release();
         }
     }
@@ -112,7 +113,7 @@ ImageSource *ImageSource::Create(const char *filename,
     // We either loaded, played and continue'ed, or we end up here.
     //fprintf(stderr, "%s: couldn't load\n", filename);
 #ifdef WITH_TIMG_VIDEO
-    if (strcmp(filename, "-") == 0 || strcmp(filename, "/dev/stdin") == 0) {
+    if (filename == "-" || filename == "/dev/stdin") {
         fprintf(stderr, "If this is a video on stdin, use '-V' to "
                 "skip image probing\n");
     }

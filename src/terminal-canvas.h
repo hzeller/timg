@@ -68,6 +68,8 @@ public:
     void MoveCursorDY(int rows);  // negative: up^, positive: downV
     void MoveCursorDX(int cols);  // negative: <-left, positive: right->
 
+    // Filedescriptor we're writing to.
+    int fd() const { return fd_; }
 private:
     const int fd_;
 

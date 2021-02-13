@@ -33,6 +33,8 @@
 #endif
 
 
+#include <errno.h>
+#include <fcntl.h>
 #include <getopt.h>
 #include <math.h>
 #include <signal.h>
@@ -40,8 +42,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
+#include <string>
+#include <iostream>
+#include <fstream>
 #include <thread>
 #include <future>
 #include <vector>
@@ -57,10 +64,12 @@ using timg::ImageSource;
 using timg::Framebuffer;
 
 enum class ExitCode {
-    kSuccess        = 0,
-    kImageReadError = 1,
-    kParameterError = 2,
-    kNotATerminal   = 3,
+    kSuccess         = 0,
+    kImageReadError  = 1,
+    kParameterError  = 2,
+    kNotATerminal    = 3,
+    kCantOpenOutput  = 4,
+    kFilelistProblem = 5,
     // Keep in sync with error codes mentioned in manpage
 };
 
@@ -105,6 +114,8 @@ static int usage(const char *progname, ExitCode exit_code, int w, int h) {
             "\t-I             : Only  use Image subsystem. Don't attempt video decoding.\n"
 #endif
             "\t-F, --title    : Print filename as title above each image.\n"
+            "\t-f<filelist>   : Read newline-separated list of image files to show. Can be there multiple times.\n"
+            "\t-o<outfile>    : Write to <outfile> instead of stdout.\n"
             "\t-E             : Don't hide the cursor while showing images.\n"
             "\t--threads=<n>  : Run image decoding in parallel with n threads\n"
             "\t                 (Default %d, half #cores on this machine)\n"
@@ -131,6 +142,22 @@ static bool GetBoolenEnv(const char *env_name) {
     return value && atoi(value) != 0;
 }
 
+// Read list of filenames from newline separated file.
+bool AppendToFileList(const std::string &filelist_file,
+                      std::vector<std::string> *filelist) {
+    std::ifstream filelist_stream(
+        filelist_file == "-" ? "/dev/stdin" : filelist_file, std::ifstream::in);
+    if (!filelist_stream) {
+        fprintf(stderr, "%s: %s\n", filelist_file.c_str(), strerror(errno));
+        return false;
+    }
+    std::string filename;
+    for (std::string filename; std::getline(filelist_stream, filename); /**/) {
+        filelist->push_back(filename);
+    }
+    return true;
+}
+
 // Probe all file descriptors that might be connect to tty for term size.
 struct TermSizeResult { bool size_valid; int width; int height; };
 TermSizeResult DetermineTermSize() {
@@ -153,6 +180,8 @@ int main(int argc, char *argv[]) {
     display_opts.width = term.width;
     display_opts.height = term.height;
 
+    int output_fd = STDOUT_FILENO;
+    std::vector<std::string> filelist;  // from -f<filelist> and command line
     bool hide_cursor = true;
     Duration duration = Duration::InfiniteFuture();
     Duration between_images_duration = Duration::Millis(0);
@@ -200,7 +229,7 @@ int main(int argc, char *argv[]) {
     int opt;
     int option_index = 0;
     while ((opt = getopt_long(argc, argv,
-                              "vg:w:t:c:f:b:B:hCFEd:UWaVI" OLD_COMPAT_FLAGS,
+                              "vg:w:t:c:f:b:B:hCFEd:UWaVIo:f:" OLD_COMPAT_FLAGS,
                               long_options, &option_index))!=-1) {
         switch (opt) {
         case 'g':
@@ -324,6 +353,20 @@ int main(int argc, char *argv[]) {
                     timg::VideoLoader::VersionInfo());
 #endif
             return 0;
+        case 'o':
+            output_fd = open(optarg, O_WRONLY|O_CREAT|O_TRUNC, 0664);
+            if (output_fd < 0) {
+                fprintf(stderr, "%s: %s\n", optarg, strerror(errno));
+                return usage(argv[0], ExitCode::kCantOpenOutput,
+                             term.width, term.height);
+            }
+            break;
+        case 'f':
+            if (!AppendToFileList(optarg, &filelist)) {
+                return usage(argv[0], ExitCode::kFilelistProblem,
+                             term.width, term.height);
+            }
+            break;
         case 'h':
         default:
             return usage(argv[0], (opt == 'h'
@@ -344,9 +387,13 @@ int main(int argc, char *argv[]) {
         return usage(argv[0], ExitCode::kNotATerminal, term.width, term.height);
     }
 
-    const int provided_file_count = argc - optind;
-    if (provided_file_count <= 0) {
-        fprintf(stderr, "Expected image filename.\n");
+    for (int imgarg = optind; imgarg < argc && !interrupt_received; ++imgarg) {
+        filelist.push_back(argv[imgarg]);
+    }
+
+    if (filelist.size() <= 0) {
+        fprintf(stderr, "Expected image filename(s) on command line "
+                "or via -f\n");
         return usage(argv[0], ExitCode::kImageReadError,
                      term.width, term.height);
     }
@@ -373,7 +420,7 @@ int main(int argc, char *argv[]) {
 
     // If nothing is set to limit animations but we have multiple images,
     // set some sensible limit.
-    if (provided_file_count > 1 && loops == timg::kNotInitialized
+    if (filelist.size() > 1 && loops == timg::kNotInitialized
         && duration == Duration::InfiniteFuture()) {
         loops = 1;  // Don't want to get stuck on the first endless-loop anim.
     }
@@ -382,7 +429,7 @@ int main(int argc, char *argv[]) {
         display_opts.height -= 2*grid_rows;  // Leave space for text 2px = 1row
     }
 
-    timg::TerminalCanvas canvas(STDOUT_FILENO, terminal_use_upper_block);
+    timg::TerminalCanvas canvas(output_fd, terminal_use_upper_block);
     if (hide_cursor) {
         canvas.CursorOff();
     }
@@ -402,13 +449,14 @@ int main(int argc, char *argv[]) {
     thread_count = (thread_count > 0 ? thread_count : kDefaultThreadCount);
     timg::ThreadPool pool(thread_count);
     std::vector<std::future<timg::ImageSource*>> loaded_sources;
-    for (int imgarg = optind; imgarg < argc && !interrupt_received; ++imgarg) {
-        const char *const filename = argv[imgarg];
+    for (const std::string &filename : filelist) {
+        if (interrupt_received) break;
         std::function<timg::ImageSource*()> f =
-            [filename, do_image_loading, do_video_loading,
+            [filename, max_frames, do_image_loading, do_video_loading,
              &display_opts, &exit_code]() -> timg::ImageSource* {
                 if (interrupt_received) return nullptr;
                 auto result = ImageSource::Create(filename, display_opts,
+                                                  max_frames,
                                                   do_image_loading,
                                                   do_video_loading);
                 if (!result) exit_code = ExitCode::kImageReadError;
@@ -433,7 +481,9 @@ int main(int argc, char *argv[]) {
         canvas.CursorOn();
     }
     if (interrupt_received)   // Make 'Ctrl-C' appear on new line.
-        printf("\n");
+        fprintf(stderr, "\n");
+
+    close(output_fd);
 
     return (int)exit_code;
 }

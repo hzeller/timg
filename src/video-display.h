@@ -33,14 +33,14 @@ namespace timg {
 // Video loader, meant for one video to load, and if successful, Play().
 class VideoLoader final : public ImageSource {
 public:
-    VideoLoader(const char *filename);
+    VideoLoader(const std::string &filename);
     ~VideoLoader() final;
 
     static const char *VersionInfo();
 
     // Attempt to load given filename as video, open stream and set-up scaling.
     // Returns true on success.
-    bool LoadAndScale(const DisplayOptions &options) final;
+    bool LoadAndScale(const DisplayOptions &options, int max_frames) final;
 
     // Play video up to given duration.
     //

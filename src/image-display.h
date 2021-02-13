@@ -30,7 +30,7 @@ namespace timg {
 
 class ImageLoader final : public ImageSource {
 public:
-    ImageLoader(const char *filename) : ImageSource(filename) {}
+    ImageLoader(const std::string &filename) : ImageSource(filename) {}
     ~ImageLoader() final;
 
     static const char *VersionInfo();
@@ -42,7 +42,7 @@ public:
     // if set.
     // If this is not a loadable image, returns false, otherwise
     // We're ready for display.
-    bool LoadAndScale(const DisplayOptions &options) final;
+    bool LoadAndScale(const DisplayOptions &options, int max_frames) final;
 
     // Display loaded image. If this is an animation, then
     // "duration", "max_frames" and "loops" will limit the duration of the

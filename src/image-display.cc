@@ -118,7 +118,7 @@ static ExifImageOp GetExifOp(Magick::Image &img) {
 
 }
 
-bool ImageLoader::LoadAndScale(const DisplayOptions &opts) {
+bool ImageLoader::LoadAndScale(const DisplayOptions &opts, int max_frames) {
     options_ = opts;
     display_width_ = opts.width;
     display_height_ = opts.height;
@@ -126,7 +126,7 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts) {
 
     std::vector<Magick::Image> frames;
     try {
-        readImages(&frames, filename());
+        readImages(&frames, filename());  // ideally, we could set max_frames
     }
     catch(Magick::Warning &warning) {
         if (kDebug) fprintf(stderr, "Meh: %s (%s)\n",
@@ -134,6 +134,8 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts) {
     }
     catch (std::exception& e) {
         // No message, let that file be handled by the next handler.
+        if (kDebug) fprintf(stderr, "Exception: %s (%s)\n",
+                            filename().c_str(), e.what());
         return false;
     }
 
@@ -149,6 +151,9 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts) {
     const bool could_be_animation =
         !EndsWith(filename(), "ico") && !EndsWith(filename(), "pdf");
 
+    if (max_frames > 0 && max_frames < (int)frames.size()) {
+        frames.resize(max_frames);
+    }
     std::vector<Magick::Image> result;
     // Put together the animation from single frames. GIFs can have nasty
     // disposal modes, but they are handled nicely by coalesceImages()

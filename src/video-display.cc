@@ -87,7 +87,7 @@ static void OnceInitialize() {
     av_log_set_callback(dummy_log);
 }
 
-VideoLoader::VideoLoader(const char *filename) : ImageSource(filename) {
+VideoLoader::VideoLoader(const std::string &filename) : ImageSource(filename) {
     static std::once_flag init;
     std::call_once(init, OnceInitialize);
 }
@@ -104,7 +104,8 @@ const char *VideoLoader::VersionInfo() {
     return "libav " AV_STRINGIFY(LIBAVFORMAT_VERSION);
 }
 
-bool VideoLoader::LoadAndScale(const DisplayOptions &display_options) {
+bool VideoLoader::LoadAndScale(const DisplayOptions &display_options,
+                               int max_frames) {
     const char *file = (filename() == "-")
         ? "/dev/stdin"
         : filename().c_str();
@@ -144,7 +145,8 @@ bool VideoLoader::LoadAndScale(const DisplayOptions &display_options) {
     codec_context_ = avcodec_alloc_context3(av_codec);
     if (avcodec_parameters_to_context(codec_context_, codec_parameters) < 0)
         return false;
-    if (avcodec_open2(codec_context_, av_codec, NULL) < 0)
+    if (avcodec_open2(codec_context_, av_codec, NULL) < 0
+        || codec_context_->width <= 0 || codec_context_->height <= 0)
         return false;
 
     /*

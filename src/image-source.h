@@ -17,6 +17,7 @@
 #define IMAGE_SOURCE_H_
 
 #include <signal.h>
+#include <string>
 
 #include "display-options.h"
 #include "renderer.h"
@@ -31,8 +32,9 @@ public:
     // implementations until one can deal with the filename.
     // Returns a fully LoadAndScale()'d ImageSource that SendFrame()
     // can be called on, or nullptr if file can not be opened
-    static ImageSource *Create(const char *filename,
+    static ImageSource *Create(const std::string &filename,
                                const DisplayOptions &options,
+                               int max_frames,
                                bool attempt_image_loading,
                                bool attempt_video_loading);
 
@@ -49,7 +51,7 @@ public:
     const std::string& filename() const { return filename_; }
 
 protected:
-    ImageSource(const char *filename) : filename_(filename) {}
+    ImageSource(const std::string &filename) : filename_(filename) {}
 
     // Attempt to load image(s) from filename and prepare for display.
     // Images are processed using the parameters in DisplayOptions.
@@ -57,7 +59,7 @@ protected:
     // SendFrames().
     // Implementations of this will be called by the ImageSource::Create
     // factory.
-    virtual bool LoadAndScale(const DisplayOptions &options) = 0;
+    virtual bool LoadAndScale(const DisplayOptions &options,int max_frames) = 0;
 
 
     // Utility function that derived ImageSources are interested in.
