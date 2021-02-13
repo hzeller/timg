@@ -1,6 +1,6 @@
 [![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://github.com/hzeller/timg/blob/main/LICENSE) &nbsp;
-![Ubuntu Build](../../workflows/Ubuntu%20Build/badge.svg)
-![macOS Build](../../workflows/macOS%20Build/badge.svg)
+[![Ubuntu Build](../../workflows/Ubuntu%20Build/badge.svg)](../../actions?query=workflow%3A"Ubuntu+Build")
+[![macOS Build](../../workflows/macOS%20Build/badge.svg)](../../actions?query=workflow%3A"macOS+Build")
 
 timg - Terminal Image and Video Viewer
 ======================================
