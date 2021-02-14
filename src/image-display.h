@@ -67,11 +67,8 @@ private:
     int IndentationIfCentered(const PreprocessedFrame *frame) const;
 
     DisplayOptions options_;
-    int display_width_;
-    int display_height_;
     std::vector<PreprocessedFrame *> frames_;
     bool is_animation_ = false;
-    bool center_horizontally_ = false;
 };
 
 }  // namespace timg

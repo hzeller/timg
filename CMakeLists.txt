@@ -17,14 +17,16 @@ if(TIMG_VERSION_FROM_GIT)
 endif()
 
 pkg_check_modules(GRAPHICSMAGICKXX IMPORTED_TARGET REQUIRED GraphicsMagick++)
+pkg_check_modules(TURBOJPEG REQUIRED IMPORTED_TARGET libturbojpeg)
+pkg_check_modules(EXIF REQUIRED IMPORTED_TARGET libexif)
+pkg_check_modules(AVUTIL REQUIRED IMPORTED_TARGET libavutil)
+pkg_check_modules(SWSCALE IMPORTED_TARGET REQUIRED libswscale)
 
 if(WITH_VIDEO_DECODING)
   pkg_check_modules(LIBAV IMPORTED_TARGET REQUIRED libavcodec libavutil libavformat)
-  pkg_check_modules(WSCALE IMPORTED_TARGET REQUIRED libswscale)
 endif()
 
 find_package(Threads)
 
 add_subdirectory(src)
 add_subdirectory(man)
-

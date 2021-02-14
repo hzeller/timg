@@ -40,10 +40,11 @@ git clone https://github.com/hzeller/timg.git
 #### Get dependencies on Debian/Ubuntu
 
 ```bash
-sudo apt install cmake git g++ pkg-config libgraphicsmagick++-dev    # required libs.
+sudo apt install cmake git g++ pkg-config
+sudo apt install libgraphicsmagick++-dev libturbojpeg-dev libexif-dev libswscale-dev # needed libs
 
 # If you want to include video decoding, also install these additional libraries
-sudo apt install libavcodec-dev libavformat-dev libswscale-dev
+sudo apt install libavcodec-dev libavformat-dev
 
 # If you want to recreate the man page
 sudo apt install pandoc
@@ -53,7 +54,10 @@ sudo apt install pandoc
 
 ```bash
 # Homebrew needs to be available to install required dependencies
-brew install GraphicsMagick webp cmake    # required libs.
+brew install cmake git GraphicsMagick webp jpeg-turbo libexif # needed libs
+
+# Work around glitch in pkg-config and jpeg-turbo.
+brew unlink jpeg && brew link --force jpeg-turbo
 
 # If you want to include video decoding, install these additional libraries
 brew install ffmpeg

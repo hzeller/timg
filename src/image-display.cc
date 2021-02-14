@@ -120,9 +120,6 @@ static ExifImageOp GetExifOp(Magick::Image &img) {
 
 bool ImageLoader::LoadAndScale(const DisplayOptions &opts, int max_frames) {
     options_ = opts;
-    display_width_ = opts.width;
-    display_height_ = opts.height;
-    center_horizontally_ = opts.center_horizontally;
 
     std::vector<Magick::Image> frames;
     try {
@@ -229,8 +226,8 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts, int max_frames) {
 }
 
 int ImageLoader::IndentationIfCentered(const PreprocessedFrame *frame) const {
-    return center_horizontally_
-        ? (display_width_ - frame->framebuffer().width()) / 2
+    return options_.center_horizontally
+        ? (options_.width - frame->framebuffer().width()) / 2
         : 0;
 }
 
@@ -304,8 +301,8 @@ void ImageLoader::Scroll(Duration duration, int loops,
     const int img_width = img.width();
     const int img_height = img.height();
 
-    const int display_w = std::min(display_width_, img_width);
-    const int display_h = std::min(display_height_, img_height);
+    const int display_w = std::min(options_.width, img_width);
+    const int display_h = std::min(options_.height, img_height);
 
     // Since the user can choose the number of cycles we go through it,
     // we need to calculate what the minimum number of steps is we need

@@ -11,9 +11,11 @@ jobs:
     steps:
       - name: Install dependencies
         run: |
-          brew install GraphicsMagick webp cmake 
-          brew install ffmpeg
+          brew install GraphicsMagick webp cmake
+          brew install ffmpeg jpeg-turbo libexif
           brew install pandoc
+          brew unlink jpeg
+          brew link --force jpeg-turbo
       - name: Get the Source
         uses: actions/checkout@v2
       - name: Build timg

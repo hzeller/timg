@@ -17,6 +17,7 @@
 
 // Various implementations we try in the constructor
 #include "image-display.h"
+#include "jpeg-source.h"
 #include "video-display.h"
 
 #include <string.h>
@@ -95,6 +96,11 @@ ImageSource *ImageSource::Create(const std::string &filename,
                                  bool attempt_video_loading) {
     std::unique_ptr<ImageSource> result;
     if (attempt_image_loading) {
+        result.reset(new JPEGSource(filename));
+        if (result->LoadAndScale(options, max_frames)) {
+            return result.release();
+        }
+
         result.reset(new ImageLoader(filename));
         if (result->LoadAndScale(options, max_frames)) {
             return result.release();

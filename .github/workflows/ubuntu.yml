@@ -12,8 +12,9 @@ jobs:
     steps:
       - name: Install Dependencies
         run: |
-          sudo apt install cmake git g++ pkg-config libgraphicsmagick++-dev 
-          sudo apt install libavcodec-dev libavformat-dev libswscale-dev
+          sudo apt install cmake git g++ pkg-config libgraphicsmagick++-dev
+          sudo apt install libturbojpeg-dev libexif-dev libswscale-dev
+          sudo apt install libavcodec-dev libavformat-dev
           sudo apt install pandoc
       - name: Get the Source
         uses: actions/checkout@v2

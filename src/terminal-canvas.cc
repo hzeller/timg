@@ -162,8 +162,8 @@ static char *AppendDoubleRow(
     const Framebuffer::rgb_t *bottom_line, const char *set_btm_pixel_color,
     const char *pixel_glyph) {
     static constexpr char kStartEscape[] = "\033[";
-    Framebuffer::rgb_t last_top_color = 0xff000000;  // Guaranteed != first
-    Framebuffer::rgb_t last_bottom_color = 0xff000000;
+    Framebuffer::rgb_t last_top_color = 0xaa000000;  // Guaranteed != first
+    Framebuffer::rgb_t last_bottom_color = 0xaa000000;
     if (indent > 0) {
         pos += sprintf(pos, SCREEN_CURSOR_RIGHT_FORMAT, indent);
     }

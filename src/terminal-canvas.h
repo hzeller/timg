@@ -41,6 +41,8 @@ public:
     inline int width() const { return width_; }
     inline int height() const { return height_; }
 
+    rgb_t *data() { return pixels_; }
+
 private:
     friend class TerminalCanvas;
     const int width_;
