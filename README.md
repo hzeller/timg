@@ -41,20 +41,19 @@ git clone https://github.com/hzeller/timg.git
 
 ```bash
 sudo apt install cmake git g++ pkg-config
-sudo apt install libgraphicsmagick++-dev libturbojpeg-dev libexif-dev libswscale-dev # needed libs
+sudo apt install libgraphicsmagick++-dev libturbojpeg-dev libexif-dev libswscale-dev  # needed libs
 
 # If you want to include video decoding, also install these additional libraries
 sudo apt install libavcodec-dev libavformat-dev
 
-# If you want to recreate the man page
-sudo apt install pandoc
+sudo apt install pandoc  # If you want to recreate the man page
 ```
 
 #### Get dependencies on macOS
 
 ```bash
 # Homebrew needs to be available to install required dependencies
-brew install cmake git GraphicsMagick webp jpeg-turbo libexif # needed libs
+brew install cmake git GraphicsMagick webp jpeg-turbo libexif  # needed libs
 
 # Work around glitch in pkg-config and jpeg-turbo.
 brew unlink jpeg && brew link --force jpeg-turbo
@@ -62,8 +61,7 @@ brew unlink jpeg && brew link --force jpeg-turbo
 # If you want to include video decoding, install these additional libraries
 brew install ffmpeg
 
-# If you want to recreate the man page
-brew install pandoc
+brew install pandoc  # If you want to recreate the man page
 ```
 
 #### Compile timg
@@ -151,6 +149,9 @@ alias ils='timg --grid=2 --center --title --frame=1 '
 # ... using this alias
 ils *.jpg *.gif
 
+# Read the list of images to load from a file. One filename per line.
+locate "*.jpg" > /tmp/allimg.txt ; timg -f /tmp/allimg.txt
+
 # Show a PDF document, use full width of terminal, trim away empty border
 timg -W --auto-crop some-document.pdf
 timg --frames=1 some-document.pdf    # Show a PDF, but only first page
@@ -195,7 +196,7 @@ timg --frames=1 some-animated.gif            # Show only first frame. Static ima
 timg --scroll some-image.jpg       # scroll a static image as banner (stop with Ctrl-C)
 timg --scroll=100 some-image.jpg   # scroll with 100ms delay
 
-# Create a text with 'convert' and send to timg to scroll
+# Create a text with the ImageMagick 'convert' tool and send to timg to scroll
 convert -size 1000x60 xc:none -box black -fill red -gravity center \
       -pointsize 42 -draw 'text 0,0 "Watchen the blinkenlights."' -trim png:- \
       | timg --scroll=20 -
