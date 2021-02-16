@@ -25,6 +25,7 @@
 #include "thread-pool.h"
 #include "timg-time.h"
 #include "timg-version.h"
+#include "termutils.h"
 
 // To display version number
 #include "image-display.h"
@@ -41,7 +42,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/ioctl.h>
+#include <strings.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -100,7 +101,8 @@ static int usage(const char *progname, ExitCode exit_code, int w, int h) {
             "\t--grid=<cols>[x<rows>] : Arrange images in a grid (contact sheet).\n"
             "\t-w<seconds>    : If multiple images given: Wait time between (default: 0.0).\n"
             "\t-a             : Switch off anti aliasing (default: on)\n"
-            "\t-b<str>        : Background color to use on transparent images (default '').\n"
+            "\t-b<str>        : Background color to use on transparent images.\n"
+            "\t                 format 'yellow', '#rrggbb' or 'auto' (default 'auto').\n"
             "\t-B<str>        : Checkerboard pattern color to use on transparent images (default '').\n"
             "\t--auto-crop[=<pre-crop>] : Crop away all same-color pixels around image.\n"
             "\t                 The optional pre-crop is the width of border to\n"
@@ -164,27 +166,17 @@ bool AppendToFileList(const std::string &filelist_file,
     return true;
 }
 
-// Probe all file descriptors that might be connect to tty for term size.
-struct TermSizeResult { bool size_valid; int width; int height; };
-TermSizeResult DetermineTermSize() {
-    for (int fd : { STDOUT_FILENO, STDERR_FILENO, STDIN_FILENO }) {
-        struct winsize w = {};
-        if (ioctl(fd, TIOCGWINSZ, &w) == 0) {
-            return { true, w.ws_col, 2 * (w.ws_row-1) }; // pixels = 2*height
-        }
-    }
-    return { false, -1, -1 };
-}
-
 int main(int argc, char *argv[]) {
     Magick::InitializeMagick(*argv);
 
-    const TermSizeResult term = DetermineTermSize();
+    const timg::TermSizeResult term = timg::DetermineTermSize();
     const bool terminal_use_upper_block = GetBoolenEnv("TIMG_USE_UPPER_BLOCK");
 
     timg::DisplayOptions display_opts;
     display_opts.width = term.width;
     display_opts.height = term.height;
+
+    display_opts.bg_color = "auto";  // Experimental
 
     int output_fd = STDOUT_FILENO;
     std::vector<std::string> filelist;  // from -f<filelist> and command line
@@ -405,6 +397,9 @@ int main(int argc, char *argv[]) {
     }
 
     // -- Some sanity checks and configuration editing.
+    if (display_opts.bg_color && strcasecmp(display_opts.bg_color, "auto") == 0)
+        display_opts.bg_color = timg::DetermineBackgroundColor();
+
     // There is no scroll if there is no movement.
     if (display_opts.scroll_dx == 0 && display_opts.scroll_dy == 0) {
         fprintf(stderr, "Scrolling chosen, but dx:dy = 0:0. "

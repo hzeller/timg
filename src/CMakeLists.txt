@@ -10,6 +10,7 @@ target_sources(timg PRIVATE
   jpeg-source.h     jpeg-source.cc
   renderer.h        renderer.cc
   terminal-canvas.h terminal-canvas.cc
+  termutils.h       termutils.cc
   thread-pool.h
   timg-time.h
 )

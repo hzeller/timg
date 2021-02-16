@@ -96,7 +96,8 @@ Options:
         --grid=<cols>[x<rows>] : Arrange images in a grid (contact sheet).
         -w<seconds>    : If multiple images given: Wait time between (default: 0.0).
         -a             : Switch off anti aliasing (default: on)
-        -b<str>        : Background color to use on transparent images (default '').
+        -b<str>        : Background color to use on transparent images.
+                         format 'yellow', '#rrggbb' or 'auto' (default 'auto').
         -B<str>        : Checkerboard pattern color to use on transparent images (default '').
         --auto-crop[=<pre-crop>] : Crop away all same-color pixels around image.
                          The optional pre-crop is the width of border to
@@ -208,7 +209,8 @@ timg --scroll --delta-move=0:2 some-image.jpg  # vertical, two pixels per step.
 timg --scroll --delta-move=1:1 some-image.jpg  # diagonal, dx=1, dy=1
 
 # Background color for transparent images (SVG-compatible strings are supported)
-timg -b 'red' some-transparent-image.png
+timg -b auto some-transparent-image.png  # use terminal background if possible
+timg -b red some-transparent-image.png
 timg -b 'rgb(0, 255, 0)' some-transparent-image.png
 timg -b '#0000ff' some-transparent-image.png
 

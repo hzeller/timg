@@ -68,13 +68,23 @@ private:
     timg::Framebuffer framebuffer_;
 };
 
+static Magick::Color colorFromString(const char *color) {
+    if (!color) return Magick::Color("black");
+    int r, g, b;
+    if (sscanf(color, "rgb:%x/%x/%x", &r, &g, &b) == 3) {
+        // Format returned from xtermcontrol --get-bg
+        return Magick::ColorRGB(r / 65535.0, g / 65535.0, b / 65535.0);
+    }
+    return Magick::Color(color);
+}
+
 static void RenderBackground(int width, int height,
                              const char *bg, const char *pattern,
                              Magick::Image *bgimage) {
     *bgimage = Magick::Image(Magick::Geometry(width, height),
-                             Magick::Color(bg ? bg : "black"));
+                             colorFromString(bg));
     if (pattern && strlen(pattern)) {
-        bgimage->fillColor(pattern);
+        bgimage->fillColor(colorFromString(pattern));
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 if ((x + y) % 2 == 0) {
