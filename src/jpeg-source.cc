@@ -75,16 +75,16 @@ static timg::Framebuffer *ApplyExifOp(timg::Framebuffer *orig,
     const int w = orig->width();
     if (op.mirror) {
         for (int y = 0; y < h; ++y) {
-            timg::Framebuffer::rgb_t *left = &orig->data()[y * w];
-            timg::Framebuffer::rgb_t *right = &orig->data()[(y+1) * w - 1];
+            Framebuffer::rgba_t *left = &orig->data()[y * w];
+            Framebuffer::rgba_t *right = &orig->data()[(y+1) * w - 1];
             while (left < right) {
                 std::swap(*left++, *right--);
             }
         }
     }
     if (op.angle == 180) {
-        timg::Framebuffer::rgb_t *top_left = orig->data();
-        timg::Framebuffer::rgb_t *bottom_right = orig->data() + w * h - 1;
+        Framebuffer::rgba_t *top_left = orig->data();
+        Framebuffer::rgba_t *bottom_right = orig->data() + w * h - 1;
         while (top_left < bottom_right) {
             std::swap(*top_left++, *bottom_right--);
         }
@@ -182,7 +182,7 @@ bool JPEGSource::LoadAndScale(const DisplayOptions &opts, int max_frames) {
     // Further scaling to desired target width/height
     av_log_set_callback(dummy_log);
     SwsContext *swsCtx = sws_getContext(decode_width, decode_height,
-                                        AV_PIX_FMT_BGR24,
+                                        AV_PIX_FMT_RGB24,
                                         target_width, target_height,
                                         AV_PIX_FMT_RGBA,
                                         SWS_BILINEAR, NULL, NULL, NULL);

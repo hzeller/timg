@@ -18,6 +18,8 @@
 
 #include <string>
 #include <stdint.h>
+#include <string.h>
+#include <endian.h>
 
 namespace timg {
 class TerminalCanvas;
@@ -25,29 +27,46 @@ class TerminalCanvas;
 // Very simple framebuffer.
 class Framebuffer {
 public:
-    typedef uint32_t rgb_t;
+    // Note, this is always in little endian
+    // 'red' is stored in the first byte, 'green' 2nd, 'blue' 3d, 'alpha' 4th
+    typedef uint32_t rgba_t;
 
     Framebuffer(int width, int height);
     Framebuffer() = delete;
     Framebuffer(const Framebuffer &other) = delete;
     ~Framebuffer();
 
-    void SetPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b);
-    void SetPixel(int x, int y, rgb_t value);
-    rgb_t at(int x, int y) const;
+    void SetPixel(int x, int y, rgba_t value);
+    void SetPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b) {
+        SetPixel(x, y, to_rgba(r, g, b, 0xFF));
+    }
+
+    rgba_t at(int x, int y) const;
 
     void Clear();
 
     inline int width() const { return width_; }
     inline int height() const { return height_; }
 
-    rgb_t *data() { return pixels_; }
+    // The raw internal buffer containing width()*height() pixels organized
+    // from top left to bottom right.
+    rgba_t *data() { return pixels_; }
+    const rgba_t *data() const { return pixels_; }
+
+    // Utility function to generate an rgba_t value from components.
+    // Given red, green, blue and alpha value: convert to rgba_t type to the
+    // correct byte order.
+    static rgba_t to_rgba(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+        return htole32((uint32_t)r <<  0 |
+                       (uint32_t)g <<  8 |
+                       (uint32_t)b << 16 |
+                       (uint32_t)a << 24);
+    }
 
 private:
-    friend class TerminalCanvas;
     const int width_;
     const int height_;
-    rgb_t *const pixels_;
+    rgba_t *const pixels_;
 };
 
 // Canvas that can send a framebuffer to a terminal.
@@ -70,8 +89,11 @@ public:
     void MoveCursorDY(int rows);  // negative: up^, positive: downV
     void MoveCursorDX(int cols);  // negative: <-left, positive: right->
 
-    // Filedescriptor we're writing to.
-    int fd() const { return fd_; }
+    // Write buffer to the file descriptor this canvas is configured to.
+    // Public, so can be used by other components that might need to write
+    // informatin between framebuffer writes.
+    void WriteBuffer(const char *buffer, size_t len);
+
 private:
     const int fd_;
 
@@ -81,7 +103,7 @@ private:
     const bool top_optional_blank_;   // For odd height frames.
 
     // Return a buffer large enough to hold the whole ANSI-color encoded text.
-    char *EnsureBuffer(int width, int height, int indent);
+    char *EnsureBuffer(int width, int height);
 
     char *content_buffer_ = nullptr;  // Buffer containing content to write out
     size_t buffer_size_ = 0;

@@ -33,14 +33,6 @@ std::string Renderer::TrimTitle(const char *title, int requested_width) {
 }
 
 namespace {
-static void reliable_write(int fd, const char *buf, size_t size) {
-    int written;
-    while (size && (written = write(fd, buf, size)) > 0) {
-        size -= written;
-        buf += written;
-    }
-}
-
 // Use the full canvas to display framebuffer; writes framebuffer directly.
 class SingleColumnRenderer final : public Renderer {
 public:
@@ -60,7 +52,7 @@ private:
     void RenderTitle(const char *title) {
         if (!title || !options_.show_filename) return;
         const std::string tout = TrimTitle(title, options_.width);
-        reliable_write(canvas_->fd(), tout.c_str(), tout.length());
+        canvas_->WriteBuffer(tout.c_str(), tout.length());
     }
 };
 
@@ -115,7 +107,7 @@ public:
                     canvas_->MoveCursorDY((y_offset-1)/2 - 1);
                 }
                 canvas_->MoveCursorDX(x_offset);
-                reliable_write(canvas_->fd(), title_.c_str(), title_.length());
+                canvas_->WriteBuffer(title_.c_str(), title_.length());
                 y_offset = 0;  // No move by Send() needed anymore.
             }
 

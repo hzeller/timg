@@ -29,7 +29,7 @@ namespace timg {
 class Duration {
 public:
     constexpr Duration(const Duration &other) : duration_(other.duration_) {}
-    constexpr Duration() : duration_({}) {}
+    constexpr Duration() : duration_({0, 0}) {}
 
     Duration &operator=(const Duration &other) {
         duration_ = other.duration_;

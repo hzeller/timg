@@ -23,8 +23,9 @@
 #include <unistd.h>
 
 namespace timg {
+
 Framebuffer::Framebuffer(int w, int h)
-    : width_(w), height_(h), pixels_(new rgb_t [ width_ * height_]) {
+    : width_(w), height_(h), pixels_(new rgba_t [ width_ * height_]) {
     Clear();
 }
 
@@ -32,16 +33,12 @@ Framebuffer::~Framebuffer() {
     delete [] pixels_;
 }
 
-void Framebuffer::SetPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b) {
-    SetPixel(x, y, (r << 16) | (g << 8) | b);
-}
-
-void Framebuffer::SetPixel(int x, int y, rgb_t value) {
+void Framebuffer::SetPixel(int x, int y, rgba_t value) {
     if (x < 0 || x >= width() || y < 0 || y >= height()) return;
     pixels_[width_ * y + x] = value;
 }
 
-Framebuffer::rgb_t Framebuffer::at(int x, int y) const {
+Framebuffer::rgba_t Framebuffer::at(int x, int y) const {
     assert(x >= 0 && x < width() && y >= 0 && y < height());
     return pixels_[width_ * y + x];
 }
@@ -85,15 +82,15 @@ void Framebuffer::Clear() {
 #define SCREEN_END_OF_LINE          "\033[0m\n"
 #define SCREEN_END_OF_LINE_LEN      strlen(SCREEN_END_OF_LINE)
 
-static void reliable_write(int fd, const char *buf, size_t size) {
+void TerminalCanvas::WriteBuffer(const char *buffer, size_t size) {
     int written;
-    while (size && (written = write(fd, buf, size)) > 0) {
+    while (size && (written = write(fd_, buffer, size)) > 0) {
         size -= written;
-        buf += written;
+        buffer += written;
     }
 }
 
-char *TerminalCanvas::EnsureBuffer(int width, int height, int indent) {
+char *TerminalCanvas::EnsureBuffer(int width, int height) {
     // Pixels will be variable size depending on if we need to change colors
     // between two adjacent pixels. This is the maximum size they can be.
     static const int max_pixel_size = strlen("\033[")
@@ -143,10 +140,11 @@ TerminalCanvas::~TerminalCanvas() {
 }
 
 static char *int_append_with_semicolon(char *buf, uint8_t val);
-static char *WriteAnsiColor(char *buf, uint32_t col) {
-    buf = int_append_with_semicolon(buf, (col & 0xff0000) >> 16);
-    buf = int_append_with_semicolon(buf, (col & 0xff00) >> 8);
-    return int_append_with_semicolon(buf, (col & 0xff));
+static char *WriteAnsiColor(char *buf, Framebuffer::rgba_t color) {
+    const uint32_t col = le32toh(color);  // NOP on common LE platforms
+    buf = int_append_with_semicolon(buf, (col & 0x0000ff) >>  0);  // r
+    buf = int_append_with_semicolon(buf, (col & 0x00ff00) >>  8);  // g
+    return int_append_with_semicolon(buf,(col & 0xff0000) >> 16);  // b
 }
 
 static inline char *str_append(char *pos, const char *value, size_t len) {
@@ -158,19 +156,20 @@ static inline char *str_append(char *pos, const char *value, size_t len) {
 // foreground/background.
 static char *AppendDoubleRow(
     char *pos, int indent, int width,
-    const Framebuffer::rgb_t *top_line,    const char *set_top_pixel_color,
-    const Framebuffer::rgb_t *bottom_line, const char *set_btm_pixel_color,
+    const Framebuffer::rgba_t *top_line,    const char *set_top_pixel_color,
+    const Framebuffer::rgba_t *bottom_line, const char *set_btm_pixel_color,
     const char *pixel_glyph) {
     static constexpr char kStartEscape[] = "\033[";
-    Framebuffer::rgb_t last_top_color = 0xaa000000;  // Guaranteed != first
-    Framebuffer::rgb_t last_bottom_color = 0xaa000000;
+    // Since we're not dealing with alpha yet, we can use that as a sentinel.
+    Framebuffer::rgba_t last_top_color = Framebuffer::to_rgba(0, 0, 0, 0xaa);
+    Framebuffer::rgba_t last_bottom_color = Framebuffer::to_rgba(0, 0, 0, 0xaa);
     if (indent > 0) {
         pos += sprintf(pos, SCREEN_CURSOR_RIGHT_FORMAT, indent);
     }
     for (int x = 0; x < width; ++x) {
         bool color_emitted = false;
         if (top_line) {
-            const Framebuffer::rgb_t top_color = *top_line++;
+            const Framebuffer::rgba_t top_color = *top_line++;
             if (top_color != last_top_color) {
                 // Appending prefix. At this point, it can only be kStartEscape
                 pos = str_append(pos, kStartEscape, strlen(kStartEscape));
@@ -181,7 +180,7 @@ static char *AppendDoubleRow(
             }
         }
         if (bottom_line) {
-            const Framebuffer::rgb_t bottom_color = *bottom_line++;
+            const Framebuffer::rgba_t bottom_color = *bottom_line++;
             if (bottom_color != last_bottom_color) {
                 if (!color_emitted) {
                     pos = str_append(pos, kStartEscape, strlen(kStartEscape));
@@ -206,16 +205,16 @@ static char *AppendDoubleRow(
 void TerminalCanvas::Send(int x, int dy, const Framebuffer &framebuffer) {
     const int width = framebuffer.width();
     const int height = framebuffer.height();
-    char *const start_buffer = EnsureBuffer(width, height, x);
+    char *const start_buffer = EnsureBuffer(width, height);
     char *pos = start_buffer;
 
     if (dy < 0) {
         pos += sprintf(pos, SCREEN_CURSOR_UP_FORMAT, (abs(dy) + 1) / 2);
     }
 
-    const Framebuffer::rgb_t *const pixels = framebuffer.pixels_;
-    const Framebuffer::rgb_t *top_line;
-    const Framebuffer::rgb_t *bottom_line;
+    const Framebuffer::rgba_t *const pixels = framebuffer.data();
+    const Framebuffer::rgba_t *top_line;
+    const Framebuffer::rgba_t *bottom_line;
 
     // We are always writing two pixels at once with one character, which
     // requires to leave an empty line if the height of the framebuffer is odd.
@@ -238,7 +237,7 @@ void TerminalCanvas::Send(int x, int dy, const Framebuffer &framebuffer) {
                               bottom_line, set_lower_color_,
                               pixel_character_);
     }
-    reliable_write(fd_, start_buffer, pos - start_buffer);
+    WriteBuffer(start_buffer, pos - start_buffer);
 }
 
 void TerminalCanvas::MoveCursorDY(int rows) {
@@ -248,7 +247,7 @@ void TerminalCanvas::MoveCursorDY(int rows) {
                                ? SCREEN_CURSOR_UP_FORMAT
                                : SCREEN_CURSOR_DN_FORMAT,
                                abs(rows));
-    reliable_write(fd_, buf, len);
+    WriteBuffer(buf, len);
 }
 
 void TerminalCanvas::MoveCursorDX(int cols) {
@@ -258,19 +257,19 @@ void TerminalCanvas::MoveCursorDX(int cols) {
                                ? SCREEN_CURSOR_LEFT_FORMAT
                                : SCREEN_CURSOR_RIGHT_FORMAT,
                                abs(cols));
-    reliable_write(fd_, buf, len);
+    WriteBuffer(buf, len);
 }
 
 void TerminalCanvas::ClearScreen() {
-    reliable_write(fd_, SCREEN_CLEAR, strlen(SCREEN_CLEAR));
+    WriteBuffer(SCREEN_CLEAR, strlen(SCREEN_CLEAR));
 }
 
 void TerminalCanvas::CursorOff() {
-    reliable_write(fd_, CURSOR_OFF, strlen(CURSOR_OFF));
+    WriteBuffer(CURSOR_OFF, strlen(CURSOR_OFF));
 }
 
 void TerminalCanvas::CursorOn() {
-    reliable_write(fd_, CURSOR_ON, strlen(CURSOR_ON));
+    WriteBuffer(CURSOR_ON, strlen(CURSOR_ON));
 }
 
 // Converting the colors requires fast uint8 -> ASCII decimal digits with
