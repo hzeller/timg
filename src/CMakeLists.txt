@@ -43,4 +43,6 @@ if(WITH_VIDEO_DECODING)
   target_link_libraries(timg PkgConfig::LIBAV PkgConfig::SWSCALE)
 endif()
 
-install(TARGETS timg)
+install(TARGETS timg
+  RUNTIME DESTINATION bin
+)
