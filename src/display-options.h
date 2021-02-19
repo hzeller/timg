@@ -18,6 +18,7 @@
 #include "timg-time.h"
 
 #include <limits>
+#include "terminal-canvas.h"
 
 namespace timg {
 // Special sentinel value so signify a not initialized value on the command
@@ -50,8 +51,8 @@ struct DisplayOptions {
     bool allow_frame_skipping = false;  // skip frame if CPU or terminal slow
 
     // Transparency options for background shown.
-    const char *bg_color = nullptr;          // Background color
-    const char *bg_pattern_color = nullptr;  // Checkerboard other color.
+    Framebuffer::rgba_t bg_color;          // Background color
+    Framebuffer::rgba_t bg_pattern_color;  // Checkerboard other color.
 };
 }  // namespace timg
 #endif  // DISPLAY_OPTIONS_H

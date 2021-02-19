@@ -176,7 +176,8 @@ int main(int argc, char *argv[]) {
     display_opts.width = term.width;
     display_opts.height = term.height;
 
-    display_opts.bg_color = "auto";  // Experimental
+    const char *bg_color = "auto";  // Experimental
+    const char *bg_pattern_color = nullptr;
     display_opts.allow_frame_skipping = GetBoolenEnv("TIMG_ALLOW_FRAME_SKIP");
 
     int output_fd = STDOUT_FILENO;
@@ -257,10 +258,10 @@ int main(int argc, char *argv[]) {
             display_opts.antialias = false;
             break;
         case 'b':
-            display_opts.bg_color = strdup(optarg);
+            bg_color = strdup(optarg);
             break;
         case 'B':
-            display_opts.bg_pattern_color = strdup(optarg);
+            bg_pattern_color = strdup(optarg);
             break;
         case 's':
             display_opts.scroll_animation = true;
@@ -398,16 +399,17 @@ int main(int argc, char *argv[]) {
     }
 
     // -- Some sanity checks and configuration editing.
-    if (display_opts.bg_color) {
-        if (strcasecmp(display_opts.bg_color, "auto") == 0) {
-            display_opts.bg_color = timg::DetermineBackgroundColor();
-            if (!display_opts.bg_color)  // Fallback if we couldn't determine
-                display_opts.bg_color = "black";
+    if (bg_color) {
+        if (strcasecmp(bg_color, "auto") == 0) {
+            bg_color = timg::DetermineBackgroundColor();
+            if (!bg_color) bg_color = "#000000"; // Fallback.
         }
-        else if (strcasecmp(display_opts.bg_color, "none") == 0) {
-            display_opts.bg_color = nullptr;
+        else if (strcasecmp(bg_color, "none") == 0) {
+            bg_color = nullptr;
         }
+        display_opts.bg_color = Framebuffer::ParseColor(bg_color);
     }
+    display_opts.bg_pattern_color = Framebuffer::ParseColor(bg_pattern_color);
 
     // There is no scroll if there is no movement.
     if (display_opts.scroll_dx == 0 && display_opts.scroll_dy == 0) {

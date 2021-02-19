@@ -16,6 +16,7 @@
 #include "terminal-canvas.h"
 
 #include <assert.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -74,6 +75,48 @@ uint8_t** Framebuffer::row_data() {
         row_data_[height_] = nullptr;  // empty sentinel value.
     }
     return row_data_;
+}
+
+Framebuffer::rgba_t Framebuffer::ParseColor(const char *color) {
+    if (!color) return to_rgba(0, 0, 0, 0);
+    uint32_t r, g, b;
+    if ((sscanf(color, "#%02x%02x%02x", &r, &g, &b) == 3) ||
+        (sscanf(color, "rgb(%d, %d, %d)", &r, &g, &b) == 3)) {
+        return to_rgba(r, g, b, 0xff);
+    }
+    fprintf(stderr, "Couldn't parse color '%s'\n", color);
+    return to_rgba(0, 0, 0, 0);
+}
+
+static Framebuffer::rgba_t AlphaBlend(const uint32_t *bg,
+                                      Framebuffer::rgba_t c) {
+    const uint32_t col = le32toh(c);  // NOP on common LE platforms
+    const uint32_t alpha = c >> 24;
+    if (alpha == 0xff) return c;
+
+    uint32_t fgc[3] = { (col>>0) & 0xff, (col>>8) & 0xff, (col>>16) & 0xff };
+    uint32_t out[3];
+    for (int i = 0; i < 3; ++i) {
+        out[i] = sqrtf((fgc[i]*fgc[i]        * alpha +
+                        bg[i] * (0xFF - alpha)) / 0xff);
+    }
+    return Framebuffer::to_rgba(out[0], out[1], out[2], 0xff);
+}
+
+void Framebuffer::AlphaComposeBackground(rgba_t bgcolor) {
+    const uint32_t bcol = le32toh(bgcolor);
+    const uint32_t bg_alpha = bcol >> 24;
+    if (bg_alpha == 0x00) return; // nothing to do.
+    assert(bg_alpha == 0xff);   // We don't support partially transparent bg.
+    const uint32_t premultiplied_bg[3] = {
+        (bcol & 0xff) * (bcol & 0xff),
+        ((bcol>> 8) & 0xff) * ((bcol>> 8) & 0xff),
+        ((bcol>>16) & 0xff) * ((bcol>>16) & 0xff)
+    };
+    const rgba_t *const end = pixels_ + width_ * height_;
+    for (rgba_t *pos = pixels_; pos < end; ++pos) {
+        *pos = AlphaBlend(premultiplied_bg, *pos);
+    }
 }
 
 #define SCREEN_CLEAR            "\033c"
@@ -183,11 +226,9 @@ static inline char *str_append(char *pos, const char *value, size_t len) {
 
 // Append two rows of pixels at once, by writing a half-block character with
 // foreground/background.
-static char *AppendDoubleRow(
-    char *pos, int indent, int width,
-    const Framebuffer::rgba_t *top_line,    const char *set_top_pixel_color,
-    const Framebuffer::rgba_t *bottom_line, const char *set_btm_pixel_color,
-    const char *pixel_glyph) {
+char *TerminalCanvas::AppendDoubleRow(char *pos, int indent, int width,
+                                      const Framebuffer::rgba_t *top_line,
+                                      const Framebuffer::rgba_t *bottom_line) {
     static constexpr char kStartEscape[] = "\033[";
     // Since we're not dealing with alpha yet, we can use that as a sentinel.
     Framebuffer::rgba_t last_top_color = Framebuffer::to_rgba(0, 0, 0, 0xaa);
@@ -202,28 +243,28 @@ static char *AppendDoubleRow(
             if (top_color != last_top_color) {
                 // Appending prefix. At this point, it can only be kStartEscape
                 pos = str_append(pos, kStartEscape, strlen(kStartEscape));
-                pos = str_append(pos, set_top_pixel_color, PIXEL_SET_COLOR_LEN);
+                pos = str_append(pos, set_upper_color_, PIXEL_SET_COLOR_LEN);
                 pos = WriteAnsiColor(pos, top_color);
                 last_top_color = top_color;
                 color_emitted = true;
             }
         }
         if (bottom_line) {
-            const Framebuffer::rgba_t bottom_color = *bottom_line++;
-            if (bottom_color != last_bottom_color) {
+            const Framebuffer::rgba_t bot_color = *bottom_line++;
+            if (bot_color != last_bottom_color) {
                 if (!color_emitted) {
                     pos = str_append(pos, kStartEscape, strlen(kStartEscape));
                 }
-                pos = str_append(pos, set_btm_pixel_color, PIXEL_SET_COLOR_LEN);
-                pos = WriteAnsiColor(pos, bottom_color);
-                last_bottom_color = bottom_color;
+                pos = str_append(pos, set_lower_color_, PIXEL_SET_COLOR_LEN);
+                pos = WriteAnsiColor(pos, bot_color);
+                last_bottom_color = bot_color;
                 color_emitted = true;
             }
         }
         if (color_emitted) {
             *(pos-1) = 'm';   // overwrite semicolon with finish ESC seq.
         }
-        pos = str_append(pos, pixel_glyph, PIXEL_BLOCK_CHARACTER_LEN);
+        pos = str_append(pos, pixel_character_, PIXEL_BLOCK_CHARACTER_LEN);
     }
 
     pos = str_append(pos, SCREEN_END_OF_LINE, SCREEN_END_OF_LINE_LEN);
@@ -262,9 +303,7 @@ void TerminalCanvas::Send(int x, int dy, const Framebuffer &framebuffer) {
         bottom_line = (row+1) >= height ? nullptr : &pixels[width*(row + 1)];
 
         pos = AppendDoubleRow(pos, x, width,
-                              top_line, set_upper_color_,
-                              bottom_line, set_lower_color_,
-                              pixel_character_);
+                              top_line, bottom_line);
     }
     WriteBuffer(start_buffer, pos - start_buffer);
 }

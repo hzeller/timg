@@ -106,6 +106,7 @@ const char *VideoLoader::VersionInfo() {
 bool VideoLoader::LoadAndScale(const DisplayOptions &display_options,
                                int max_frames) {
     allow_frame_skip_ = display_options.allow_frame_skipping;
+    bgcolor_ = display_options.bg_color;
     const char *file = (filename() == "-")
         ? "/dev/stdin"
         : filename().c_str();
@@ -251,6 +252,7 @@ void VideoLoader::SendFrames(Duration duration, const int frames, int loops,
                                   0, codec_context_->height,
                                   terminal_fb_->row_data(),
                                   terminal_fb_->stride());
+                        terminal_fb_->AlphaComposeBackground(bgcolor_);
                         const int dy = is_first ? 0 : -terminal_fb_->height();
                         sink(center_indentation_, dy, *terminal_fb_);
                         is_first = false;

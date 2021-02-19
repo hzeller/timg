@@ -34,14 +34,11 @@ static void CopyToFramebuffer(const Magick::Image &img,
     for (size_t y = 0; y < img.rows(); ++y) {
         for (size_t x = 0; x < img.columns(); ++x) {
             const Magick::Color &c = img.pixelColor(x, y);
-            // More value means more transparent; unlike other contexts where
-            // more alpha usually means more opaque.
-            if (ScaleQuantumToChar(c.alphaQuantum()) >= 128)
-                continue;
-            result->SetPixel(x, y,
-                             ScaleQuantumToChar(c.redQuantum()),
-                             ScaleQuantumToChar(c.greenQuantum()),
-                             ScaleQuantumToChar(c.blueQuantum()));
+            result->SetPixel(x, y, Framebuffer::to_rgba(
+                                 ScaleQuantumToChar(c.redQuantum()),
+                                 ScaleQuantumToChar(c.greenQuantum()),
+                                 ScaleQuantumToChar(c.blueQuantum()),
+                                 0xff - ScaleQuantumToChar(c.alphaQuantum())));
         }
     }
 }
@@ -50,10 +47,12 @@ static void CopyToFramebuffer(const Magick::Image &img,
 // does not have to be done online. Also knows about the animation delay.
 class ImageLoader::PreprocessedFrame {
 public:
-    PreprocessedFrame(const Magick::Image &img, bool is_part_of_animation)
+    PreprocessedFrame(const Magick::Image &img, Framebuffer::rgba_t bg_color,
+                      bool is_part_of_animation)
         : delay_(DurationFromImgDelay(img, is_part_of_animation)),
           framebuffer_(img.columns(), img.rows()) {
         CopyToFramebuffer(img, &framebuffer_);
+        framebuffer_.AlphaComposeBackground(bg_color);
     }
     Duration delay() const { return delay_; }
     const timg::Framebuffer &framebuffer() const { return framebuffer_; }
@@ -70,16 +69,7 @@ private:
     timg::Framebuffer framebuffer_;
 };
 
-static Magick::Color colorFromString(const char *color) {
-    if (!color) return Magick::Color("black");
-    int r, g, b;
-    if (sscanf(color, "rgb:%x/%x/%x", &r, &g, &b) == 3) {
-        // Format returned from xtermcontrol --get-bg
-        return Magick::ColorRGB(r / 65535.0, g / 65535.0, b / 65535.0);
-    }
-    return Magick::Color(color);
-}
-
+#if 0
 static void RenderBackground(int width, int height,
                              const char *bg, const char *pattern,
                              Magick::Image *bgimage) {
@@ -96,6 +86,7 @@ static void RenderBackground(int width, int height,
         }
     }
 }
+#endif
 
 ImageLoader::~ImageLoader() {
     for (PreprocessedFrame *f : frames_) delete f;
@@ -214,6 +205,7 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts, int max_frames) {
         if (exif_op.flip) img.flip();
         img.rotate(exif_op.angle);
 
+#if 0
         // If these are transparent and should get a background, apply that.
         if (opts.bg_color || opts.bg_pattern_color) {
             Magick::Image target;
@@ -230,7 +222,9 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts, int max_frames) {
                 // as-is.
             }
         }
-        frames_.push_back(new PreprocessedFrame(img, result.size() > 1));
+#endif
+        frames_.push_back(new PreprocessedFrame(img, opts.bg_color,
+                                                result.size() > 1));
     }
 
     return true;

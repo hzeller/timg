@@ -23,7 +23,8 @@
 namespace timg {
 class TerminalCanvas;
 
-// Very simple framebuffer.
+// Very simple framebuffer, storing widht*height pixels in RGBA format
+// (always R=first byte, B=second byte; independent of architecture)
 class Framebuffer {
 public:
     // Note, this is always in little endian
@@ -34,11 +35,6 @@ public:
     Framebuffer() = delete;
     Framebuffer(const Framebuffer &other) = delete;
     ~Framebuffer();
-
-    // Utility function to generate an rgba_t value from components.
-    // Given red, green, blue and alpha value: convert to rgba_t type to the
-    // correct byte order.
-    static rgba_t to_rgba(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
 
     void SetPixel(int x, int y, rgba_t value);
     void SetPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b) {
@@ -54,19 +50,31 @@ public:
     inline int width() const { return width_; }
     inline int height() const { return height_; }
 
+    // Blend all transparent pixels with the given background and make
+    // them a solid color.
+    void AlphaComposeBackground(rgba_t bgcolor);
+
     // The raw internal buffer containing width()*height() pixels organized
     // from top left to bottom right.
     rgba_t *data() { return pixels_; }
     const rgba_t *data() const { return pixels_; }
 
     // -- the following two methods are useful with line-oriented sws_scale()
-
     // Return an array containing the amount of bytes for each line.
     // This is returned as an array.
     const int* stride() const { return strides_; }
 
     // Return an array containing pointers to the data for each line.
     uint8_t** row_data();
+
+public:
+    // Utility function to generate an rgba_t value from components.
+    // Given red, green, blue and alpha value: convert to rgba_t type to the
+    // correct byte order.
+    static rgba_t to_rgba(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+
+    // Parse a color given as string.
+    static rgba_t ParseColor(const char *color);
 
 private:
     const int width_;
@@ -112,6 +120,9 @@ private:
     // Return a buffer large enough to hold the whole ANSI-color encoded text.
     char *EnsureBuffer(int width, int height);
 
+    char *AppendDoubleRow(char *pos, int indent, int width,
+                          const Framebuffer::rgba_t *top_line,
+                          const Framebuffer::rgba_t *bottom_line);
     char *content_buffer_ = nullptr;  // Buffer containing content to write out
     size_t buffer_size_ = 0;
 };

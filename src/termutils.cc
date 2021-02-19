@@ -150,8 +150,15 @@ char* DetermineBackgroundColor() {
         return nullptr;
 
     char *const start_color = found_start + kPrefixLen;
-    start_color[kColorLen] = '\0';
-    return strdup(start_color);
+
+    // Assemble a standard #rrggbb string; NB, just not overlapping buffer areas
+    buffer[0] = '#';
+    memcpy(&buffer[1], &start_color[4], 2);
+    memcpy(&buffer[3], &start_color[9], 2);
+    memcpy(&buffer[5], &start_color[14], 2);
+    buffer[7] = '\0';
+
+    return strdup(buffer);
 }
 
 }  // namespace timg
