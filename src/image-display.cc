@@ -34,7 +34,9 @@ static void CopyToFramebuffer(const Magick::Image &img,
     for (size_t y = 0; y < img.rows(); ++y) {
         for (size_t x = 0; x < img.columns(); ++x) {
             const Magick::Color &c = img.pixelColor(x, y);
-            if (c.alphaQuantum() >= 255)
+            // More value means more transparent; unlike other contexts where
+            // more alpha usually means more opaque.
+            if (ScaleQuantumToChar(c.alphaQuantum()) >= 128)
                 continue;
             result->SetPixel(x, y,
                              ScaleQuantumToChar(c.redQuantum()),
@@ -218,16 +220,15 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts, int max_frames) {
             try {
                 RenderBackground(img.columns(), img.rows(),
                                  opts.bg_color, opts.bg_pattern_color, &target);
+                target.composite(img, 0, 0, Magick::OverCompositeOp);
+                target.animationDelay(img.animationDelay());  // lost otherwise.
+                img = target;
             }
             catch (const std::exception& e) {
-                if (kDebug)
-                    fprintf(stderr, "%s: bgcolor: %s\n",
-                            filename().c_str(), e.what());
-                return false;
+                fprintf(stderr, "bgcolor: %s\n", e.what());
+                // Possibly a background parsing issue. Don't worry, just show
+                // as-is.
             }
-            target.composite(img, 0, 0, Magick::OverCompositeOp);
-            target.animationDelay(img.animationDelay());  // lost otherwise.
-            img = target;
         }
         frames_.push_back(new PreprocessedFrame(img, result.size() > 1));
     }
@@ -283,7 +284,7 @@ void ImageLoader::SendFrames(Duration duration, int max_frames, int loops,
                            ? Time::Now()
                            : frame_start + frame_delay);
             if (frame_start >= end_time) break;  // No point to wait.
-            frame_start.WaitUntil();
+            if (!frame_delay.is_zero()) frame_start.WaitUntil();
             const int dx = IndentationIfCentered(frame);
             const int dy = is_animation_ && last_height > 0 ? -last_height : 0;
             sink(dx, dy, frame->framebuffer());

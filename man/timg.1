@@ -95,6 +95,9 @@ which is a common format coming back from terminal queries
 As a `special' color, \f[B]auto\f[R] is allowed, which attempts to query
 the terminal for its background color (Best effort; not all terminals
 support that).
+If detection fails, the fallback is `black'.
+.PP
+The special value \f[B]none\f[R] switches off blending background color.
 .RE
 .TP
 \f[B]-B\f[R] <\f[I]checkerboard-other-color\f[R]>
@@ -212,7 +215,9 @@ If frame-count is set to 1, the output behaves like a static image.
 .TP
 \f[B]--scroll\f[R][=<\f[I]ms\f[R]>]
 Scroll horizontally with an optional delay between updates (default:
-60ms)
+60ms).
+In the EXAMPLES section is an example how to use ImageMagick to create a
+text that you then can scroll with \f[B]timg\f[R] over the terminal.
 .TP
 \f[B]--delta-move\f[R]=<\f[I]dx\f[R]>:<\f[I]dy\f[R]>
 Scroll with delta x and delta y.
@@ -264,8 +269,8 @@ forget about it.
 .RE
 .SH EXAMPLES
 .PP
-Some example invocations including scrolling diagonally or streaming an
-online video are collected at <https://github.com/hzeller/timg#examples>
+Some example invocations including scrolling text or streaming an online
+video are put together at <https://github.com/hzeller/timg#examples>
 .SH KNOWN ISSUES
 .PP
 This requires a terminal that can deal with Unicode characters and 24

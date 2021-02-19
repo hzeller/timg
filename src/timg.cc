@@ -102,7 +102,7 @@ static int usage(const char *progname, ExitCode exit_code, int w, int h) {
             "\t-w<seconds>    : If multiple images given: Wait time between (default: 0.0).\n"
             "\t-a             : Switch off anti aliasing (default: on)\n"
             "\t-b<str>        : Background color to use on transparent images.\n"
-            "\t                 format 'yellow', '#rrggbb' or 'auto' (default 'auto').\n"
+            "\t                 format 'yellow', '#rrggbb' or 'auto' or 'none' (default 'auto').\n"
             "\t-B<str>        : Checkerboard pattern color to use on transparent images (default '').\n"
             "\t--auto-crop[=<pre-crop>] : Crop away all same-color pixels around image.\n"
             "\t                 The optional pre-crop is the width of border to\n"
@@ -397,8 +397,16 @@ int main(int argc, char *argv[]) {
     }
 
     // -- Some sanity checks and configuration editing.
-    if (display_opts.bg_color && strcasecmp(display_opts.bg_color, "auto") == 0)
-        display_opts.bg_color = timg::DetermineBackgroundColor();
+    if (display_opts.bg_color) {
+        if (strcasecmp(display_opts.bg_color, "auto") == 0) {
+            display_opts.bg_color = timg::DetermineBackgroundColor();
+            if (!display_opts.bg_color)  // Fallback if we couldn't determine
+                display_opts.bg_color = "black";
+        }
+        else if (strcasecmp(display_opts.bg_color, "none") == 0) {
+            display_opts.bg_color = nullptr;
+        }
+    }
 
     // There is no scroll if there is no movement.
     if (display_opts.scroll_dx == 0 && display_opts.scroll_dy == 0) {
@@ -448,7 +456,7 @@ int main(int argc, char *argv[]) {
 
     // Async image loading, preparing them in a thread pool
     thread_count = (thread_count > 0 ? thread_count : kDefaultThreadCount);
-    timg::ThreadPool pool(thread_count);
+    timg::ThreadPool pool(std::min(thread_count, (int)filelist.size()));
     std::vector<std::future<timg::ImageSource*>> loaded_sources;
     for (const std::string &filename : filelist) {
         if (interrupt_received) break;

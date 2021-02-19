@@ -82,7 +82,9 @@ these file decoders (GraphicsMagick or libav respectively).
 
      As a 'special' color, **auto** is allowed, which attempts to query the
      terminal for its background color (Best effort; not all terminals support
-     that).
+     that). If detection fails, the fallback is 'black'.
+
+     The special value **none** switches off blending background color.
 
 **-B** &lt;*checkerboard-other-color*&gt;
 :    Show the background of a transparent image in a checkerboard pattern with
@@ -185,7 +187,9 @@ limit infinity.
 ## Scrolling
 
 **-\-scroll**[=&lt;*ms*&gt;]
-:    Scroll horizontally with an optional delay between updates (default: 60ms)
+:    Scroll horizontally with an optional delay between updates (default: 60ms).
+     In the [EXAMPLES](#EXAMPLES) section is an example how to use ImageMagick
+     to create a text that you then can scroll with **timg** over the terminal.
 
 **-\-delta-move**=&lt;*dx*&gt;\:&lt;*dy*&gt;
 :    Scroll with delta x and delta y. The default of 1:0 scrolls it horizontally,
@@ -234,8 +238,8 @@ Exit code is
 
 # EXAMPLES
 
-Some example invocations including scrolling diagonally or streaming an
-online video are collected at <https://github.com/hzeller/timg#examples>
+Some example invocations including scrolling text or streaming an
+online video are put together at <https://github.com/hzeller/timg#examples>
 
 # KNOWN ISSUES
 

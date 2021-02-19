@@ -5,8 +5,10 @@
 timg - Terminal Image and Video Viewer
 ======================================
 
-A viewer that uses 24-Bit color capabilities and unicode character blocks
-to display images in the terminal.
+### http://timg.sh
+
+A user-friendly viewer that uses 24-Bit color capabilities and unicode
+character blocks to display images, animations and videos in the terminal.
 
 ![](./img/sunflower-term.png)
 
@@ -97,7 +99,7 @@ Options:
         -w<seconds>    : If multiple images given: Wait time between (default: 0.0).
         -a             : Switch off anti aliasing (default: on)
         -b<str>        : Background color to use on transparent images.
-                         format 'yellow', '#rrggbb' or 'auto' (default 'auto').
+                         format 'yellow', '#rrggbb' or 'auto' or 'none' (default 'auto').
         -B<str>        : Checkerboard pattern color to use on transparent images (default '').
         --auto-crop[=<pre-crop>] : Crop away all same-color pixels around image.
                          The optional pre-crop is the width of border to
@@ -157,11 +159,15 @@ locate "*.jpg" > /tmp/allimg.txt ; timg -f /tmp/allimg.txt
 timg -W --auto-crop some-document.pdf
 timg --frames=1 some-document.pdf    # Show a PDF, but only first page
 
+# Reading images from a pipe. The filename '-' means 'read from stdin.
+# In this example generating a QR code and have timg display it:
+qrencode -s1 -m2 "http://timg.sh/" -o- | timg -
+
 # Open an image from a URL. URLs are internally actually handled by the
 # video subsystem, so it is treated as a single-frame 'film', nevertheless,
 # many image-URLs just work. But some image-specific features, such as trimming
 # or scrolling, won't work.
-timg -C https://i.kym-cdn.com/photos/images/newsfeed/000/406/282/2b8.jpg
+timg --center https://i.kym-cdn.com/photos/images/newsfeed/000/406/282/2b8.jpg
 
 # Sometimes, it is necessary to manually crop a few pixels from an
 # uneven border before the auto-crop finds uniform color all-around to remove.
@@ -198,8 +204,8 @@ timg --scroll some-image.jpg       # scroll a static image as banner (stop with 
 timg --scroll=100 some-image.jpg   # scroll with 100ms delay
 
 # Create a text with the ImageMagick 'convert' tool and send to timg to scroll
-convert -size 1000x60 xc:none -box black -fill red -gravity center \
-      -pointsize 42 -draw 'text 0,0 "Watchen the blinkenlights."' -trim png:- \
+convert -size 1000x60 xc:none -fill red -gravity center -pointsize 42 \
+        -draw 'text 0,0 "Watchen the blinkenlights..."' -trim png:-   \
       | timg --scroll=20 -
 
 # Scroll direction. Horizontally, vertically; how about diagonally ?
@@ -246,23 +252,41 @@ while : ; do xzcat... ; done
 
 ### Terminal considerations
 
+#### Choice of rendering block
 Note, this requires that your terminal can display
 [24 bit true color][24-bit-term] and is able to display the unicode
 characters [▄](U+2584 - 'Lower Half Block') and [▀](U+2580 - 'Upper Half Block').
 If not, it doesn't show anything or it looks like gibberish. These days, most
-terminals have these minimum requirements.
+terminal emulators meet these minimum requirements.
 
 By default, `timg` uses the 'lower half block' to show the pixels. Depending
 on the font the terminal is using, using the upper block might look better,
 so it is possible to change the default with an environment variable.
 Play around with this value if the output looks poor on your terminal. I found
-that on my system there is no difference for `konsole` or `xterm` but the
-[`cool-retro-term`][cool-retro-term] looks better with the lower block, this is why it is the
-default. To change, set this environment variable:
+that on my system there is no difference for [`konsole`][konsole] or `xterm` but the
+[`cool-retro-term`][cool-retro-term] looks better with the lower block, this is why it is the default.
+
+In some terminals, such as [alacritty] (and only with small fonts), there
+seems to be the opposite working better. To change, set this environment
+variable:
 
 ```
 export TIMG_USE_UPPER_BLOCK=1   # change default to use upper block.
 ```
+
+##### What the wrong choice of block looks like
+
+The image generally looks a bit 'glitchy' if the terminal leaves little
+space between blocks, so that the wrong background color shows on a single
+line between pixels. In the following illustration you see how that looks like.
+If you see that, change the `TIMG_USE_UPPER_BLOCK` environment variable.
+
+Glitchy. Change TIMG_USE_UPPER_BLOCK| Looks good
+------------------------------------|-------------------------------|
+![](img/needs-block-change.png)     | ![](img/block-ok.png)|
+
+
+#### Tested terminal emulators
 
 Tested terminals: `konsole` >= 2.14.1, `gnome-terminal` > 3.6.2 look good,
 recent xterms also seem to work (albeit with less color richness).
@@ -278,3 +302,5 @@ For Mac users, at least the combination of macOS 11.2 and iTerm2 3.4.3 works.
 
 [24-bit-term]: https://gist.github.com/XVilka/8346728
 [cool-retro-term]: https://github.com/Swordfish90/cool-retro-term
+[konsole]: https://konsole.kde.org/
+[alacritty]: https://github.com/alacritty/alacritty
