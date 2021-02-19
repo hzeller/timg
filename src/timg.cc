@@ -493,7 +493,5 @@ int main(int argc, char *argv[]) {
     if (interrupt_received)   // Make 'Ctrl-C' appear on new line.
         fprintf(stderr, "\n");
 
-    close(output_fd);
-
     return (int)exit_code;
 }
