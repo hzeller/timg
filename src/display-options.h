@@ -47,6 +47,8 @@ struct DisplayOptions {
     int scroll_dy = 0;          // scroll in y-direction.
     Duration scroll_delay = Duration::Millis(50); // delay between updates.
 
+    bool allow_frame_skipping = false;  // skip frame if CPU or terminal slow
+
     // Transparency options for background shown.
     const char *bg_color = nullptr;          // Background color
     const char *bg_pattern_color = nullptr;  // Checkerboard other color.

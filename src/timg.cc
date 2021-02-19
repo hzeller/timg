@@ -177,6 +177,7 @@ int main(int argc, char *argv[]) {
     display_opts.height = term.height;
 
     display_opts.bg_color = "auto";  // Experimental
+    display_opts.allow_frame_skipping = GetBoolenEnv("TIMG_ALLOW_FRAME_SKIP");
 
     int output_fd = STDOUT_FILENO;
     std::vector<std::string> filelist;  // from -f<filelist> and command line

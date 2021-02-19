@@ -167,13 +167,12 @@ bool JPEGSource::LoadAndScale(const DisplayOptions &opts, int max_frames) {
     }
 
     // Decode into an RGB buffer
-    const TJPF decode_pixel_format = TJPF_RGB;
+    const TJPF decode_pixel_format = TJPF_RGBA;
     const int decode_pixel_width = tjPixelSize[decode_pixel_format];
     const int decode_row_bytes = decode_width * decode_pixel_width;
-    std::unique_ptr<uint8_t[]> decode_buffer(
-        new uint8_t [decode_row_bytes * decode_height]);
+    timg::Framebuffer decode_image(decode_width, decode_height);
     if (tjDecompress2(handle, jpeg_content, filesize,
-                      (uint8_t*) decode_buffer.get(),
+                      (uint8_t*) decode_image.data(),
                       decode_width, decode_row_bytes, decode_height,
                       decode_pixel_format, 0) != 0) {
         return false;
@@ -182,25 +181,16 @@ bool JPEGSource::LoadAndScale(const DisplayOptions &opts, int max_frames) {
     // Further scaling to desired target width/height
     av_log_set_callback(dummy_log);
     SwsContext *swsCtx = sws_getContext(decode_width, decode_height,
-                                        AV_PIX_FMT_RGB24,
+                                        AV_PIX_FMT_RGBA,
                                         target_width, target_height,
                                         AV_PIX_FMT_RGBA,
                                         SWS_BILINEAR, NULL, NULL, NULL);
     if (!swsCtx) return false;
     image_.reset(new timg::Framebuffer(target_width, target_height));
 
-    // Set up slices and strides as expected by sws_scale()
-    std::unique_ptr<uint8_t*[]> src_slice(new uint8_t* [ decode_height ]);
-    for (int i = 0; i < decode_height; ++i)
-        src_slice[i] = (uint8_t*)decode_buffer.get() + i * decode_row_bytes;
-    std::unique_ptr<uint8_t*[]> dst_slice(new uint8_t* [ target_height ]);
-    for (int i = 0; i < target_height; ++i)
-        dst_slice[i] = (uint8_t*)image_->data() + i * 4 * target_width;
-    int src_stride[2] = { decode_row_bytes, 0 };
-    int dst_stride[2] = { 4 * target_width, 0 };
-    sws_scale(swsCtx, src_slice.get(), src_stride,
+    sws_scale(swsCtx, decode_image.row_data(), decode_image.stride(),
               0, decode_height,
-              dst_slice.get(), dst_stride);
+              image_->row_data(), image_->stride());
     sws_freeContext(swsCtx);
 
     image_.reset(ApplyExifOp(image_.release(), exif_op));

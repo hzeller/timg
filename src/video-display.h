@@ -51,13 +51,12 @@ public:
                     const Renderer::WriteFramebufferFun &sink) final;
 
 private:
-    void CopyToFramebuffer(const AVFrame *av_frame);
     bool DecodePacket(AVPacket *packet, AVFrame *output_frame);
 
+    bool allow_frame_skip_ = false;
     int video_stream_index_ = -1;
     AVFormatContext *format_context_ = nullptr;
     AVCodecContext *codec_context_ = nullptr;
-    AVFrame *output_frame_ = nullptr;
     SwsContext *sws_context_ = nullptr;
     timg::Duration frame_duration_;  // 1/fps
     timg::Framebuffer *terminal_fb_ = nullptr;

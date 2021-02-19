@@ -236,6 +236,14 @@ Exit code is
     turns out to yield a better result on your system, you can set it once
     in your profile and forget about it.
 
+
+**TIMG_ALLOW_FRAME_SKIP**
+:   Set this environment variable to 1 if you like to allow timg to drop frames
+    when play-back is falling behind.
+    This is particularly useful if you are on a very slow remote terminal
+    connection that can't keep up with playing videos. Or if you have a very
+    slow CPU.
+
 # EXAMPLES
 
 Some example invocations including scrolling text or streaming an

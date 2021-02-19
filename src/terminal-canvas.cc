@@ -34,10 +34,13 @@ namespace timg {
 
 Framebuffer::Framebuffer(int w, int h)
     : width_(w), height_(h), pixels_(new rgba_t [ width_ * height_]) {
+    strides_[0] = (int)sizeof(rgba_t) * width_;
+    strides_[1] = 0;  // empty sentinel value.
     Clear();
 }
 
 Framebuffer::~Framebuffer() {
+    delete [] row_data_;
     delete [] pixels_;
 }
 
@@ -61,6 +64,16 @@ Framebuffer::rgba_t Framebuffer::to_rgba(
                    (uint32_t)g <<  8 |
                    (uint32_t)b << 16 |
                    (uint32_t)a << 24);
+}
+
+uint8_t** Framebuffer::row_data() {
+    if (!row_data_) {
+        row_data_ = new uint8_t* [ height_ + 1];
+        for (int i = 0; i < height_; ++i)
+            row_data_[i] = (uint8_t*)pixels_ + i * width_ * sizeof(rgba_t);
+        row_data_[height_] = nullptr;  // empty sentinel value.
+    }
+    return row_data_;
 }
 
 #define SCREEN_CLEAR            "\033c"

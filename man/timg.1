@@ -267,6 +267,13 @@ This is an environment variable because if it turns out to yield a
 better result on your system, you can set it once in your profile and
 forget about it.
 .RE
+.TP
+\f[B]TIMG_ALLOW_FRAME_SKIP\f[R]
+Set this environment variable to 1 if you like to allow timg to drop
+frames when play-back is falling behind.
+This is particularly useful if you are on a very slow remote terminal
+connection that can\[cq]t keep up with playing videos.
+Or if you have a very slow CPU.
 .SH EXAMPLES
 .PP
 Some example invocations including scrolling text or streaming an online

@@ -35,13 +35,20 @@ public:
     Framebuffer(const Framebuffer &other) = delete;
     ~Framebuffer();
 
+    // Utility function to generate an rgba_t value from components.
+    // Given red, green, blue and alpha value: convert to rgba_t type to the
+    // correct byte order.
+    static rgba_t to_rgba(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+
     void SetPixel(int x, int y, rgba_t value);
     void SetPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b) {
         SetPixel(x, y, to_rgba(r, g, b, 0xFF));
     }
 
+    // Get pixel data at given position.
     rgba_t at(int x, int y) const;
 
+    // Clear to fully transparent black pixels.
     void Clear();
 
     inline int width() const { return width_; }
@@ -52,15 +59,21 @@ public:
     rgba_t *data() { return pixels_; }
     const rgba_t *data() const { return pixels_; }
 
-    // Utility function to generate an rgba_t value from components.
-    // Given red, green, blue and alpha value: convert to rgba_t type to the
-    // correct byte order.
-    static rgba_t to_rgba(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+    // -- the following two methods are useful with line-oriented sws_scale()
+
+    // Return an array containing the amount of bytes for each line.
+    // This is returned as an array.
+    const int* stride() const { return strides_; }
+
+    // Return an array containing pointers to the data for each line.
+    uint8_t** row_data();
 
 private:
     const int width_;
     const int height_;
     rgba_t *const pixels_;
+    int strides_[2];
+    uint8_t** row_data_ = nullptr;  // Only allocated if requested.
 };
 
 // Canvas that can send a framebuffer to a terminal.

@@ -56,7 +56,7 @@ static SwsContext *CreateSWSContext(const AVCodecContext *codec_ctx,
     SwsContext *swsCtx = sws_getContext(codec_ctx->width, codec_ctx->height,
                                         src_pix_fmt,
                                         display_width, display_height,
-                                        AV_PIX_FMT_RGB24,
+                                        AV_PIX_FMT_RGBA,
                                         SWS_BILINEAR, NULL, NULL, NULL);
     if (src_range_extended_yuvj) {
         // Manually set the source range to be extended. Read modify write.
@@ -95,7 +95,6 @@ VideoLoader::VideoLoader(const std::string &filename) : ImageSource(filename) {
 VideoLoader::~VideoLoader() {
     avcodec_close(codec_context_);
     sws_freeContext(sws_context_);
-    av_frame_free(&output_frame_);
     avformat_close_input(&format_context_);
     delete terminal_fb_;
 }
@@ -106,6 +105,7 @@ const char *VideoLoader::VersionInfo() {
 
 bool VideoLoader::LoadAndScale(const DisplayOptions &display_options,
                                int max_frames) {
+    allow_frame_skip_ = display_options.allow_frame_skipping;
     const char *file = (filename() == "-")
         ? "/dev/stdin"
         : filename().c_str();
@@ -188,14 +188,6 @@ bool VideoLoader::LoadAndScale(const DisplayOptions &display_options,
         return false;
     }
 
-    // The output_frame_ will receive the scaled result.
-    output_frame_ = av_frame_alloc();
-    if (av_image_alloc(output_frame_->data, output_frame_->linesize,
-                       target_width, target_height, AV_PIX_FMT_RGB24,
-                       64) < 0) {
-        return false;
-    }
-
     // Framebuffer to interface with the timg TerminalCanvas
     terminal_fb_ = new timg::Framebuffer(target_width, target_height);
     return true;
@@ -211,16 +203,6 @@ bool VideoLoader::DecodePacket(AVPacket *packet, AVFrame *output_frame) {
     return avcodec_receive_frame(codec_context_, output_frame) == 0;
 }
 
-void VideoLoader::CopyToFramebuffer(const AVFrame *av_frame) {
-    struct Pixel { uint8_t r, g, b; } __attribute__((packed));
-    for (int y = 0; y < terminal_fb_->height(); ++y) {
-        Pixel *pix = (Pixel*) (av_frame->data[0] + y*av_frame->linesize[0]);
-        for (int x = 0; x < terminal_fb_->width(); ++x, ++pix) {
-            terminal_fb_->SetPixel(x, y, pix->r, pix->g, pix->b);
-        }
-    }
-}
-
 void VideoLoader::SendFrames(Duration duration, const int frames, int loops,
                              const volatile sig_atomic_t &interrupt_received,
                              const Renderer::WriteFramebufferFun &sink) {
@@ -230,7 +212,7 @@ void VideoLoader::SendFrames(Duration duration, const int frames, int loops,
         loops = 1;
 
     // Unlike animated images, in which a not set value in loops means
-    // 'infinite' repeat, it feels more sensible to repeat videos exactly once
+    // 'infinite' repeat, it feels more sensible to show videos exactly once
     // then. A negative value otherwise is considered 'forever'
     const bool loop_forever = (loops < 0) && (loops != timg::kNotInitialized);
     if (loops == timg::kNotInitialized)
@@ -258,21 +240,21 @@ void VideoLoader::SendFrames(Duration duration, const int frames, int loops,
                && av_read_frame(format_context_, packet) >= 0
                && (!frame_limit || remaining_frames > 0)) {
             if (packet->stream_index == video_stream_index_) {
-                // Determine absolute end of this frame now so that we
-                // don't include decoding overhead.
-                // TODO: skip frames if getting too much behind ?
+                // Determine absolute end of this frame now so that we don't
+                // include decoding overhead and can skip if we fall behind.
                 end_next_frame.Add(frame_duration_);
 
-                // Decode video frame
                 if (DecodePacket(packet, decode_frame)) {
-                    sws_scale(sws_context_,
-                              decode_frame->data, decode_frame->linesize,
-                              0, codec_context_->height,
-                              output_frame_->data, output_frame_->linesize);
-                    CopyToFramebuffer(output_frame_);
-                    const int dy = is_first ? 0 : -terminal_fb_->height();
-                    sink(center_indentation_, dy, *terminal_fb_);
-                    is_first = false;
+                    if (!allow_frame_skip_ || Time::Now() < end_next_frame) {
+                        sws_scale(sws_context_,
+                                  decode_frame->data, decode_frame->linesize,
+                                  0, codec_context_->height,
+                                  terminal_fb_->row_data(),
+                                  terminal_fb_->stride());
+                        const int dy = is_first ? 0 : -terminal_fb_->height();
+                        sink(center_indentation_, dy, *terminal_fb_);
+                        is_first = false;
+                    }
                     if (frame_limit) --remaining_frames;
                 }
                 end_next_frame.WaitUntil();
