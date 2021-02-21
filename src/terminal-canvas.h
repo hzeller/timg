@@ -29,6 +29,7 @@ class Framebuffer {
 public:
     // Note, this is always in little endian
     // 'red' is stored in the first byte, 'green' 2nd, 'blue' 3d, 'alpha' 4th
+    // Consider this type opaque, use ParseColor() and to_rgba() to interact.
     typedef uint32_t rgba_t;
 
     Framebuffer(int width, int height);
@@ -36,10 +37,9 @@ public:
     Framebuffer(const Framebuffer &other) = delete;
     ~Framebuffer();
 
+    // Set a pixel at position X/Y with rgba_t color value. use to_rgba() to
+    // convert a value.
     void SetPixel(int x, int y, rgba_t value);
-    void SetPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b) {
-        SetPixel(x, y, to_rgba(r, g, b, 0xFF));
-    }
 
     // Get pixel data at given position.
     rgba_t at(int x, int y) const;
@@ -50,9 +50,13 @@ public:
     inline int width() const { return width_; }
     inline int height() const { return height_; }
 
-    // Blend all transparent pixels with the given background and make
-    // them a solid color.
-    void AlphaComposeBackground(rgba_t bgcolor);
+    // Blend all transparent pixels with the given background "bgcolor" and
+    // them a solid color. If the alpha value of "pattern" is set (alpha=0xff),
+    // then every other pixel will be the pattern color. That creates a
+    // checkerboard-pattern sometimes used to display transparent pictures.
+    // This Alpha compositing merges linearized colors, so unlike many other
+    // tools such as GraphicsMagick, it will create a pleasent output.
+    void AlphaComposeBackground(rgba_t bgcolor, rgba_t pattern);
 
     // The raw internal buffer containing width()*height() pixels organized
     // from top left to bottom right.
@@ -60,6 +64,8 @@ public:
     const rgba_t *data() const { return pixels_; }
 
     // -- the following two methods are useful with line-oriented sws_scale()
+    // -- to allow it to directly write into our frame-buffer
+
     // Return an array containing the amount of bytes for each line.
     // This is returned as an array.
     const int* stride() const { return strides_; }

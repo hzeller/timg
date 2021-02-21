@@ -53,8 +53,9 @@ public:
 private:
     bool DecodePacket(AVPacket *packet, AVFrame *output_frame);
 
-    Framebuffer::rgba_t bgcolor_;
-    bool allow_frame_skip_ = false;
+    DisplayOptions options_;
+    bool maybe_transparent_ = false;
+
     int video_stream_index_ = -1;
     AVFormatContext *format_context_ = nullptr;
     AVCodecContext *codec_context_ = nullptr;

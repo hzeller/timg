@@ -105,11 +105,19 @@ const char *VideoLoader::VersionInfo() {
 
 bool VideoLoader::LoadAndScale(const DisplayOptions &display_options,
                                int max_frames) {
-    allow_frame_skip_ = display_options.allow_frame_skipping;
-    bgcolor_ = display_options.bg_color;
+    options_ = display_options;
     const char *file = (filename() == "-")
         ? "/dev/stdin"
         : filename().c_str();
+    // Only consider applying transparency for certain file types we know
+    // it might happen.
+    for (const char *ending : { ".png", ".gif", "/dev/stdin" }) {
+        if (strcasecmp(file + strlen(file) - strlen(ending), ending) == 0) {
+            maybe_transparent_ = true;
+            break;
+        }
+    }
+
     format_context_ = avformat_alloc_context();
     int ret;
     if ((ret = avformat_open_input(&format_context_, file, NULL, NULL)) != 0) {
@@ -246,13 +254,17 @@ void VideoLoader::SendFrames(Duration duration, const int frames, int loops,
                 end_next_frame.Add(frame_duration_);
 
                 if (DecodePacket(packet, decode_frame)) {
-                    if (!allow_frame_skip_ || Time::Now() < end_next_frame) {
+                    if (!options_.allow_frame_skipping ||
+                        Time::Now() < end_next_frame) {
                         sws_scale(sws_context_,
                                   decode_frame->data, decode_frame->linesize,
                                   0, codec_context_->height,
                                   terminal_fb_->row_data(),
                                   terminal_fb_->stride());
-                        terminal_fb_->AlphaComposeBackground(bgcolor_);
+                        if (maybe_transparent_) {
+                            terminal_fb_->AlphaComposeBackground(
+                                options_.bg_color, options_.bg_pattern_color);
+                        }
                         const int dy = is_first ? 0 : -terminal_fb_->height();
                         sink(center_indentation_, dy, *terminal_fb_);
                         is_first = false;

@@ -103,19 +103,37 @@ static Framebuffer::rgba_t AlphaBlend(const uint32_t *bg,
     return Framebuffer::to_rgba(out[0], out[1], out[2], 0xff);
 }
 
-void Framebuffer::AlphaComposeBackground(rgba_t bgcolor) {
+void Framebuffer::AlphaComposeBackground(rgba_t bgcolor, rgba_t pattern_col) {
+    uint32_t premultiplied_bg[3];
+    uint32_t premultiplied_pattern[3];
+    uint32_t *bg_choice[2] = { premultiplied_bg, premultiplied_bg };
+
+    // Create pre-multiplied version
     const uint32_t bcol = le32toh(bgcolor);
     const uint32_t bg_alpha = bcol >> 24;
     if (bg_alpha == 0x00) return; // nothing to do.
     assert(bg_alpha == 0xff);   // We don't support partially transparent bg.
-    const uint32_t premultiplied_bg[3] = {
-        (bcol & 0xff) * (bcol & 0xff),
-        ((bcol>> 8) & 0xff) * ((bcol>> 8) & 0xff),
-        ((bcol>>16) & 0xff) * ((bcol>>16) & 0xff)
-    };
-    const rgba_t *const end = pixels_ + width_ * height_;
-    for (rgba_t *pos = pixels_; pos < end; ++pos) {
-        *pos = AlphaBlend(premultiplied_bg, *pos);
+
+    premultiplied_bg[0] = (bcol & 0xff) * (bcol & 0xff);
+    premultiplied_bg[1] = ((bcol>> 8) & 0xff) * ((bcol>> 8) & 0xff);
+    premultiplied_bg[2] = ((bcol>>16) & 0xff) * ((bcol>>16) & 0xff);
+
+    // If alpha channel indicates that pattern is used, also prepare it and
+    // use as 2nd choice.
+    const uint32_t pcol = le32toh(pattern_col);
+    if (pcol >> 24 == 0xff) {
+        premultiplied_pattern[0] = (pcol & 0xff) * (pcol & 0xff);
+        premultiplied_pattern[1] = ((pcol>> 8) & 0xff) * ((pcol>> 8) & 0xff);
+        premultiplied_pattern[2] = ((pcol>>16) & 0xff) * ((pcol>>16) & 0xff);
+        bg_choice[1] = premultiplied_pattern;
+    }
+
+    rgba_t *pos = pixels_;
+    for (int y = 0; y < height_; ++y) {
+        for (int x = 0; x < width_; ++x) {
+            *pos = AlphaBlend(bg_choice[(x + y) % 2], *pos);
+            pos++;
+        }
     }
 }
 
