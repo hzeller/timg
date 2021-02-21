@@ -442,9 +442,6 @@ int main(int argc, char *argv[]) {
     }
 
     timg::TerminalCanvas canvas(output_fd, terminal_use_upper_block);
-    if (hide_cursor) {
-        canvas.CursorOff();
-    }
 
     auto renderer = timg::Renderer::Create(&canvas, display_opts,
                                            grid_cols, grid_rows);
@@ -453,8 +450,27 @@ int main(int argc, char *argv[]) {
     display_opts.width /= grid_cols;
     display_opts.height /= grid_rows;
 
-    signal(SIGTERM, InterruptHandler);
-    signal(SIGINT, InterruptHandler);
+    // Things to do before and after we show an image. Our goal is to keep
+    // the terminal always in a good state (cursor on!) while also reacting
+    // to Ctrl-C or terminations.
+    // While showing an image we switch off the cursor but also arm the
+    // signal handler to intercept and have a chance to bring terminal output
+    // to a controlled stop.
+    // Between showing images we _do_ want the default signal handler to be
+    // active so that we can interrupt picture loading (because the internals
+    // of the image loading libraries don' know about "interrupt_received".
+    auto before_image_show = [hide_cursor, &canvas]() {
+        signal(SIGTERM, InterruptHandler);
+        signal(SIGINT, InterruptHandler);
+        if (hide_cursor) canvas.CursorOff();
+    };
+
+    auto after_image_show = [hide_cursor, &canvas]() {
+        if (hide_cursor) canvas.CursorOn();
+        signal(SIGTERM, SIG_DFL);
+        signal(SIGINT, SIG_DFL);
+    };
+
     ExitCode exit_code = ExitCode::kSuccess;
 
     // Async image loading, preparing them in a thread pool
@@ -482,16 +498,15 @@ int main(int argc, char *argv[]) {
         if (interrupt_received) break;
         std::unique_ptr<timg::ImageSource> source(source_future.get());
         if (!source) continue;
+        before_image_show();
         source->SendFrames(duration, max_frames, loops, interrupt_received,
                            renderer->render_cb(source->filename().c_str()));
+        after_image_show();
         if (!between_images_duration.is_zero()) {
             (Time::Now() + between_images_duration).WaitUntil();
         }
     }
 
-    if (hide_cursor) {
-        canvas.CursorOn();
-    }
     if (interrupt_received)   // Make 'Ctrl-C' appear on new line.
         fprintf(stderr, "\n");
 
