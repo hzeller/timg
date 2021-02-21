@@ -286,6 +286,29 @@ Glitchy. Change TIMG_USE_UPPER_BLOCK| Looks good
 ![](img/needs-block-change.png)     | ![](img/block-ok.png)|
 
 
+#### Wrong font aspect ratio
+
+If you notice that the image displayed is not quite the right aspect ratio
+because of the terminal's font used, you can set an environment variable
+`TIMG_FONT_WIDTH_CORRECT` with a factor to make it look correctly.
+
+Increasing the visual width by 10% would be setting the value to 1.1 for
+instance.
+
+```
+export TIMG_FONT_WIDTH_CORRECT=1.1
+timg myimage.jpg
+```
+
+This is an environment variable, so that you can set it once to best fit your
+terminal emulator of choice and don't have to worry about later.
+
+##### Example
+Terminal font too narrow   | Correct with `TIMG_FONT_WIDTH_CORRECT=1.375`
+---------------------------|-------------------------------|
+![](img/aspect-wrong.png)  | ![](img/aspect-right.png)|
+
+
 #### Tested terminal emulators
 
 Tested terminals: `konsole` >= 2.14.1, `gnome-terminal` > 3.6.2 look good,

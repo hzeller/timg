@@ -169,10 +169,12 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts, int max_frames) {
                                   opts, abs(exif_op.angle) == 90,
                                   &target_width, &target_height)) {
             try {
+                auto geometry = Magick::Geometry(target_width, target_height);
+                geometry.aspect(true);  // Force to scale to given size.
                 if (opts.antialias)
-                    img.scale(Magick::Geometry(target_width, target_height));
+                    img.scale(geometry);
                 else
-                    img.sample(Magick::Geometry(target_width, target_height));
+                    img.sample(geometry);
             }
             catch (const std::exception& e) {
                 if (kDebug) fprintf(stderr, "%s: %s\n",

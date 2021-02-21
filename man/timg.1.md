@@ -233,6 +233,17 @@ Exit code is
     turns out to yield a better result on your system, you can set it once
     in your profile and forget about it.
 
+**TIMG_FONT_WIDTH_CORRECT**
+:   A floating point stretch factor in width direction to correct for fonts
+    that don't produce quite square output.
+
+    If you notice that the image displayed is not quite the right aspect
+    ratio because of the font used, you can modify this factor to make it
+    look correct. Increasing the visual width by 10% would be setting it to
+    *TIMG_FONT_WIDTH_CORRECT=1.1* for instance.
+
+    This is an environment variable, so that you can set it once to best fit
+    your terminal emulator of choice.
 
 **TIMG_ALLOW_FRAME_SKIP**
 :   Set this environment variable to 1 if you like to allow timg to drop frames

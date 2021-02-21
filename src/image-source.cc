@@ -27,6 +27,14 @@
 #include <memory>
 
 namespace timg {
+static float GetEnvFloat(const char *env_var, float fallback) {
+    const char *value = getenv(env_var);
+    if (value == 0) return fallback;
+    char *err = nullptr;
+    float result = strtof(value, &err);
+    return (*err == '\0' ? result : fallback);
+}
+
 // Returns 'true' if image needs scaling.
 bool ImageSource::CalcScaleToFitDisplay(int img_width, int img_height,
                                         const DisplayOptions &orig_options,
@@ -38,6 +46,17 @@ bool ImageSource::CalcScaleToFitDisplay(int img_width, int img_height,
         std::swap(options.fill_width, options.fill_height);
     }
 
+    // Read stretch needed from environment for but clamp to reasonable values.
+    float width_stretch = GetEnvFloat("TIMG_FONT_WIDTH_CORRECT", 1.0f);
+    const float kMaxAcceptFactor = 5.0;  // Clamp to reasonable factor.
+    if (width_stretch > kMaxAcceptFactor)   width_stretch = kMaxAcceptFactor;
+    if (width_stretch < 1/kMaxAcceptFactor) width_stretch = 1/kMaxAcceptFactor;
+
+    if (width_stretch > 1.0f) {
+        options.width /= width_stretch;  // pretend to have less space
+    } else {
+        options.height *= width_stretch;
+    }
     const float width_fraction = (float)options.width / img_width;
     const float height_fraction = (float)options.height / img_height;
 
@@ -86,6 +105,11 @@ bool ImageSource::CalcScaleToFitDisplay(int img_width, int img_height,
     if (*target_width <= 0) *target_width = 1;
     if (*target_height <= 0) *target_height = 1;
 
+    if (width_stretch > 1.0f) {
+        *target_width *= width_stretch;
+    } else {
+        *target_height /= width_stretch;
+    }
     return *target_width != img_width || *target_height != img_height;
 }
 

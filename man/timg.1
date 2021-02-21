@@ -264,6 +264,21 @@ better result on your system, you can set it once in your profile and
 forget about it.
 .RE
 .TP
+\f[B]TIMG_FONT_WIDTH_CORRECT\f[R]
+A floating point stretch factor in width direction to correct for fonts
+that don\[cq]t produce quite square output.
+.RS
+.PP
+If you notice that the image displayed is not quite the right aspect
+ratio because of the font used, you can modify this factor to make it
+look correct.
+Increasing the visual width by 10% would be setting it to
+\f[I]TIMG_FONT_WIDTH_CORRECT=1.1\f[R] for instance.
+.PP
+This is an environment variable, so that you can set it once to best fit
+your terminal emulator of choice.
+.RE
+.TP
 \f[B]TIMG_ALLOW_FRAME_SKIP\f[R]
 Set this environment variable to 1 if you like to allow timg to drop
 frames when play-back is falling behind.
