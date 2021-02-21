@@ -31,7 +31,7 @@ it).
 
 ![Grid view of 4 pictures](./img/grid-timg.png)
 
-### Install
+### Build and Install
 
 #### Get repo
 
@@ -216,13 +216,22 @@ timg --scroll --delta-move=1:1 some-image.jpg  # diagonal, dx=1, dy=1
 
 # Background color for transparent images (SVG-compatible strings are supported)
 timg -b auto some-transparent-image.png  # use terminal background if possible
-timg -b red some-transparent-image.png
+timg -b none some-transparent-image.png  # Don't use blending
+timg -b lightgreen some-transparent-image.png
 timg -b 'rgb(0, 255, 0)' some-transparent-image.png
 timg -b '#0000ff' some-transparent-image.png
 
 # Checkerboard/Photoshop-like background on transparent images
 timg -b white -B gray some-transparent-image.png
+```
 
+##### Partially transparent icon on champagne-colored terminal emulator
+
+-b auto  | -b lightgreen | -b lightgreen -B yellow | -b none  |
+---------|---------------|-------------------------|----------|
+![](img/alpha-bauto.png) | ![](img/alpha-blightgreen.png)  | ![](img/alpha-blightgreen-Byellow.png) | ![](img/alpha-bnone.png)
+
+```
 # Another use: can run use this in a fzf preview window:
 echo some-image.jpg | fzf --preview='timg -E --frames=1 --loops=1 -g $(( $COLUMNS / 2 - 4 ))x$(( $FZF_PREVIEW_LINES * 2 )) {}'
 
@@ -304,7 +313,7 @@ This is an environment variable, so that you can set it once to best fit your
 terminal emulator of choice and don't have to worry about later.
 
 ##### Example
-Terminal font too narrow   | Correct with `TIMG_FONT_WIDTH_CORRECT=1.375`
+Terminal font too narrow   | Correct. Here with `TIMG_FONT_WIDTH_CORRECT=1.375`
 ---------------------------|-------------------------------|
 ![](img/aspect-wrong.png)  | ![](img/aspect-right.png)|
 
