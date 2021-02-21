@@ -79,7 +79,8 @@ public:
     // correct byte order.
     static rgba_t to_rgba(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
 
-    // Parse a color given as string.
+    // Parse a color given as string. Supported are numeric formats are
+    // "#rrggbb" and "rgb(r, g, b)", but also common textual X11/HTML names.
     static rgba_t ParseColor(const char *color);
 
 private:

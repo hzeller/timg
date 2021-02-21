@@ -79,9 +79,19 @@ uint8_t** Framebuffer::row_data() {
 
 Framebuffer::rgba_t Framebuffer::ParseColor(const char *color) {
     if (!color) return to_rgba(0, 0, 0, 0);
+
+    // If it is a named color, convert it first to its #rrggbb string.
+#include "html-colors.inc"
+    for (const auto &c : html_colors) {
+        if (strcasecmp(color, c.name) == 0) {
+            color = c.translation;
+            break;
+        }
+    }
     uint32_t r, g, b;
     if ((sscanf(color, "#%02x%02x%02x", &r, &g, &b) == 3) ||
-        (sscanf(color, "rgb(%d, %d, %d)", &r, &g, &b) == 3)) {
+        (sscanf(color, "rgb(%d, %d, %d)", &r, &g, &b) == 3) ||
+        (sscanf(color, "rgb(0x%x, 0x%x, 0x%x)", &r, &g, &b) == 3)) {
         return to_rgba(r, g, b, 0xff);
     }
     fprintf(stderr, "Couldn't parse color '%s'\n", color);

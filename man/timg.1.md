@@ -73,12 +73,9 @@ these file decoders (GraphicsMagick or libav respectively).
     effect. This switches off that smoothing.
 
 **-b** &lt;*background-color*&gt;
-:    Set the background color for transparent images. Common HTML/SVG/X11 color
-     strings are supported, such as **red**, **#00ff00** or **rgb(0, 0, 255)**.
-
-     Also colors in the format **rgb:rrrr/gggg/bbbb** are supported which is
-     a common format coming back from terminal queries
-     (e.g. xtermcontrol -\-get-bg).
+:    Set the background color for transparent images. Common HTML/SVG/X11
+     color strings are supported, such as **purple**,
+     ***#00ff00** or **rgb(0, 0, 255)**.
 
      As a 'special' color, **auto** is allowed, which attempts to query the
      terminal for its background color (Best effort; not all terminals support
