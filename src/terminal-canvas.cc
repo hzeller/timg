@@ -67,7 +67,7 @@ void TerminalCanvas::WriteBuffer(const char *buffer, size_t size) {
     }
 }
 
-char *TerminalCanvas::EnsureBuffer(int width, int height) {
+char *TerminalCanvas::EnsureBuffers(int width, int height) {
     // Pixels will be variable size depending on if we need to change colors
     // between two adjacent pixels. This is the maximum size they can be.
     static const int max_pixel_size = strlen("\033[")
@@ -96,6 +96,13 @@ char *TerminalCanvas::EnsureBuffer(int width, int height) {
         backing_buffer_ =(DoubleRowColor*)realloc(backing_buffer_, new_backing);
         backing_buffer_size_ = new_backing;
     }
+
+    const size_t new_empty = width * sizeof(Framebuffer::rgba_t);
+    if (new_empty > empty_line_size_) {
+        empty_line_ = (Framebuffer::rgba_t*)realloc(empty_line_, new_empty);
+        empty_line_size_ = new_empty;
+        memset(empty_line_, 0x00, empty_line_size_);
+    }
     return content_buffer_;
 }
 
@@ -116,6 +123,7 @@ TerminalCanvas::TerminalCanvas(int fd, bool use_upper_half_block)
 TerminalCanvas::~TerminalCanvas() {
     free(content_buffer_);
     free(backing_buffer_);
+    free(empty_line_);
 }
 
 static char *int_append_with_semicolon(char *buf, uint8_t val);
@@ -143,15 +151,10 @@ char *TerminalCanvas::AppendDoubleRow(char *pos, int indent, int width,
     int same_color_run = indent;
     for (int x = 0; x < width; ++x, ++last_content_iterator_) {
         bool color_emitted = false;
-        DoubleRowColor current_color = {
-            top_line    ? *top_line    : kEmptyColor,
-            bottom_line ? *bottom_line : kEmptyColor,
-        };
+        const DoubleRowColor current_color = { *top_line++, *bottom_line++ };
 
         if (emit_difference && current_color == *last_content_iterator_) {
             ++same_color_run;
-            if (top_line) ++top_line;
-            if (bottom_line) ++bottom_line;
             continue;
         } else if (same_color_run > 0) {
             pos += sprintf(pos, SCREEN_CURSOR_RIGHT_FORMAT, same_color_run);
@@ -159,27 +162,22 @@ char *TerminalCanvas::AppendDoubleRow(char *pos, int indent, int width,
             last = { kEmptyColor, kEmptyColor };
         }
 
-        if (top_line) {
-            if (current_color.top != last.top) {
-                // Appending prefix. At this point, it can only be kStartEscape
+        if (current_color.top && current_color.top != last.top) {
+            // Appending prefix. At this point, it can only be kStartEscape
+            pos = str_append(pos, kStartEscape, strlen(kStartEscape));
+            pos = str_append(pos, set_upper_color_, PIXEL_SET_COLOR_LEN);
+            pos = WriteAnsiColor(pos, current_color.top);
+            color_emitted = true;
+        }
+        if (current_color.bottom && current_color.bottom != last.bottom) {
+            if (!color_emitted) {
                 pos = str_append(pos, kStartEscape, strlen(kStartEscape));
-                pos = str_append(pos, set_upper_color_, PIXEL_SET_COLOR_LEN);
-                pos = WriteAnsiColor(pos, current_color.top);
-                color_emitted = true;
             }
-            ++top_line;
+            pos = str_append(pos, set_lower_color_, PIXEL_SET_COLOR_LEN);
+            pos = WriteAnsiColor(pos, current_color.bottom);
+            color_emitted = true;
         }
-        if (bottom_line) {
-            if (current_color.bottom != last.bottom) {
-                if (!color_emitted) {
-                    pos = str_append(pos, kStartEscape, strlen(kStartEscape));
-                }
-                pos = str_append(pos, set_lower_color_, PIXEL_SET_COLOR_LEN);
-                pos = WriteAnsiColor(pos, current_color.bottom);
-                color_emitted = true;
-            }
-            ++bottom_line;
-        }
+
         if (color_emitted) {
             *(pos-1) = 'm';   // overwrite semicolon with finish ESC seq.
         }
@@ -200,7 +198,7 @@ char *TerminalCanvas::AppendDoubleRow(char *pos, int indent, int width,
 void TerminalCanvas::Send(int x, int dy, const Framebuffer &framebuffer) {
     const int width = framebuffer.width();
     const int height = framebuffer.height();
-    char *const start_buffer = EnsureBuffer(width, height);
+    char *const start_buffer = EnsureBuffers(width, height);
     char *pos = start_buffer;
 
     if (dy < 0) {
@@ -230,8 +228,8 @@ void TerminalCanvas::Send(int x, int dy, const Framebuffer &framebuffer) {
 
     for (int y = 0; y < height; y+=2) {
         const int row = y + row_offset;
-        top_line = row < 0 ? nullptr : &pixels[width*row];
-        bottom_line = (row+1) >= height ? nullptr : &pixels[width*(row + 1)];
+        top_line = row < 0 ? empty_line_ : &pixels[width*row];
+        bottom_line = (row+1) >= height ? empty_line_ : &pixels[width*(row+1)];
 
         pos = AppendDoubleRow(pos, x, width,
                               top_line, bottom_line,

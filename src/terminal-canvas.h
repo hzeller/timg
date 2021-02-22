@@ -56,8 +56,10 @@ private:
     const char *const pixel_character_;
     const bool top_optional_blank_;   // For odd height frames.
 
+    // Ensure that all buffers needed for emitting the framebuffer have
+    // enough space.
     // Return a buffer large enough to hold the whole ANSI-color encoded text.
-    char *EnsureBuffer(int width, int height);
+    char *EnsureBuffers(int width, int height);
 
     char *AppendDoubleRow(char *pos, int indent, int width,
                           const Framebuffer::rgba_t *top_line,
@@ -65,6 +67,7 @@ private:
                           bool emit_difference);
     char *content_buffer_ = nullptr;  // Buffer containing content to write out
     size_t content_buffer_size_ = 0;
+
     struct DoubleRowColor {
         Framebuffer::rgba_t top;
         Framebuffer::rgba_t bottom;
@@ -72,10 +75,13 @@ private:
             return top == other.top && bottom == other.bottom;
         }
     };
-    DoubleRowColor *backing_buffer_ = nullptr;
+    DoubleRowColor *backing_buffer_ = nullptr;  // Remembering last frame
     size_t backing_buffer_size_ = 0;
     DoubleRowColor *last_content_iterator_;
     int last_framebuffer_height_ = 0;
+
+    Framebuffer::rgba_t *empty_line_ = nullptr;
+    size_t empty_line_size_ = 0;
 };
 }  // namespace timg
 
