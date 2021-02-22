@@ -11,6 +11,7 @@ target_sources(timg PRIVATE
   renderer.h        renderer.cc
   terminal-canvas.h terminal-canvas.cc
   termutils.h       termutils.cc
+  framebuffer.h     framebuffer.cc
   thread-pool.h
   timg-time.h
 )

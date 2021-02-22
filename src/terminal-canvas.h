@@ -16,80 +16,11 @@
 #ifndef TERMINAL_CANVAS_H_
 #define TERMINAL_CANVAS_H_
 
-#include <string>
-#include <stdint.h>
-#include <string.h>
+#include "framebuffer.h"
+
+#include <stddef.h>
 
 namespace timg {
-class TerminalCanvas;
-
-// Very simple framebuffer, storing widht*height pixels in RGBA format
-// (always R=first byte, B=second byte; independent of architecture)
-class Framebuffer {
-public:
-    // Note, this is always in little endian
-    // 'red' is stored in the first byte, 'green' 2nd, 'blue' 3d, 'alpha' 4th
-    // Consider this type opaque, use ParseColor() and to_rgba() to interact.
-    typedef uint32_t rgba_t;
-
-    Framebuffer(int width, int height);
-    Framebuffer() = delete;
-    Framebuffer(const Framebuffer &other) = delete;
-    ~Framebuffer();
-
-    // Set a pixel at position X/Y with rgba_t color value. use to_rgba() to
-    // convert a value.
-    void SetPixel(int x, int y, rgba_t value);
-
-    // Get pixel data at given position.
-    rgba_t at(int x, int y) const;
-
-    // Clear to fully transparent black pixels.
-    void Clear();
-
-    inline int width() const { return width_; }
-    inline int height() const { return height_; }
-
-    // Blend all transparent pixels with the given background "bgcolor" and
-    // them a solid color. If the alpha value of "pattern" is set (alpha=0xff),
-    // then every other pixel will be the pattern color. That creates a
-    // checkerboard-pattern sometimes used to display transparent pictures.
-    // This Alpha compositing merges linearized colors, so unlike many other
-    // tools such as GraphicsMagick, it will create a pleasent output.
-    void AlphaComposeBackground(rgba_t bgcolor, rgba_t pattern);
-
-    // The raw internal buffer containing width()*height() pixels organized
-    // from top left to bottom right.
-    rgba_t *data() { return pixels_; }
-    const rgba_t *data() const { return pixels_; }
-
-    // -- the following two methods are useful with line-oriented sws_scale()
-    // -- to allow it to directly write into our frame-buffer
-
-    // Return an array containing the amount of bytes for each line.
-    // This is returned as an array.
-    const int* stride() const { return strides_; }
-
-    // Return an array containing pointers to the data for each line.
-    uint8_t** row_data();
-
-public:
-    // Utility function to generate an rgba_t value from components.
-    // Given red, green, blue and alpha value: convert to rgba_t type to the
-    // correct byte order.
-    static rgba_t to_rgba(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
-
-    // Parse a color given as string. Supported are numeric formats are
-    // "#rrggbb" and "rgb(r, g, b)", but also common textual X11/HTML names.
-    static rgba_t ParseColor(const char *color);
-
-private:
-    const int width_;
-    const int height_;
-    rgba_t *const pixels_;
-    int strides_[2];
-    uint8_t** row_data_ = nullptr;  // Only allocated if requested.
-};
 
 // Canvas that can send a framebuffer to a terminal.
 class TerminalCanvas {
@@ -98,6 +29,7 @@ public:
     // Using either 'upper half block' or 'lower half block' to display
     // pixels. Which look depends on the font.
     TerminalCanvas(int fd, bool use_upper_half_block);
+    TerminalCanvas(const TerminalCanvas &) = delete;
     ~TerminalCanvas();
 
     // Send frame to terminal. Move to xposition (relative to the left

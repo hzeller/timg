@@ -18,6 +18,7 @@
 
 #include <memory>
 #include <functional>
+#include <string>
 
 #include "terminal-canvas.h"
 #include "display-options.h"
