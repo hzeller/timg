@@ -118,6 +118,19 @@ If `exif', rotate the image according to the exif data stored in the
 image.
 With `off', no rotation is extracted or applied.
 .TP
+\f[B]--clear\f[R]
+Clear screen before \f[I]first\f[R] image.
+This places the image at the top of the screen.
+.RS
+.PP
+There is an optional parameter `\f[I]every\f[R]'
+(\f[B]--clear=every\f[R]), which will clean the screen before every
+image.
+This only makes sense if there is no \f[B]--grid\f[R] used and if you
+allow some time to show the image of course, so good in combination with
+\f[B]-w\f[R].
+.RE
+.TP
 \f[B]-U\f[R]
 Toggle Upscale.
 If an image is smaller than the terminal size, scale it up to fit the

@@ -102,6 +102,15 @@ these file decoders (GraphicsMagick or libav respectively).
 :   If 'exif', rotate the image according to the exif data stored
     in the image. With 'off', no rotation is extracted or applied.
 
+**-\-clear**
+:   Clear screen before *first* image. This places the image at the top of the
+    screen.
+
+    There is an optional parameter '*every*' (**-\-clear=every**), which will
+    clean the screen before every image. This only makes sense if there is no
+    **-\-grid** used and if you allow some time to show the image of course,
+    so good in combination with **-w**.
+
 **-U**
 :    Toggle Upscale. If an image is smaller than the terminal size, scale
     it up to fit the terminal.

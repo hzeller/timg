@@ -108,6 +108,7 @@ static int usage(const char *progname, ExitCode exit_code, int w, int h) {
             "\t                 The optional pre-crop is the width of border to\n"
             "\t                 remove beforehand to get rid of an uneven border.\n"
             "\t--rotate=<exif|off> : Rotate according to included exif orientation or off. Default: exif.\n"
+            "\t--clear        : Clear screen first. Optional argument 'every' will clean before every image (useful with -w)\n"
             "\t-U             : Toggle Upscale. If an image is smaller (e.g. an icon) than the \n"
             "\t                 available frame, enlarge it to fit.\n"
 #ifdef WITH_TIMG_VIDEO
@@ -189,12 +190,18 @@ int main(int argc, char *argv[]) {
     int loops  = timg::kNotInitialized;
     int grid_rows = 1;
     int grid_cols = 1;
+    enum class ClearScreen {
+        kNot,
+        kBeforeFirstImage,
+        kBeforeEachImage,
+    } clear_screen = ClearScreen::kNot;
     bool do_image_loading = true;
     bool do_video_loading = true;
     int thread_count = kDefaultThreadCount;
 
     enum LongOptionIds {
-        OPT_FRAMES = 1000,
+        OPT_CLEAR_SCREEN = 1000,
+        OPT_FRAMES,
         OPT_GRID,
         OPT_ROTATE,
         OPT_THREADS,
@@ -206,6 +213,7 @@ int main(int argc, char *argv[]) {
     static constexpr struct option long_options[] = {
         { "auto-crop",   optional_argument, NULL, 'T' },
         { "center",      no_argument,       NULL, 'C' },
+        { "clear",       optional_argument, NULL, OPT_CLEAR_SCREEN },
         { "delta-move",  required_argument, NULL, 'd' },
         { "fit-width",   no_argument,       NULL, 'W' },
         { "frames",      required_argument, NULL, OPT_FRAMES },
@@ -249,6 +257,21 @@ int main(int argc, char *argv[]) {
             break;
         case 'c':  // Legacy option, now long opt. Keep for now.
             loops = atoi(optarg);
+            break;
+        case OPT_CLEAR_SCREEN:
+            if (optarg) {
+                const int optlen = strlen(optarg);
+                if (optlen <= 5 && strncasecmp(optarg, "every", optlen) == 0)
+                    clear_screen = ClearScreen::kBeforeEachImage;
+                else {
+                    fprintf(stderr, "Paramter for --clear can be 'every', "
+                            "got %s\n", optarg);
+                    return usage(argv[0], ExitCode::kParameterError,
+                                 term.width, term.height);
+                }
+            } else {
+                clear_screen = ClearScreen::kBeforeFirstImage;
+            }
             break;
         case OPT_FRAMES:
             max_frames = atoi(optarg);
@@ -418,6 +441,12 @@ int main(int argc, char *argv[]) {
         display_opts.scroll_animation = false;
     }
 
+    if (clear_screen == ClearScreen::kBeforeEachImage &&
+        (grid_cols != 1 || grid_rows != 1)) {
+        // Clear every only makes sense with no grid.
+        clear_screen = ClearScreen::kBeforeFirstImage;
+    }
+
     // If we scroll in one direction (so have 'infinite' space) we want fill
     // the available screen space fully in the other direction.
     display_opts.fill_width  = display_opts.fill_width ||
@@ -459,10 +488,14 @@ int main(int argc, char *argv[]) {
     // Between showing images we _do_ want the default signal handler to be
     // active so that we can interrupt picture loading (because the internals
     // of the image loading libraries don' know about "interrupt_received".
-    auto before_image_show = [hide_cursor, &canvas]() {
+    auto before_image_show = [hide_cursor, &canvas, clear_screen](bool first) {
         signal(SIGTERM, InterruptHandler);
         signal(SIGINT, InterruptHandler);
         if (hide_cursor) canvas.CursorOff();
+        if ((clear_screen == ClearScreen::kBeforeFirstImage && first) ||
+            (clear_screen == ClearScreen::kBeforeEachImage)) {
+            canvas.ClearScreen();
+        }
     };
 
     auto after_image_show = [hide_cursor, &canvas]() {
@@ -494,17 +527,19 @@ int main(int argc, char *argv[]) {
     }
 
     // Showing them in order of files on the command line.
+    bool is_first = true;
     for (auto &source_future : loaded_sources) {
         if (interrupt_received) break;
         std::unique_ptr<timg::ImageSource> source(source_future.get());
         if (!source) continue;
-        before_image_show();
+        before_image_show(is_first);
         source->SendFrames(duration, max_frames, loops, interrupt_received,
                            renderer->render_cb(source->filename().c_str()));
         after_image_show();
         if (!between_images_duration.is_zero()) {
             (Time::Now() + between_images_duration).WaitUntil();
         }
+        is_first = false;
     }
 
     if (interrupt_received)   // Make 'Ctrl-C' appear on new line.

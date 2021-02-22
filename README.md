@@ -105,6 +105,7 @@ Options:
                          The optional pre-crop is the width of border to
                          remove beforehand to get rid of an uneven border.
         --rotate=<exif|off> : Rotate according to included exif orientation or off. Default: exif.
+        --clear        : Clear screen first. Optional argument 'every' will clean terminal before every image (useful with -w)
         -U             : Toggle Upscale. If an image is smaller (e.g. an icon) than the
                          available frame, enlarge it to fit.
         -V             : Only use Video subsystem. Don't attempt to probe image decoding first.
