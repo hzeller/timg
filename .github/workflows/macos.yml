@@ -23,4 +23,4 @@ jobs:
           mkdir build
           cd build
           cmake .. -DWITH_VIDEO_DECODING=On
-          make
+          make -k

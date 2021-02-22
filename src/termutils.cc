@@ -119,7 +119,7 @@ char* DetermineBackgroundColor() {
     const timg::Time deadline = now + kTimeBudget;
     do {
         const int64_t remaining_ns = deadline.nanoseconds() - now.nanoseconds();
-        struct timeval timeout{0, remaining_ns / 1000};
+        struct timeval timeout{0, (suseconds_t)(remaining_ns / 1000)};
         fd_set read_fds;
         FD_ZERO(&read_fds);
         FD_SET(tty_fd, &read_fds);
