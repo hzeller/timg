@@ -80,20 +80,21 @@ char *TerminalCanvas::EnsureBuffer(int width, int height) {
     static const int opt_cursor_up = strlen(SCREEN_CURSOR_UP_FORMAT) + 3;
     static const int opt_cursor_right = strlen(SCREEN_CURSOR_RIGHT_FORMAT) + 3;
     const int vertical_characters = (height+1) / 2;   // two pixels, one glyph
-    const size_t character_buffer_size = opt_cursor_up  // Jump up
+    const size_t new_content_size = opt_cursor_up     // Jump up
         + vertical_characters
         * (opt_cursor_right            // Horizontal jump
            + width * max_pixel_size    // pixels in one row
            + SCREEN_END_OF_LINE_LEN);  // Finishing a line.
 
-    if (character_buffer_size > buffer_size_) {
-        if (!content_buffer_) {
-            content_buffer_ = (char*)malloc(character_buffer_size);
-        } else {
-            content_buffer_ = (char*)realloc(content_buffer_,
-                                             character_buffer_size);
-        }
-        buffer_size_ = character_buffer_size;
+    if (new_content_size > content_buffer_size_) {
+        content_buffer_ = (char*)realloc(content_buffer_, new_content_size);
+        content_buffer_size_ = new_content_size;
+    }
+
+    const size_t new_backing = width * (height+1)/2 * sizeof(DoubleRowColor);
+    if (new_backing > backing_buffer_size_) {
+        backing_buffer_ =(DoubleRowColor*)realloc(backing_buffer_, new_backing);
+        backing_buffer_size_ = new_backing;
     }
     return content_buffer_;
 }
@@ -114,6 +115,7 @@ TerminalCanvas::TerminalCanvas(int fd, bool use_upper_half_block)
 
 TerminalCanvas::~TerminalCanvas() {
     free(content_buffer_);
+    free(backing_buffer_);
 }
 
 static char *int_append_with_semicolon(char *buf, uint8_t val);
@@ -133,43 +135,61 @@ static inline char *str_append(char *pos, const char *value, size_t len) {
 // foreground/background.
 char *TerminalCanvas::AppendDoubleRow(char *pos, int indent, int width,
                                       const Framebuffer::rgba_t *top_line,
-                                      const Framebuffer::rgba_t *bottom_line) {
+                                      const Framebuffer::rgba_t *bottom_line,
+                                      bool emit_difference) {
     static constexpr char kStartEscape[] = "\033[";
-    // Since we're not dealing with alpha yet, we can use that as a sentinel.
-    Framebuffer::rgba_t last_top_color = Framebuffer::to_rgba(0, 0, 0, 0xaa);
-    Framebuffer::rgba_t last_bottom_color = Framebuffer::to_rgba(0, 0, 0, 0xaa);
-    if (indent > 0) {
-        pos += sprintf(pos, SCREEN_CURSOR_RIGHT_FORMAT, indent);
-    }
-    for (int x = 0; x < width; ++x) {
+    static const Framebuffer::rgba_t kEmptyColor = 0;
+    DoubleRowColor last = { kEmptyColor, kEmptyColor };
+    int same_color_run = indent;
+    for (int x = 0; x < width; ++x, ++last_content_iterator_) {
         bool color_emitted = false;
+        DoubleRowColor current_color = {
+            top_line    ? *top_line    : kEmptyColor,
+            bottom_line ? *bottom_line : kEmptyColor,
+        };
+
+        if (emit_difference && current_color == *last_content_iterator_) {
+            ++same_color_run;
+            if (top_line) ++top_line;
+            if (bottom_line) ++bottom_line;
+            continue;
+        } else if (same_color_run > 0) {
+            pos += sprintf(pos, SCREEN_CURSOR_RIGHT_FORMAT, same_color_run);
+            same_color_run = 0;
+            last = { kEmptyColor, kEmptyColor };
+        }
+
         if (top_line) {
-            const Framebuffer::rgba_t top_color = *top_line++;
-            if (top_color != last_top_color) {
+            if (current_color.top != last.top) {
                 // Appending prefix. At this point, it can only be kStartEscape
                 pos = str_append(pos, kStartEscape, strlen(kStartEscape));
                 pos = str_append(pos, set_upper_color_, PIXEL_SET_COLOR_LEN);
-                pos = WriteAnsiColor(pos, top_color);
-                last_top_color = top_color;
+                pos = WriteAnsiColor(pos, current_color.top);
                 color_emitted = true;
             }
+            ++top_line;
         }
         if (bottom_line) {
-            const Framebuffer::rgba_t bot_color = *bottom_line++;
-            if (bot_color != last_bottom_color) {
+            if (current_color.bottom != last.bottom) {
                 if (!color_emitted) {
                     pos = str_append(pos, kStartEscape, strlen(kStartEscape));
                 }
                 pos = str_append(pos, set_lower_color_, PIXEL_SET_COLOR_LEN);
-                pos = WriteAnsiColor(pos, bot_color);
-                last_bottom_color = bot_color;
+                pos = WriteAnsiColor(pos, current_color.bottom);
                 color_emitted = true;
             }
+            ++bottom_line;
         }
         if (color_emitted) {
             *(pos-1) = 'm';   // overwrite semicolon with finish ESC seq.
         }
-        pos = str_append(pos, pixel_character_, PIXEL_BLOCK_CHARACTER_LEN);
+        if (current_color.top == current_color.bottom) {
+            *pos++ = ' ';  // Simple background 'block'
+        } else {
+            pos = str_append(pos, pixel_character_, PIXEL_BLOCK_CHARACTER_LEN);
+        }
+        last = current_color;
+        *last_content_iterator_ = current_color;
     }
 
     pos = str_append(pos, SCREEN_END_OF_LINE, SCREEN_END_OF_LINE_LEN);
@@ -191,6 +211,12 @@ void TerminalCanvas::Send(int x, int dy, const Framebuffer &framebuffer) {
     const Framebuffer::rgba_t *top_line;
     const Framebuffer::rgba_t *bottom_line;
 
+    // If we just got requested to move back up the last image height, we
+    // can emit only pixels that changed.
+    last_content_iterator_ = backing_buffer_;
+    const bool should_emit_difference =
+        (last_framebuffer_height_ > 0) && abs(dy) == last_framebuffer_height_;
+
     // We are always writing two pixels at once with one character, which
     // requires to leave an empty line if the height of the framebuffer is odd.
     // We want to make sure that this empty line is written in natural terminal
@@ -208,8 +234,10 @@ void TerminalCanvas::Send(int x, int dy, const Framebuffer &framebuffer) {
         bottom_line = (row+1) >= height ? nullptr : &pixels[width*(row + 1)];
 
         pos = AppendDoubleRow(pos, x, width,
-                              top_line, bottom_line);
+                              top_line, bottom_line,
+                              should_emit_difference);
     }
+    last_framebuffer_height_ = height;
     WriteBuffer(start_buffer, pos - start_buffer);
 }
 

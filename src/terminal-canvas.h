@@ -61,9 +61,21 @@ private:
 
     char *AppendDoubleRow(char *pos, int indent, int width,
                           const Framebuffer::rgba_t *top_line,
-                          const Framebuffer::rgba_t *bottom_line);
+                          const Framebuffer::rgba_t *bottom_line,
+                          bool emit_difference);
     char *content_buffer_ = nullptr;  // Buffer containing content to write out
-    size_t buffer_size_ = 0;
+    size_t content_buffer_size_ = 0;
+    struct DoubleRowColor {
+        Framebuffer::rgba_t top;
+        Framebuffer::rgba_t bottom;
+        bool operator==(const DoubleRowColor &other) const {
+            return top == other.top && bottom == other.bottom;
+        }
+    };
+    DoubleRowColor *backing_buffer_ = nullptr;
+    size_t backing_buffer_size_ = 0;
+    DoubleRowColor *last_content_iterator_;
+    int last_framebuffer_height_ = 0;
 };
 }  // namespace timg
 
