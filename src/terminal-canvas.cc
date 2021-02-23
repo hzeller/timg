@@ -46,16 +46,16 @@
 #define PIXEL_LOWER_HALF_BLOCK_CHARACTER  "\u2584"  // |▄|
 #define PIXEL_BLOCK_CHARACTER_LEN strlen(PIXEL_UPPER_HALF_BLOCK_CHARACTER)
 
-#define PIXEL_SET_FOREGROUND_COLOR  "38;2;"
-#define PIXEL_SET_BACKGROUND_COLOR  "48;2;"
-#define PIXEL_SET_COLOR_LEN         strlen(PIXEL_SET_FOREGROUND_COLOR)
+#define PIXEL_SET_FG_COLOR     "38;2;"
+#define PIXEL_SET_BG_COLOR     "48;2;"
+#define PIXEL_SET_COLOR_LEN     strlen(PIXEL_SET_FG_COLOR)
 
 // Maximum length of the color value sequence
-#define ESCAPE_COLOR_MAX_LEN strlen("rrr;ggg;bbb")
+#define ESCAPE_COLOR_MAX_LEN    strlen("rrr;ggg;bbb")
 
 // We reset the terminal at the end of a line
-#define SCREEN_END_OF_LINE          "\033[0m\n"
-#define SCREEN_END_OF_LINE_LEN      strlen(SCREEN_END_OF_LINE)
+#define SCREEN_END_OF_LINE      "\033[0m\n"
+#define SCREEN_END_OF_LINE_LEN  strlen(SCREEN_END_OF_LINE)
 
 namespace timg {
 
@@ -108,16 +108,10 @@ char *TerminalCanvas::EnsureBuffers(int width, int height) {
 
 TerminalCanvas::TerminalCanvas(int fd, bool use_upper_half_block)
     : fd_(fd),
-      set_upper_color_(use_upper_half_block
-                       ? PIXEL_SET_FOREGROUND_COLOR
-                       : PIXEL_SET_BACKGROUND_COLOR),
-      set_lower_color_(use_upper_half_block
-                       ? PIXEL_SET_BACKGROUND_COLOR
-                       : PIXEL_SET_FOREGROUND_COLOR),
       pixel_character_(use_upper_half_block
                        ? PIXEL_UPPER_HALF_BLOCK_CHARACTER
                        : PIXEL_LOWER_HALF_BLOCK_CHARACTER),
-      top_optional_blank_(!use_upper_half_block) {
+      use_upper_half_block_(use_upper_half_block) {
 }
 
 TerminalCanvas::~TerminalCanvas() {
@@ -140,57 +134,85 @@ static inline char *str_append(char *pos, const char *value, size_t len) {
 }
 
 // Append two rows of pixels at once, by writing a half-block character with
-// foreground/background.
+// foreground/background. The caller already chose which lines are written
+// in foreground and background (depending on the used block)
+inline bool is_transparent(Framebuffer::rgba_t c) {
+    return (Framebuffer::rgba_to_host(c) >> 24) < 0x60;
+}
 char *TerminalCanvas::AppendDoubleRow(char *pos, int indent, int width,
-                                      const Framebuffer::rgba_t *top_line,
-                                      const Framebuffer::rgba_t *bottom_line,
+                                      const Framebuffer::rgba_t *fg_line,
+                                      const Framebuffer::rgba_t *bg_line,
                                       bool emit_difference) {
     static constexpr char kStartEscape[] = "\033[";
-    static const Framebuffer::rgba_t kEmptyColor = 0;
-    DoubleRowColor last = { kEmptyColor, kEmptyColor };
+    DoubleRowColor last = {};
+    bool last_color_unknown = true;
     int same_color_run = indent;
-    for (int x = 0; x < width; ++x, ++last_content_iterator_) {
-        bool color_emitted = false;
-        const DoubleRowColor current_color = { *top_line++, *bottom_line++ };
+    const char *start = pos;
+    for (int x = 0; x < width; ++x, ++previous_content_iterator_) {
+        const DoubleRowColor current_color = { *fg_line++, *bg_line++ };
 
-        if (emit_difference && current_color == *last_content_iterator_) {
+        if (emit_difference && current_color == *previous_content_iterator_) {
             ++same_color_run;
             continue;
         } else if (same_color_run > 0) {
             pos += sprintf(pos, SCREEN_CURSOR_RIGHT_FORMAT, same_color_run);
             same_color_run = 0;
-            last = { kEmptyColor, kEmptyColor };
         }
 
-        if (current_color.top && current_color.top != last.top) {
+        // NOTE, not implemented:
+        // If background has a solid color and _foreground_ is transparent, we
+        // could switch to reverse \033[7m and swap coloring (as we can't switch
+        // the double-block we use). However, given that this is such a niche
+        // application (only if someone chooses -b none) with small quality
+        // improvements, or worse even on a transparent kitty, it is not worth
+        // the branches, so not implementing for now.
+
+        bool color_emitted = false;
+        bool both_transparent = false;
+
+        // Foreground
+        if (last_color_unknown || current_color.fg != last.fg) {
             // Appending prefix. At this point, it can only be kStartEscape
             pos = str_append(pos, kStartEscape, strlen(kStartEscape));
-            pos = str_append(pos, set_upper_color_, PIXEL_SET_COLOR_LEN);
-            pos = WriteAnsiColor(pos, current_color.top);
+            pos = str_append(pos, PIXEL_SET_FG_COLOR, PIXEL_SET_COLOR_LEN);
+            pos = WriteAnsiColor(pos, current_color.fg);
             color_emitted = true;
         }
-        if (current_color.bottom && current_color.bottom != last.bottom) {
+
+        // Background
+        if (last_color_unknown || current_color.bg != last.bg) {
             if (!color_emitted) {
                 pos = str_append(pos, kStartEscape, strlen(kStartEscape));
             }
-            pos = str_append(pos, set_lower_color_, PIXEL_SET_COLOR_LEN);
-            pos = WriteAnsiColor(pos, current_color.bottom);
+            if (is_transparent(current_color.bg)) {
+                // This is best effort and only happens with -b none
+                pos = str_append(pos, "49;", 3);  // Reset background color
+                both_transparent = is_transparent(current_color.fg);
+            } else {
+                pos = str_append(pos, PIXEL_SET_BG_COLOR, PIXEL_SET_COLOR_LEN);
+                pos = WriteAnsiColor(pos, current_color.bg);
+            }
             color_emitted = true;
         }
 
         if (color_emitted) {
             *(pos-1) = 'm';   // overwrite semicolon with finish ESC seq.
         }
-        if (current_color.top == current_color.bottom) {
+        if (current_color.fg == current_color.bg || both_transparent) {
             *pos++ = ' ';  // Simple background 'block'
         } else {
             pos = str_append(pos, pixel_character_, PIXEL_BLOCK_CHARACTER_LEN);
         }
         last = current_color;
-        *last_content_iterator_ = current_color;
+        last_color_unknown = false;
+        *previous_content_iterator_ = current_color;
     }
 
-    pos = str_append(pos, SCREEN_END_OF_LINE, SCREEN_END_OF_LINE_LEN);
+    if (pos == start) {
+        *pos++ = '\n';  // Nothing emitted. No attribute reset needed.
+    } else {
+        pos = str_append(pos, SCREEN_END_OF_LINE, SCREEN_END_OF_LINE_LEN);
+    }
 
     return pos;
 }
@@ -206,12 +228,11 @@ void TerminalCanvas::Send(int x, int dy, const Framebuffer &framebuffer) {
     }
 
     const Framebuffer::rgba_t *const pixels = framebuffer.data();
-    const Framebuffer::rgba_t *top_line;
-    const Framebuffer::rgba_t *bottom_line;
+    const Framebuffer::rgba_t *fg_line, *bg_line, *top_line, *bottom_line;
 
     // If we just got requested to move back where we started the last image,
     // we just need to emit pixels that changed.
-    last_content_iterator_ = backing_buffer_;
+    previous_content_iterator_ = backing_buffer_;
     const bool should_emit_difference = (x == last_x_indent_) &&
         (last_framebuffer_height_ > 0) && abs(dy) == last_framebuffer_height_;
 
@@ -224,15 +245,18 @@ void TerminalCanvas::Send(int x, int dy, const Framebuffer &framebuffer) {
     // the empty line matches up with the background part of that character.
     // This it the row_offset we calculate here.
     const bool needs_empty_line = (height % 2 != 0);
-    const int row_offset = (needs_empty_line && top_optional_blank_) ? -1 : 0;
+    const bool top_optional_blank = !use_upper_half_block_;
+    const int row_offset = (needs_empty_line && top_optional_blank) ? -1 : 0;
 
     for (int y = 0; y < height; y+=2) {
         const int row = y + row_offset;
         top_line = row < 0 ? empty_line_ : &pixels[width*row];
         bottom_line = (row+1) >= height ? empty_line_ : &pixels[width*(row+1)];
 
+        fg_line = use_upper_half_block_ ? top_line : bottom_line;
+        bg_line = use_upper_half_block_ ? bottom_line : top_line;
         pos = AppendDoubleRow(pos, x, width,
-                              top_line, bottom_line,
+                              fg_line, bg_line,
                               should_emit_difference);
     }
     last_framebuffer_height_ = height;

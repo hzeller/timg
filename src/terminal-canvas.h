@@ -51,10 +51,8 @@ public:
 private:
     const int fd_;
 
-    const char *const set_upper_color_;
-    const char *const set_lower_color_;
     const char *const pixel_character_;
-    const bool top_optional_blank_;   // For odd height frames.
+    const bool use_upper_half_block_;
 
     // Ensure that all buffers needed for emitting the framebuffer have
     // enough space.
@@ -62,22 +60,22 @@ private:
     char *EnsureBuffers(int width, int height);
 
     char *AppendDoubleRow(char *pos, int indent, int width,
-                          const Framebuffer::rgba_t *top_line,
-                          const Framebuffer::rgba_t *bottom_line,
+                          const Framebuffer::rgba_t *foreground_line,
+                          const Framebuffer::rgba_t *background_line,
                           bool emit_difference);
     char *content_buffer_ = nullptr;  // Buffer containing content to write out
     size_t content_buffer_size_ = 0;
 
     struct DoubleRowColor {
-        Framebuffer::rgba_t top;
-        Framebuffer::rgba_t bottom;
+        Framebuffer::rgba_t fg;
+        Framebuffer::rgba_t bg;
         bool operator==(const DoubleRowColor &other) const {
-            return top == other.top && bottom == other.bottom;
+            return fg == other.fg && bg == other.bg;
         }
     };
     DoubleRowColor *backing_buffer_ = nullptr;  // Remembering last frame
     size_t backing_buffer_size_ = 0;
-    DoubleRowColor *last_content_iterator_;
+    DoubleRowColor *previous_content_iterator_;
     int last_framebuffer_height_ = 0;
     int last_x_indent_ = 0;
 
