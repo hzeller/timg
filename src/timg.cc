@@ -542,8 +542,14 @@ int main(int argc, char *argv[]) {
         is_first = false;
     }
 
-    if (interrupt_received)   // Make 'Ctrl-C' appear on new line.
-        fprintf(stderr, "\n");
+    if (interrupt_received) {
+        // Even though we completed the write, some terminals sometimes seem
+        // to get messed up, maybe interrupted escape sequence ?
+        // Make sure to move to the very bottom and also reset attributes.
+        // But do it on stderr, to not send it to a potentially redirected fd.
+        fprintf(stderr, "\033[0m\033[%dB\n", display_opts.height / 2);
+        fflush(stderr);
+    }
 
     return (int)exit_code;
 }

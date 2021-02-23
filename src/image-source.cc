@@ -20,8 +20,12 @@
 #include "jpeg-source.h"
 #include "video-display.h"
 
-#include <string.h>
+#include <errno.h>
 #include <math.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include <utility>
 #include <memory>
@@ -140,6 +144,17 @@ ImageSource *ImageSource::Create(const std::string &filename,
     }
 #endif
 
+    // Ran into trouble opening. Let's see if this is even an accessible file.
+    if (filename != "-") {
+        struct stat statresult;
+        if (stat(filename.c_str(), &statresult) < 0) {
+            fprintf(stderr, "%s: %s\n", filename.c_str(), strerror(errno));
+        } else if (S_ISDIR(statresult.st_mode)) {
+            fprintf(stderr, "%s: is a directory\n", filename.c_str());
+        } else if (access(filename.c_str(), R_OK) < 0) {
+            fprintf(stderr, "%s: %s\n", filename.c_str(), strerror(errno));
+        }
+    }
     // We either loaded, played and continue'ed, or we end up here.
     //fprintf(stderr, "%s: couldn't load\n", filename);
 #ifdef WITH_TIMG_VIDEO
