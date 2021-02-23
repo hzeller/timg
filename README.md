@@ -48,6 +48,8 @@ sudo apt install libgraphicsmagick++-dev libturbojpeg-dev libexif-dev libswscale
 # If you want to include video decoding, also install these additional libraries
 sudo apt install libavcodec-dev libavformat-dev
 
+sudo apt install libavdevice-dev # If you want to read from video devices such as v4l2
+
 sudo apt install pandoc  # If you want to recreate the man page
 ```
 
@@ -72,7 +74,8 @@ brew install pandoc  # If you want to recreate the man page
 cd timg  # Enter the checked out repository directory.
 mkdir build  # Generate a dedicated build directory.
 cd build
-cmake ../ -DWITH_VIDEO_DECODING=On # or Off for no video decoding
+# WITH_VIDEO_DECODING enables video; WITH_VIDEO_DEVICE reading from webcam
+cmake ../ -DWITH_VIDEO_DECODING=On -DWITH_VIDEO_DEVICE=On
 make
 ```
 
@@ -188,6 +191,10 @@ timg multi-resolution.ico   # See all the bitmaps in multi-resolution icons-file
 timg --frames=1 multi-resolution.ico  # See only the first bitmap in that file
 
 timg some-video.mp4         # Watch a video.
+
+# Play content of webcam (This assumes video4linux2, but whatever input devices
+# are supported on your system with libavdevice-dev)
+timg /dev/video0
 
 # If you read a video from a pipe, it is necessary to skip attempting the
 # image decode first as this will consume bytes from the pipe. Use -V option.

@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.13)
 project(timg VERSION 1.0.1 LANGUAGES CXX)
 
 option(WITH_VIDEO_DECODING "Enables video decoding feature" ON)
+option(WITH_VIDEO_DEVICE "Enables reading videos from devices e.g. v4l2" ON)
 # Note: The version string can be ammended with -DDISTRIBUTION_VERSION, see src/timg-version.h.in
 option(TIMG_VERSION_FROM_GIT "Get the program version from the git repository" ON)
 
@@ -24,6 +25,9 @@ pkg_check_modules(SWSCALE IMPORTED_TARGET REQUIRED libswscale)
 
 if(WITH_VIDEO_DECODING)
   pkg_check_modules(LIBAV IMPORTED_TARGET REQUIRED libavcodec libavutil libavformat)
+  if (WITH_VIDEO_DEVICE)
+    pkg_check_modules(LIBAV_DEVICE IMPORTED_TARGET REQUIRED libavdevice)
+  endif()
 endif()
 
 find_package(Threads)

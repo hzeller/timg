@@ -26,6 +26,9 @@
 // libav: "U NO extern C in header ?"
 extern "C" {
 #  include <libavcodec/avcodec.h>
+#  if HAVE_AVDEVICE
+#    include <libavdevice/avdevice.h>
+#  endif
 #  include <libavformat/avformat.h>
 #  include <libavutil/imgutils.h>
 #  include <libavutil/log.h>
@@ -83,6 +86,9 @@ static void OnceInitialize() {
 #if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(58, 9, 100)
     av_register_all();
 #endif
+#if HAVE_AVDEVICE
+    avdevice_register_all();
+#endif
     avformat_network_init();
     av_log_set_callback(dummy_log);
 }
@@ -124,6 +130,13 @@ bool VideoLoader::LoadAndScale(const DisplayOptions &display_options,
         char msg[100];
         av_strerror(ret, msg, sizeof(msg));
         if (kDebug) fprintf(stderr, "%s: %s\n", file, msg);
+#if not HAVE_AVDEVICE
+        // Not compiled in video device support. Try to give helpful message.
+        if (strncmp(file, "/dev/video", strlen("/dev/video")) == 0) {
+            fprintf(stderr, "Need to compile with -DWITH_VIDEO_DEVICE=On to "
+                    "access v4l2 device\n");
+        }
+#endif
         return false;
     }
 

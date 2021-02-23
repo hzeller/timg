@@ -22,5 +22,5 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. -DWITH_VIDEO_DECODING=On
+          cmake .. -DWITH_VIDEO_DECODING=On -DWITH_VIDEO_DEVICE=On
           make -k

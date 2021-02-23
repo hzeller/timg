@@ -42,6 +42,10 @@ if(WITH_VIDEO_DECODING)
   target_sources(timg PUBLIC video-display.cc video-display.h)
   target_compile_definitions(timg PUBLIC WITH_TIMG_VIDEO)
   target_link_libraries(timg PkgConfig::LIBAV PkgConfig::SWSCALE)
+  if (WITH_VIDEO_DEVICE)
+    target_link_libraries(timg PkgConfig::LIBAV_DEVICE PkgConfig::SWSCALE)
+    add_definitions(-DHAVE_AVDEVICE)
+  endif()
 endif()
 
 install(TARGETS timg
