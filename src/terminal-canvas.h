@@ -79,6 +79,7 @@ private:
     size_t backing_buffer_size_ = 0;
     DoubleRowColor *last_content_iterator_;
     int last_framebuffer_height_ = 0;
+    int last_x_indent_ = 0;
 
     Framebuffer::rgba_t *empty_line_ = nullptr;
     size_t empty_line_size_ = 0;

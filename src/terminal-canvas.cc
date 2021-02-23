@@ -209,10 +209,10 @@ void TerminalCanvas::Send(int x, int dy, const Framebuffer &framebuffer) {
     const Framebuffer::rgba_t *top_line;
     const Framebuffer::rgba_t *bottom_line;
 
-    // If we just got requested to move back up the last image height, we
-    // can emit only pixels that changed.
+    // If we just got requested to move back where we started the last image,
+    // we just need to emit pixels that changed.
     last_content_iterator_ = backing_buffer_;
-    const bool should_emit_difference =
+    const bool should_emit_difference = (x == last_x_indent_) &&
         (last_framebuffer_height_ > 0) && abs(dy) == last_framebuffer_height_;
 
     // We are always writing two pixels at once with one character, which
@@ -236,6 +236,7 @@ void TerminalCanvas::Send(int x, int dy, const Framebuffer &framebuffer) {
                               should_emit_difference);
     }
     last_framebuffer_height_ = height;
+    last_x_indent_ = x;
     WriteBuffer(start_buffer, pos - start_buffer);
 }
 
