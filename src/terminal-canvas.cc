@@ -62,7 +62,7 @@ namespace timg {
 ssize_t TerminalCanvas::WriteBuffer(const char *buffer, const size_t size) {
     int written = 0;
     size_t remaining = size;
-    while (remaining && (written = write(fd_, buffer, size)) > 0) {
+    while (remaining && (written = write(fd_, buffer, remaining)) > 0) {
         remaining -= written;
         buffer += written;
     }
