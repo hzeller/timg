@@ -31,13 +31,6 @@
 #include <memory>
 
 namespace timg {
-static float GetEnvFloat(const char *env_var, float fallback) {
-    const char *value = getenv(env_var);
-    if (value == 0) return fallback;
-    char *err = nullptr;
-    float result = strtof(value, &err);
-    return (*err == '\0' ? result : fallback);
-}
 
 // Returns 'true' if image needs scaling.
 bool ImageSource::CalcScaleToFitDisplay(int img_width, int img_height,
@@ -48,10 +41,11 @@ bool ImageSource::CalcScaleToFitDisplay(int img_width, int img_height,
     if (fit_in_rotated) {
         std::swap(options.width, options.height);
         std::swap(options.fill_width, options.fill_height);
+        options.width_stretch = 1.0f / orig_options.width_stretch;
     }
 
-    // Read stretch needed from environment for but clamp to reasonable values.
-    float width_stretch = GetEnvFloat("TIMG_FONT_WIDTH_CORRECT", 1.0f);
+    // Clamp stretch to reasonable values.
+    float width_stretch = options.width_stretch;
     const float kMaxAcceptFactor = 5.0;  // Clamp to reasonable factor.
     if (width_stretch > kMaxAcceptFactor)   width_stretch = kMaxAcceptFactor;
     if (width_stretch < 1/kMaxAcceptFactor) width_stretch = 1/kMaxAcceptFactor;

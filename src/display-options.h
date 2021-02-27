@@ -28,8 +28,9 @@ static constexpr int kNotInitialized = std::numeric_limits<int>::min();
 // Options influencing the rendering, chosen on the command-line or
 // programmatically.
 struct DisplayOptions {
-    int width = -1;              // These need to be set to valid values.
-    int height = -1;
+    int width = -1;             // Output size. These need to be set to...
+    int height = -1;            // ... valid values.
+    float width_stretch = 1.0;  // To correct font squareness aspect ratio
 
     bool upscale = false;       // enlarging image only if this is true
     bool fill_width = false;    // Fill screen width, allow overflow height.

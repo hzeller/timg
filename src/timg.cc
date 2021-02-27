@@ -145,6 +145,14 @@ static bool GetBoolenEnv(const char *env_name) {
     return value && atoi(value) != 0;
 }
 
+static float GetFloatEnv(const char *env_var, float fallback) {
+    const char *value = getenv(env_var);
+    if (value == 0) return fallback;
+    char *err = nullptr;
+    float result = strtof(value, &err);
+    return (*err == '\0' ? result : fallback);
+}
+
 // Read list of filenames from newline separated file. Non-absolute files
 // are resolved relative to the filelist_file
 bool AppendToFileList(const std::string &filelist_file,
@@ -176,6 +184,7 @@ int main(int argc, char *argv[]) {
     timg::DisplayOptions display_opts;
     display_opts.width = term.width;
     display_opts.height = term.height;
+    display_opts.width_stretch = GetFloatEnv("TIMG_FONT_WIDTH_CORRECT", 1.0f);
 
     const char *bg_color = "auto";  // Experimental
     const char *bg_pattern_color = nullptr;
