@@ -19,6 +19,7 @@
 #include "framebuffer.h"
 
 #include <stddef.h>
+#include <sys/types.h>
 
 namespace timg {
 
@@ -34,19 +35,21 @@ public:
 
     // Send frame to terminal. Move to xposition (relative to the left
     // of the screen, and delta y (relative to the current position) first.
-    void Send(int x, int dy, const Framebuffer &framebuffer);
+    // Returns number of bytes written.
+    ssize_t Send(int x, int dy, const Framebuffer &framebuffer);
 
-    void ClearScreen();
-    void CursorOff();
-    void CursorOn();
+    ssize_t ClearScreen();
+    ssize_t CursorOff();
+    ssize_t CursorOn();
 
-    void MoveCursorDY(int rows);  // negative: up^, positive: downV
-    void MoveCursorDX(int cols);  // negative: <-left, positive: right->
+    ssize_t MoveCursorDY(int rows);  // negative: up^, positive: downV
+    ssize_t MoveCursorDX(int cols);  // negative: <-left, positive: right->
 
     // Write buffer to the file descriptor this canvas is configured to.
     // Public, so can be used by other components that might need to write
-    // informatin between framebuffer writes.
-    void WriteBuffer(const char *buffer, size_t len);
+    // text between framebuffer writes. Returns number of bytes written, which
+    // should be the same as len.
+    ssize_t WriteBuffer(const char *buffer, size_t len);
 
 private:
     const int fd_;
@@ -62,7 +65,7 @@ private:
     char *AppendDoubleRow(char *pos, int indent, int width,
                           const Framebuffer::rgba_t *foreground_line,
                           const Framebuffer::rgba_t *background_line,
-                          bool emit_difference);
+                          bool emit_difference, int *y_skip);
     char *content_buffer_ = nullptr;  // Buffer containing content to write out
     size_t content_buffer_size_ = 0;
 

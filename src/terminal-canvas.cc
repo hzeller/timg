@@ -59,12 +59,15 @@
 
 namespace timg {
 
-void TerminalCanvas::WriteBuffer(const char *buffer, size_t size) {
-    int written;
-    while (size && (written = write(fd_, buffer, size)) > 0) {
-        size -= written;
+ssize_t TerminalCanvas::WriteBuffer(const char *buffer, const size_t size) {
+    int written = 0;
+    size_t remaining = size;
+    while (remaining && (written = write(fd_, buffer, size)) > 0) {
+        remaining -= written;
         buffer += written;
     }
+    if (written < 0) return -1;
+    return size;
 }
 
 char *TerminalCanvas::EnsureBuffers(int width, int height) {
@@ -142,21 +145,31 @@ inline bool is_transparent(Framebuffer::rgba_t c) {
 char *TerminalCanvas::AppendDoubleRow(char *pos, int indent, int width,
                                       const Framebuffer::rgba_t *fg_line,
                                       const Framebuffer::rgba_t *bg_line,
-                                      bool emit_difference) {
+                                      bool emit_difference,
+                                      int *y_skip) {
     static constexpr char kStartEscape[] = "\033[";
     DoubleRowColor last = {};
     bool last_color_unknown = true;
-    int same_color_run = indent;
+    int x_skip = indent;
     const char *start = pos;
     for (int x = 0; x < width; ++x, ++previous_content_iterator_) {
         const DoubleRowColor current_color = { *fg_line++, *bg_line++ };
 
         if (emit_difference && current_color == *previous_content_iterator_) {
-            ++same_color_run;
+            ++x_skip;
             continue;
-        } else if (same_color_run > 0) {
-            pos += sprintf(pos, SCREEN_CURSOR_RIGHT_FORMAT, same_color_run);
-            same_color_run = 0;
+        } else if (x_skip > 0) {
+            if (*y_skip) {  // Emit cursor down or newlines, whatever is shorter
+                if (*y_skip <= 4) {
+                    memset(pos, '\n', *y_skip);
+                    pos += *y_skip;
+                } else {
+                    pos += sprintf(pos, SCREEN_CURSOR_DN_FORMAT, *y_skip);
+                }
+                *y_skip = 0;
+            }
+            pos += sprintf(pos, SCREEN_CURSOR_RIGHT_FORMAT, x_skip);
+            x_skip = 0;
         }
 
         // NOTE, not implemented:
@@ -209,7 +222,7 @@ char *TerminalCanvas::AppendDoubleRow(char *pos, int indent, int width,
     }
 
     if (pos == start) {
-        *pos++ = '\n';  // Nothing emitted. No attribute reset needed.
+        (*y_skip)++;
     } else {
         pos = str_append(pos, SCREEN_END_OF_LINE, SCREEN_END_OF_LINE_LEN);
     }
@@ -217,7 +230,7 @@ char *TerminalCanvas::AppendDoubleRow(char *pos, int indent, int width,
     return pos;
 }
 
-void TerminalCanvas::Send(int x, int dy, const Framebuffer &framebuffer) {
+ssize_t TerminalCanvas::Send(int x, int dy, const Framebuffer &framebuffer) {
     const int width = framebuffer.width();
     const int height = framebuffer.height();
     char *const start_buffer = EnsureBuffers(width, height);
@@ -226,6 +239,7 @@ void TerminalCanvas::Send(int x, int dy, const Framebuffer &framebuffer) {
     if (dy < 0) {
         pos += sprintf(pos, SCREEN_CURSOR_UP_FORMAT, (abs(dy) + 1) / 2);
     }
+    const char *before_image_emission = pos;
 
     const Framebuffer::rgba_t *const pixels = framebuffer.data();
     const Framebuffer::rgba_t *fg_line, *bg_line, *top_line, *bottom_line;
@@ -248,6 +262,7 @@ void TerminalCanvas::Send(int x, int dy, const Framebuffer &framebuffer) {
     const bool top_optional_blank = !use_upper_half_block_;
     const int row_offset = (needs_empty_line && top_optional_blank) ? -1 : 0;
 
+    int accumulated_y_skip = 0;
     for (int y = 0; y < height; y+=2) {
         const int row = y + row_offset;
         top_line = row < 0 ? empty_line_ : &pixels[width*row];
@@ -257,43 +272,50 @@ void TerminalCanvas::Send(int x, int dy, const Framebuffer &framebuffer) {
         bg_line = use_upper_half_block_ ? bottom_line : top_line;
         pos = AppendDoubleRow(pos, x, width,
                               fg_line, bg_line,
-                              should_emit_difference);
+                              should_emit_difference,
+                              &accumulated_y_skip);
     }
     last_framebuffer_height_ = height;
     last_x_indent_ = x;
-    WriteBuffer(start_buffer, pos - start_buffer);
+    if (before_image_emission == pos)
+        return 0;   // Don't even emit cursor up/dn jump.
+
+    if (accumulated_y_skip) {
+        pos += sprintf(pos, SCREEN_CURSOR_DN_FORMAT, accumulated_y_skip);
+    }
+    return WriteBuffer(start_buffer, pos - start_buffer);
 }
 
-void TerminalCanvas::MoveCursorDY(int rows) {
-    if (rows == 0) return;
+ssize_t TerminalCanvas::MoveCursorDY(int rows) {
+    if (rows == 0) return 0;
     char buf[32];
     const size_t len = sprintf(buf, rows < 0
                                ? SCREEN_CURSOR_UP_FORMAT
                                : SCREEN_CURSOR_DN_FORMAT,
                                abs(rows));
-    WriteBuffer(buf, len);
+    return WriteBuffer(buf, len);
 }
 
-void TerminalCanvas::MoveCursorDX(int cols) {
-    if (cols == 0) return;
+ssize_t TerminalCanvas::MoveCursorDX(int cols) {
+    if (cols == 0) return 0;
     char buf[32];
     const size_t len = sprintf(buf, cols < 0
                                ? SCREEN_CURSOR_LEFT_FORMAT
                                : SCREEN_CURSOR_RIGHT_FORMAT,
                                abs(cols));
-    WriteBuffer(buf, len);
+    return WriteBuffer(buf, len);
 }
 
-void TerminalCanvas::ClearScreen() {
-    WriteBuffer(SCREEN_CLEAR, strlen(SCREEN_CLEAR));
+ssize_t TerminalCanvas::ClearScreen() {
+    return WriteBuffer(SCREEN_CLEAR, strlen(SCREEN_CLEAR));
 }
 
-void TerminalCanvas::CursorOff() {
-    WriteBuffer(CURSOR_OFF, strlen(CURSOR_OFF));
+ssize_t TerminalCanvas::CursorOff() {
+    return WriteBuffer(CURSOR_OFF, strlen(CURSOR_OFF));
 }
 
-void TerminalCanvas::CursorOn() {
-    WriteBuffer(CURSOR_ON, strlen(CURSOR_ON));
+ssize_t TerminalCanvas::CursorOn() {
+    return WriteBuffer(CURSOR_ON, strlen(CURSOR_ON));
 }
 
 // Converting the colors requires fast uint8 -> ASCII decimal digits with
