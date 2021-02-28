@@ -75,16 +75,16 @@ static timg::Framebuffer *ApplyExifOp(timg::Framebuffer *orig,
     const int w = orig->width();
     if (op.mirror) {
         for (int y = 0; y < h; ++y) {
-            Framebuffer::rgba_t *left = &orig->data()[y * w];
-            Framebuffer::rgba_t *right = &orig->data()[(y+1) * w - 1];
+            rgba_t *left = &orig->data()[y * w];
+            rgba_t *right = &orig->data()[(y+1) * w - 1];
             while (left < right) {
                 std::swap(*left++, *right--);
             }
         }
     }
     if (op.angle == 180) {
-        Framebuffer::rgba_t *top_left = orig->data();
-        Framebuffer::rgba_t *bottom_right = orig->data() + w * h - 1;
+        rgba_t *top_left = orig->data();
+        rgba_t *bottom_right = orig->data() + w * h - 1;
         while (top_left < bottom_right) {
             std::swap(*top_left++, *bottom_right--);
         }

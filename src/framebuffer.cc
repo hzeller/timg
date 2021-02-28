@@ -23,6 +23,30 @@
 
 namespace timg {
 
+rgba_t rgba_t::ParseColor(const char *color) {
+    if (!color) return { 0, 0, 0, 0 };
+
+    // If it is a named color, convert it first to its #rrggbb string.
+#include "html-colors.inc"
+    for (const auto &c : html_colors) {
+        if (strcasecmp(color, c.name) == 0) {
+            color = c.translation;
+            break;
+        }
+    }
+    uint32_t r, g, b;
+    if ((sscanf(color, "#%02x%02x%02x", &r, &g, &b) == 3) ||
+        (sscanf(color, "rgb(%d, %d, %d)", &r, &g, &b) == 3) ||
+        (sscanf(color, "rgb(0x%x, 0x%x, 0x%x)", &r, &g, &b) == 3)) {
+        if (r > 255) r = 255;
+        if (g > 255) g = 255;
+        if (b > 255) b = 255;
+        return { (uint8_t)r, (uint8_t)g, (uint8_t)b, 0xff };
+    }
+    fprintf(stderr, "Couldn't parse color '%s'\n", color);
+    return { 0, 0, 0, 0 };
+}
+
 Framebuffer::Framebuffer(int w, int h)
     : width_(w), height_(h), pixels_(new rgba_t [ width_ * height_]) {
     strides_[0] = (int)sizeof(rgba_t) * width_;
@@ -40,21 +64,13 @@ void Framebuffer::SetPixel(int x, int y, rgba_t value) {
     pixels_[width_ * y + x] = value;
 }
 
-Framebuffer::rgba_t Framebuffer::at(int x, int y) const {
+rgba_t Framebuffer::at(int x, int y) const {
     assert(x >= 0 && x < width() && y >= 0 && y < height());
     return pixels_[width_ * y + x];
 }
 
 void Framebuffer::Clear() {
     memset(pixels_, 0, sizeof(*pixels_) * width_ * height_);
-}
-
-Framebuffer::rgba_t Framebuffer::to_rgba(
-    uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
-    return htole32((uint32_t)r <<  0 |
-                   (uint32_t)g <<  8 |
-                   (uint32_t)b << 16 |
-                   (uint32_t)a << 24);
 }
 
 uint8_t** Framebuffer::row_data() {
@@ -67,40 +83,17 @@ uint8_t** Framebuffer::row_data() {
     return row_data_;
 }
 
-Framebuffer::rgba_t Framebuffer::ParseColor(const char *color) {
-    if (!color) return to_rgba(0, 0, 0, 0);
-
-    // If it is a named color, convert it first to its #rrggbb string.
-#include "html-colors.inc"
-    for (const auto &c : html_colors) {
-        if (strcasecmp(color, c.name) == 0) {
-            color = c.translation;
-            break;
-        }
-    }
-    uint32_t r, g, b;
-    if ((sscanf(color, "#%02x%02x%02x", &r, &g, &b) == 3) ||
-        (sscanf(color, "rgb(%d, %d, %d)", &r, &g, &b) == 3) ||
-        (sscanf(color, "rgb(0x%x, 0x%x, 0x%x)", &r, &g, &b) == 3)) {
-        return to_rgba(r, g, b, 0xff);
-    }
-    fprintf(stderr, "Couldn't parse color '%s'\n", color);
-    return to_rgba(0, 0, 0, 0);
-}
-
-static Framebuffer::rgba_t AlphaBlend(const uint32_t *bg,
-                                      Framebuffer::rgba_t c) {
-    const uint32_t col = le32toh(c);  // NOP on common LE platforms
-    const uint32_t alpha = c >> 24;
+static rgba_t AlphaBlend(const uint32_t *bg, rgba_t c) {
+    const uint32_t alpha = c.a;
     if (alpha == 0xff) return c;
 
-    uint32_t fgc[3] = { (col>>0) & 0xff, (col>>8) & 0xff, (col>>16) & 0xff };
-    uint32_t out[3];
+    uint32_t fgc[3] = { c.r, c.g, c.b };
+    uint8_t out[3];
     for (int i = 0; i < 3; ++i) {
         out[i] = sqrtf((fgc[i]*fgc[i]        * alpha +
                         bg[i] * (0xFF - alpha)) / 0xff);
     }
-    return Framebuffer::to_rgba(out[0], out[1], out[2], 0xff);
+    return { out[0], out[1], out[2], 0xff };
 }
 
 void Framebuffer::AlphaComposeBackground(rgba_t bgcolor, rgba_t pattern_col) {
@@ -108,23 +101,21 @@ void Framebuffer::AlphaComposeBackground(rgba_t bgcolor, rgba_t pattern_col) {
     uint32_t linear_pattern[3];
     uint32_t *bg_choice[2] = { linear_bg, linear_bg };
 
-    // Create pre-multiplied version
-    const uint32_t bcol = le32toh(bgcolor);
-    const uint32_t bg_alpha = bcol >> 24;
+    // Create de-gamma'ed version. We approximate x^2.2 with x^2
+    const uint32_t bg_alpha = bgcolor.a;
     if (bg_alpha == 0x00) return; // nothing to do.
     assert(bg_alpha == 0xff);   // We don't support partially transparent bg.
 
-    linear_bg[0] = (bcol & 0xff) * (bcol & 0xff);
-    linear_bg[1] = ((bcol>> 8) & 0xff) * ((bcol>> 8) & 0xff);
-    linear_bg[2] = ((bcol>>16) & 0xff) * ((bcol>>16) & 0xff);
+    linear_bg[0] = bgcolor.r * bgcolor.r;
+    linear_bg[1] = bgcolor.g * bgcolor.g;
+    linear_bg[2] = bgcolor.b * bgcolor.b;
 
     // If alpha channel indicates that pattern is used, also prepare it and
     // use as 2nd choice.
-    const uint32_t pcol = le32toh(pattern_col);
-    if (pcol >> 24 == 0xff) {
-        linear_pattern[0] = (pcol & 0xff) * (pcol & 0xff);
-        linear_pattern[1] = ((pcol>> 8) & 0xff) * ((pcol>> 8) & 0xff);
-        linear_pattern[2] = ((pcol>>16) & 0xff) * ((pcol>>16) & 0xff);
+    if (pattern_col.a == 0xff) {
+        linear_pattern[0] = pattern_col.r * pattern_col.r;
+        linear_pattern[1] = pattern_col.g * pattern_col.g;
+        linear_pattern[2] = pattern_col.b * pattern_col.b;
         bg_choice[1] = linear_pattern;
     }
 

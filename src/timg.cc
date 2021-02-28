@@ -439,9 +439,9 @@ int main(int argc, char *argv[]) {
         else if (strcasecmp(bg_color, "none") == 0) {
             bg_color = nullptr;
         }
-        display_opts.bg_color = Framebuffer::ParseColor(bg_color);
+        display_opts.bg_color = timg::rgba_t::ParseColor(bg_color);
     }
-    display_opts.bg_pattern_color = Framebuffer::ParseColor(bg_pattern_color);
+    display_opts.bg_pattern_color = timg::rgba_t::ParseColor(bg_pattern_color);
 
     // There is no scroll if there is no movement.
     if (display_opts.scroll_dx == 0 && display_opts.scroll_dy == 0) {

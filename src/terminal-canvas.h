@@ -63,16 +63,16 @@ private:
     char *EnsureBuffers(int width, int height);
 
     char *AppendDoubleRow(char *pos, int indent, int width,
-                          const Framebuffer::rgba_t *foreground_line,
-                          const Framebuffer::rgba_t *background_line,
+                          const rgba_t *foreground_line,
+                          const rgba_t *background_line,
                           bool emit_difference, int *y_skip);
     char *content_buffer_ = nullptr;  // Buffer containing content to write out
     size_t content_buffer_size_ = 0;
 
     struct DoubleRowColor {
-        Framebuffer::rgba_t fg;
-        Framebuffer::rgba_t bg;
-        bool operator==(const DoubleRowColor &other) const {
+        rgba_t fg;
+        rgba_t bg;
+        inline bool operator==(const DoubleRowColor &other) const {
             return fg == other.fg && bg == other.bg;
         }
     };
@@ -82,7 +82,7 @@ private:
     int last_framebuffer_height_ = 0;
     int last_x_indent_ = 0;
 
-    Framebuffer::rgba_t *empty_line_ = nullptr;
+    rgba_t *empty_line_ = nullptr;
     size_t empty_line_size_ = 0;
 };
 }  // namespace timg

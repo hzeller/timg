@@ -34,11 +34,14 @@ static void CopyToFramebuffer(const Magick::Image &img,
     for (size_t y = 0; y < img.rows(); ++y) {
         for (size_t x = 0; x < img.columns(); ++x) {
             const Magick::Color &c = img.pixelColor(x, y);
-            result->SetPixel(x, y, Framebuffer::to_rgba(
+            result->SetPixel(x, y,
+                             {
                                  ScaleQuantumToChar(c.redQuantum()),
                                  ScaleQuantumToChar(c.greenQuantum()),
                                  ScaleQuantumToChar(c.blueQuantum()),
-                                 0xff - ScaleQuantumToChar(c.alphaQuantum())));
+                                 (uint8_t)(0xff - ScaleQuantumToChar(
+                                               c.alphaQuantum()))
+                             });
         }
     }
 }

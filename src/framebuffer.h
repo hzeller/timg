@@ -1,5 +1,5 @@
 // -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil; -*-
-// (c) 2016 Henner Zeller <h.zeller@acm.org>
+// (c) 2016-2021 Henner Zeller <h.zeller@acm.org>
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -17,25 +17,31 @@
 #define TIMG_FRAMEBUFFER_H
 
 #include <stdint.h>
-
-#ifdef __APPLE__
-#    include <libkern/OSByteOrder.h>
-#    define htole32(x) OSSwapHostToLittleInt32(x)
-#    define le32toh(x) OSSwapLittleToHostInt32(x)
-#else
-#    include <endian.h>
-#endif
+#include <string.h>
 
 namespace timg {
-// Very simple framebuffer, storing widht*height pixels in RGBA format
-// (always R=first byte, B=second byte; independent of architecture)
+struct rgba_t {
+    uint8_t r, g, b;  // Color components, gamma corrected (non-linear)
+    uint8_t a;        // Alpha channel. Linear.
+
+    inline bool operator==(const rgba_t &that) const {
+        // Using memcmp() slower, so force uint-compare with type-punning.
+        return *((uint32_t*)this) == *((uint32_t*)&that);
+    }
+    inline bool operator!=(const rgba_t &o) const { return !(*this == o); }
+
+    // Parse a color given as string. Supported are numeric formats are
+    // "#rrggbb" and "rgb(r, g, b)", and also common textual X11/HTML names
+    // such as 'red' or 'MediumAquaMarine'.
+    // Returned alpha channel is solid 0xff unless color could not be
+    // decoded, in which case it is all-transparent 0x00
+    static rgba_t ParseColor(const char *color);
+};
+static_assert(sizeof(rgba_t) == 4, "Unexpected size for rgba_t struct");
+
+// Very simple framebuffer, storing widht*height pixels in RGBA format.
 class Framebuffer {
 public:
-    // Note, this is always in little endian
-    // 'red' is stored in the first byte, 'green' 2nd, 'blue' 3d, 'alpha' 4th
-    // Consider this type opaque, use ParseColor() and to_rgba() to interact.
-    typedef uint32_t rgba_t;
-
     Framebuffer(int width, int height);
     Framebuffer() = delete;
     Framebuffer(const Framebuffer &other) = delete;
@@ -67,8 +73,9 @@ public:
     rgba_t *data() { return pixels_; }
     const rgba_t *data() const { return pixels_; }
 
-    // -- the following two methods are useful with line-oriented sws_scale()
-    // -- to allow it to directly write into our frame-buffer
+    /* the following two methods are useful with line-oriented sws_scale()
+     * to allow it to directly write into our frame-buffer
+     */
 
     // Return an array containing the amount of bytes for each line.
     // This is returned as an array.
@@ -77,26 +84,12 @@ public:
     // Return an array containing pointers to the data for each line.
     uint8_t** row_data();
 
-public:
-    // Utility function to generate an rgba_t value from components.
-    // Given red, green, blue and alpha value: convert to rgba_t type to the
-    // correct byte order.
-    static rgba_t to_rgba(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
-
-    // Parse a color given as string. Supported are numeric formats are
-    // "#rrggbb" and "rgb(r, g, b)", but also common textual X11/HTML names.
-    static rgba_t ParseColor(const char *color);
-
-    // Convert RGBA value to host byte-order, so that r is at
-    // lowest (value&0xff)
-    static inline uint32_t rgba_to_host(rgba_t color) { return le32toh(color); }
-
 private:
     const int width_;
     const int height_;
     rgba_t *const pixels_;
     int strides_[2];
-    uint8_t** row_data_ = nullptr;  // Only allocated if requested.
+    uint8_t **row_data_ = nullptr;  // Only allocated if requested.
 };
 }  // namespace timg
 

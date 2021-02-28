@@ -52,8 +52,8 @@ struct DisplayOptions {
     bool allow_frame_skipping = false;  // skip frame if CPU or terminal slow
 
     // Transparency options for background shown.
-    Framebuffer::rgba_t bg_color;          // Background color
-    Framebuffer::rgba_t bg_pattern_color;  // Checkerboard other color.
+    rgba_t bg_color;            // Background color
+    rgba_t bg_pattern_color;    // Checkerboard other color.
 };
 }  // namespace timg
 #endif  // DISPLAY_OPTIONS_H

@@ -100,9 +100,9 @@ char *TerminalCanvas::EnsureBuffers(int width, int height) {
         backing_buffer_size_ = new_backing;
     }
 
-    const size_t new_empty = width * sizeof(Framebuffer::rgba_t);
+    const size_t new_empty = width * sizeof(rgba_t);
     if (new_empty > empty_line_size_) {
-        empty_line_ = (Framebuffer::rgba_t*)realloc(empty_line_, new_empty);
+        empty_line_ = (rgba_t*)realloc(empty_line_, new_empty);
         empty_line_size_ = new_empty;
         memset(empty_line_, 0x00, empty_line_size_);
     }
@@ -124,11 +124,10 @@ TerminalCanvas::~TerminalCanvas() {
 }
 
 static char *int_append_with_semicolon(char *buf, uint8_t val);
-static char *WriteAnsiColor(char *buf, Framebuffer::rgba_t color) {
-    const uint32_t col = Framebuffer::rgba_to_host(color);
-    buf = int_append_with_semicolon(buf, (col & 0x0000ff) >>  0);  // r
-    buf = int_append_with_semicolon(buf, (col & 0x00ff00) >>  8);  // g
-    return int_append_with_semicolon(buf,(col & 0xff0000) >> 16);  // b
+static char *WriteAnsiColor(char *buf, rgba_t color) {
+    buf = int_append_with_semicolon(buf, color.r);
+    buf = int_append_with_semicolon(buf, color.g);
+    return int_append_with_semicolon(buf, color.b);
 }
 
 static inline char *str_append(char *pos, const char *value, size_t len) {
@@ -139,12 +138,10 @@ static inline char *str_append(char *pos, const char *value, size_t len) {
 // Append two rows of pixels at once, by writing a half-block character with
 // foreground/background. The caller already chose which lines are written
 // in foreground and background (depending on the used block)
-inline bool is_transparent(Framebuffer::rgba_t c) {
-    return (Framebuffer::rgba_to_host(c) >> 24) < 0x60;
-}
+inline bool is_transparent(rgba_t c) {  return c.a < 0x60; }
 char *TerminalCanvas::AppendDoubleRow(char *pos, int indent, int width,
-                                      const Framebuffer::rgba_t *fg_line,
-                                      const Framebuffer::rgba_t *bg_line,
+                                      const rgba_t *fg_line,
+                                      const rgba_t *bg_line,
                                       bool emit_difference,
                                       int *y_skip) {
     static constexpr char kStartEscape[] = "\033[";
@@ -241,8 +238,8 @@ ssize_t TerminalCanvas::Send(int x, int dy, const Framebuffer &framebuffer) {
     }
     const char *before_image_emission = pos;
 
-    const Framebuffer::rgba_t *const pixels = framebuffer.data();
-    const Framebuffer::rgba_t *fg_line, *bg_line, *top_line, *bottom_line;
+    const rgba_t *const pixels = framebuffer.data();
+    const rgba_t *fg_line, *bg_line, *top_line, *bottom_line;
 
     // If we just got requested to move back where we started the last image,
     // we just need to emit pixels that changed.
