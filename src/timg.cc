@@ -263,6 +263,10 @@ int main(int argc, char *argv[]) {
             break;
         case 't':
             duration = Duration::Millis(roundf(atof(optarg) * 1000.0f));
+            if (duration.is_zero()) {
+                fprintf(stderr, "Note, -t<zero-duration> will effectively "
+                        "skip animations/movies\n");
+            }
             break;
         case 'c':  // Legacy option, now long opt. Keep for now.
             loops = atoi(optarg);
