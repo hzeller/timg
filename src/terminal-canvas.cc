@@ -155,16 +155,19 @@ char *TerminalCanvas::AppendDoubleRow(char *pos, int indent, int width,
         if (emit_difference && current_color == *previous_content_iterator_) {
             ++x_skip;
             continue;
-        } else if (x_skip > 0) {
-            if (*y_skip) {  // Emit cursor down or newlines, whatever is shorter
-                if (*y_skip <= 4) {
-                    memset(pos, '\n', *y_skip);
-                    pos += *y_skip;
-                } else {
-                    pos += sprintf(pos, SCREEN_CURSOR_DN_FORMAT, *y_skip);
-                }
-                *y_skip = 0;
+        }
+
+        if (*y_skip) {  // Emit cursor down or newlines, whatever is shorter
+            if (*y_skip <= 4) {
+                memset(pos, '\n', *y_skip);
+                pos += *y_skip;
+            } else {
+                pos += sprintf(pos, SCREEN_CURSOR_DN_FORMAT, *y_skip);
             }
+            *y_skip = 0;
+        }
+
+        if (x_skip > 0) {
             pos += sprintf(pos, SCREEN_CURSOR_RIGHT_FORMAT, x_skip);
             x_skip = 0;
         }
@@ -218,7 +221,7 @@ char *TerminalCanvas::AppendDoubleRow(char *pos, int indent, int width,
         *previous_content_iterator_ = current_color;
     }
 
-    if (pos == start) {
+    if (pos == start) {  // Nothing emitted for whole line
         (*y_skip)++;
     } else {
         pos = str_append(pos, SCREEN_END_OF_LINE, SCREEN_END_OF_LINE_LEN);
