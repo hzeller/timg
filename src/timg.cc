@@ -59,6 +59,7 @@
 #  define TIMG_VERSION "(unknown)"
 #endif
 
+using timg::rgba_t;
 using timg::Duration;
 using timg::Time;
 using timg::ImageSource;
@@ -435,21 +436,6 @@ int main(int argc, char *argv[]) {
     }
 
     // -- Some sanity checks and configuration editing.
-    if (bg_color) {
-        if (strcasecmp(bg_color, "auto") == 0) {
-            bg_color = timg::DetermineBackgroundColor();
-            if (!bg_color) bg_color = "#000000"; // Fallback.
-        }
-        else if (strcasecmp(bg_color, "none") == 0) {
-            bg_color = nullptr;
-        }
-        if (bg_color) {
-            const timg::rgba_t bg = timg::rgba_t::ParseColor(bg_color);
-            display_opts.bgcolor_getter = [bg]() { return bg; };
-        }
-    }
-    display_opts.bg_pattern_color = timg::rgba_t::ParseColor(bg_pattern_color);
-
     // There is no scroll if there is no movement.
     if (display_opts.scroll_dx == 0 && display_opts.scroll_dy == 0) {
         fprintf(stderr, "Scrolling chosen, but dx:dy = 0:0. "
@@ -485,6 +471,31 @@ int main(int argc, char *argv[]) {
     if (display_opts.show_filename) {
         display_opts.height -= 2*grid_rows;  // Leave space for text 2px = 1row
     }
+
+    // Asynconrous image loading (filelist.size()) and terminal query (+1)
+    thread_count = (thread_count > 0 ? thread_count : kDefaultThreadCount);
+    auto pool = new timg::ThreadPool(std::min(thread_count,
+                                              (int)filelist.size() + 1));
+
+    std::future<rgba_t> background_color_future;
+    if (bg_color) {
+        if (strcasecmp(bg_color, "auto") == 0) {
+            std::function<rgba_t()> query_terminal = []() {
+                return rgba_t::ParseColor(timg::DetermineBackgroundColor());
+            };
+            background_color_future = pool->ExecAsync(query_terminal);
+            display_opts.bgcolor_getter = [&background_color_future]() {
+                static rgba_t value = background_color_future.get(); // once
+                return value;
+            };
+        }
+        else {
+            const rgba_t bg = rgba_t::ParseColor(bg_color);
+            display_opts.bgcolor_getter = [bg]() { return bg; };
+        }
+    }
+
+    display_opts.bg_pattern_color = rgba_t::ParseColor(bg_pattern_color);
 
     timg::TerminalCanvas canvas(output_fd, terminal_use_upper_block);
 
@@ -523,8 +534,6 @@ int main(int argc, char *argv[]) {
     ExitCode exit_code = ExitCode::kSuccess;
 
     // Async image loading, preparing them in a thread pool
-    thread_count = (thread_count > 0 ? thread_count : kDefaultThreadCount);
-    timg::ThreadPool pool(std::min(thread_count, (int)filelist.size()));
     std::vector<std::future<timg::ImageSource*>> loaded_sources;
     for (const std::string &filename : filelist) {
         if (interrupt_received) break;
@@ -539,7 +548,7 @@ int main(int argc, char *argv[]) {
                 if (!result) exit_code = ExitCode::kImageReadError;
                 return result;
             };
-        loaded_sources.push_back(pool.ExecAsync(f));
+        loaded_sources.push_back(pool->ExecAsync(f));
     }
 
     // Showing them in order of files on the command line.
@@ -566,6 +575,16 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "\033[0m\033[%dB\n", display_opts.height / 2);
         fflush(stderr);
     }
+
+    // If we were super-fast decoding and showing images that didn't need
+    // transparency, the query might still be running. Wait a tiny bit so
+    // that the terminal does not spill the result on the screen once we've
+    // returned. If the result is already there, this will return immediately
+    if (background_color_future.valid())
+        background_color_future.wait_for(std::chrono::milliseconds(50));
+
+    // Deliberately leaking thread pool as we don't bother waiting for
+    // lingering threads
 
     return (int)exit_code;
 }

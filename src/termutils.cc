@@ -19,6 +19,7 @@
 
 #include <fcntl.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/select.h>
@@ -41,9 +42,32 @@ TermSizeResult DetermineTermSize() {
     return { false, -1, -1 };
 }
 
+
+static struct termios orig_terminal_setting;
+static int tty_fd;
+static void clean_up_terminal() {
+    if (tty_fd < 0) return;
+    tcsetattr(tty_fd, TCSAFLUSH, &orig_terminal_setting);
+    close(tty_fd);
+    tty_fd = -1;
+}
 // Read and allocate background color queried from terminal emulator.
 // Might leak a file-descriptor when bailing out early. Accepted for brevity.
 char* DetermineBackgroundColor() {
+    // The response might take a while. Typically, this should be only a
+    // few milliseconds, but there can be situations over slow ssh
+    // connections or very slow machines where it takes a little.
+    // Allocate some overall budget of time we allow for this to finish.
+    // We're running this asynchronously, so we already can start decoding
+    // images while this query is still running. Only the first image that
+    // actually needs transparency alpha blending would have to wait for the
+    // result if it is not there already. No impact on other images.
+    //
+    // Budget relatively high to accomodate for slow machine/flaky
+    // network (testing on a Raspberry Pi Zero W over flaky wireless
+    // connection resulted in up to 1.2ish seconds).
+    const Duration kTimeBudget = Duration::Millis(1500);
+
     // There might be pipes and redirects.
     // Let's see if we have at least one file descriptor that is connected
     // to our terminal. We can then open that terminal directly RD/WR.
@@ -53,10 +77,9 @@ char* DetermineBackgroundColor() {
             break;
     }
     if (!ttypath) return nullptr;
-    const int tty_fd = open(ttypath, O_RDWR);
+    tty_fd = open(ttypath, O_RDWR);
     if (tty_fd < 0) return nullptr;
 
-    struct termios orig_terminal_setting;
     struct termios raw_terminal_setting;
 
     if (tcgetattr(tty_fd, &orig_terminal_setting) != 0)
@@ -74,6 +97,10 @@ char* DetermineBackgroundColor() {
 
     if (tcsetattr(tty_fd, TCSANOW, &raw_terminal_setting) != 0)
         return nullptr;
+
+    // No matter what happens exiting early for some reason, make sure we
+    // leave the terminal in a good state.
+    atexit(clean_up_terminal);
 
     // Many terminals accept a specially formulated escape sequence as 'query'
     // in which the question marks is replaced with the result in the response.
@@ -95,11 +122,7 @@ char* DetermineBackgroundColor() {
     // replaced with the requested information.
     //
     // We have to deal with two situations
-    //  * The response might take a while. Typically, this should be only a
-    //    few milliseconds, but there can be situations over slow ssh
-    //    connections where it takes a little. Allocate some overall budget
-    //    of time we allow for this to finish. But not too long as there are
-    //    terminals such as cool-retro-term that do not respond to the query
+    //  * The response might take a while (see above in kTimeBudget)
     //    and have to wait for the full time budget.
     //  * The terminal outputs the response as if it was 'typed in', so we
     //    might not only get the response from the terminal itself, but also
@@ -108,8 +131,6 @@ char* DetermineBackgroundColor() {
     //    in multiple read calls until we actually get something we expect.
     //    Make sure to accumulate reads in a more spacious buffer than the
     //    expected response and finish once we found what we're looking for.
-
-    const Duration kTimeBudget = Duration::Millis(200);
 
     char buffer[512];  // The meat of what we expect is kExpectedResponseLen=25
     size_t available = sizeof(buffer);
@@ -123,7 +144,7 @@ char* DetermineBackgroundColor() {
         fd_set read_fds;
         FD_ZERO(&read_fds);
         FD_SET(tty_fd, &read_fds);
-        if (select(tty_fd + 1, &read_fds, nullptr, nullptr, &timeout) == 0)
+        if (select(tty_fd + 1, &read_fds, nullptr, nullptr, &timeout) <= 0)
             break;
         const int r = read(tty_fd, pos, available);
         if (r < 0)
@@ -143,8 +164,7 @@ char* DetermineBackgroundColor() {
         now = Time::Now();
     } while (available && now < deadline);
 
-    tcsetattr(tty_fd, TCSAFLUSH, &orig_terminal_setting);
-    close(tty_fd);
+    clean_up_terminal();
 
     if (!found_start)
         return nullptr;
