@@ -43,7 +43,8 @@ rgba_t rgba_t::ParseColor(const char *color) {
         if (b > 255) b = 255;
         return { (uint8_t)r, (uint8_t)g, (uint8_t)b, 0xff };
     }
-    fprintf(stderr, "Couldn't parse color '%s'\n", color);
+    if (strcasecmp(color, "none") != 0)  // 'allowed' non-color. Don't complain.
+        fprintf(stderr, "Couldn't parse color '%s'\n", color);
     return { 0, 0, 0, 0 };
 }
 
