@@ -443,7 +443,10 @@ int main(int argc, char *argv[]) {
         else if (strcasecmp(bg_color, "none") == 0) {
             bg_color = nullptr;
         }
-        display_opts.bg_color = timg::rgba_t::ParseColor(bg_color);
+        if (bg_color) {
+            const timg::rgba_t bg = timg::rgba_t::ParseColor(bg_color);
+            display_opts.bgcolor_getter = [bg]() { return bg; };
+        }
     }
     display_opts.bg_pattern_color = timg::rgba_t::ParseColor(bg_pattern_color);
 

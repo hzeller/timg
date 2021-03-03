@@ -17,8 +17,10 @@
 
 #include "timg-time.h"
 
+#include <functional>
 #include <limits>
-#include "terminal-canvas.h"
+
+#include "framebuffer.h"
 
 namespace timg {
 // Special sentinel value so signify a not initialized value on the command
@@ -51,9 +53,25 @@ struct DisplayOptions {
 
     bool allow_frame_skipping = false;  // skip frame if CPU or terminal slow
 
-    // Transparency options for background shown.
-    rgba_t bg_color;            // Background color
-    rgba_t bg_pattern_color;    // Checkerboard other color.
+    //-- Background options for transparent images --
+
+    // "bgcolor_getter" is a function that can be called to retrieve the
+    // desired background color that transparent parts of images should be
+    // alpha-blended with.
+    //
+    // Return value is either a solid (alpha=0xff) color to merge, or
+    // fully transparent (alpha=0x00) to indicate that no alpha-blending
+    // should happen.
+    //
+    // Unlike all the other direct values in this struct, this is a function
+    // to allow for asynchonrous retrieval of the value, so it doesn't have to
+    // be ready at the time this DisplayOptions is created (Background: some
+    // terminal emulator take a while to respond to the background color query).
+    std::function<rgba_t()> bgcolor_getter;
+
+    // In case of background color alpha merging, this is the optional
+    // 'checkerboard' color if alpha=0xff, or no checkerboard if alpha=0x00.
+    rgba_t bg_pattern_color;
 };
 }  // namespace timg
 #endif  // DISPLAY_OPTIONS_H

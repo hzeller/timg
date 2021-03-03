@@ -230,7 +230,7 @@ timg -b 'rgb(0, 255, 0)' some-transparent-image.png
 timg -b '#0000ff' some-transparent-image.png
 
 # Checkerboard/Photoshop-like background on transparent images
-timg -b white -B gray some-transparent-image.png
+timg -b lightgray -B darkgray some-transparent-image.png
 ```
 
 ##### Partially transparent icon on champagne-colored terminal emulator

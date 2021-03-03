@@ -55,7 +55,8 @@ public:
         : delay_(DurationFromImgDelay(img, is_part_of_animation)),
           framebuffer_(img.columns(), img.rows()) {
         CopyToFramebuffer(img, &framebuffer_);
-        framebuffer_.AlphaComposeBackground(opt.bg_color, opt.bg_pattern_color);
+        framebuffer_.AlphaComposeBackground(opt.bgcolor_getter,
+                                            opt.bg_pattern_color);
     }
     Duration delay() const { return delay_; }
     const timg::Framebuffer &framebuffer() const { return framebuffer_; }

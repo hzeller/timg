@@ -18,6 +18,7 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <functional>
 
 namespace timg {
 struct rgba_t {
@@ -60,13 +61,19 @@ public:
     inline int width() const { return width_; }
     inline int height() const { return height_; }
 
-    // Blend all transparent pixels with the given background "bgcolor" and
-    // them a solid color. If the alpha value of "pattern" is set (alpha=0xff),
-    // then every other pixel will be the pattern color. That creates a
-    // checkerboard-pattern sometimes used to display transparent pictures.
-    // This Alpha compositing merges linearized colors, so unlike many other
-    // tools such as GraphicsMagick, it will create a pleasent output.
-    void AlphaComposeBackground(rgba_t bgcolor, rgba_t pattern);
+    // Blend all transparent pixels with a background color and an optional
+    // alternative pattern color to make them a solid (alpha=0xff) color.
+    // The Background color is queried using the provided callback and only
+    // requested when needed, i.e. if there any transparent pixels to be
+    // blended.
+    //
+    // If the alpha value of "pattern" is set (alpha=0xff), then every other
+    // pixel will be the pattern color. That creates a 'checkerboard-pattern'
+    // sometimes used to display transparent pictures.
+    //
+    // This Alpha compositing merges in the linearized colors domain.
+    using bgcolor_query = std::function<rgba_t()>;
+    void AlphaComposeBackground(bgcolor_query get_bg, rgba_t pattern);
 
     // The raw internal buffer containing width()*height() pixels organized
     // from top left to bottom right.
