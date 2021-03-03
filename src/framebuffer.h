@@ -16,8 +16,10 @@
 #ifndef TIMG_FRAMEBUFFER_H
 #define TIMG_FRAMEBUFFER_H
 
+#include <math.h>
 #include <stdint.h>
 #include <string.h>
+
 #include <functional>
 
 namespace timg {
@@ -98,6 +100,37 @@ private:
     int strides_[2];
     uint8_t **row_data_ = nullptr;  // Only allocated if requested.
 };
+
+// Unpacked rgba_t into linear color space, useful to do any blending ops on.
+class LinearColor {
+public:
+    LinearColor() : r(0), g(0), b(0), a(0) {}
+    // We approximate x^2.2 with x^2
+    LinearColor(rgba_t c) : r(c.r*c.r), g(c.g*c.g), b(c.b*c.b), a(c.a) {}
+
+    inline rgba_t repack() const { return { gamma(r), gamma(g), gamma(b), a }; }
+
+    // If this color is transparent, blend in the background according to alpha
+    LinearColor &AlphaBlend(const LinearColor &background) {
+        r = (r * a + background.r * (0xff - a)) / 0xff;
+        g = (g * a + background.g * (0xff - a)) / 0xff;
+        b = (b * a + background.b * (0xff - a)) / 0xff;
+        a = 0xff;  // We're a fully solid color now.
+        return *this;
+    }
+
+    float r;
+    float g;
+    float b;
+    uint8_t a;
+
+private:
+    static uint8_t gamma(float v) {
+        const float vg = sqrtf(v);
+        return (vg > 255) ? 255 : vg;
+    }
+};
+
 }  // namespace timg
 
 #endif  // TIMG_FRAMEBUFFER_H

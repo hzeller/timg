@@ -83,26 +83,14 @@ uint8_t** Framebuffer::row_data() {
     return row_data_;
 }
 
-static rgba_t AlphaBlend(const uint32_t *bg, rgba_t c) {
-    const uint32_t alpha = c.a;
-    if (alpha == 0xff) return c;
-
-    uint32_t fgc[3] = { c.r, c.g, c.b };
-    uint8_t out[3];
-    for (int i = 0; i < 3; ++i) {
-        out[i] = sqrtf((fgc[i]*fgc[i]        * alpha +
-                        bg[i] * (0xFF - alpha)) / 0xff);
-    }
-    return { out[0], out[1], out[2], 0xff };
-}
-
 void Framebuffer::AlphaComposeBackground(bgcolor_query get_bg,
                                          rgba_t pattern_col) {
-    if (!get_bg) return;  // -bnone
+    if (!get_bg) return;  // -b none
+
     const rgba_t *const end = pixels_ + width_ * height_;
     rgba_t *pos = pixels_;
     for (/**/; pos < end; ++pos) {
-        if (pos->a < 0xff) break;
+        if (pos->a < 0xff) break;  // First pixel that is transparent.
     }
     if (pos == end) {  // Nothing transparent all the way to the end.
         return;
@@ -110,27 +98,11 @@ void Framebuffer::AlphaComposeBackground(bgcolor_query get_bg,
 
     // Need to do alpha blending, so only now we have to retrieve the bgcolor.
     const rgba_t bgcolor = get_bg();
-    uint32_t linear_bg[3];
-    uint32_t linear_pattern[3];
-    uint32_t *bg_choice[2] = { linear_bg, linear_bg };
+    if (bgcolor.a == 0x00) return; // nothing to do.
 
-    // Create de-gamma'ed version. We approximate x^2.2 with x^2
-    const uint32_t bg_alpha = bgcolor.a;
-    if (bg_alpha == 0x00) return; // nothing to do.
-    assert(bg_alpha == 0xff);   // We don't support partially transparent bg.
-
-    linear_bg[0] = bgcolor.r * bgcolor.r;
-    linear_bg[1] = bgcolor.g * bgcolor.g;
-    linear_bg[2] = bgcolor.b * bgcolor.b;
-
-    // If alpha channel indicates that pattern is used, also prepare it and
-    // use as 2nd choice.
-    if (pattern_col.a == 0xff) {
-        linear_pattern[0] = pattern_col.r * pattern_col.r;
-        linear_pattern[1] = pattern_col.g * pattern_col.g;
-        linear_pattern[2] = pattern_col.b * pattern_col.b;
-        bg_choice[1] = linear_pattern;
-    }
+    // If we have a pattern color, use that as alternating choice.
+    const LinearColor bg_choice[2] = { bgcolor,
+        pattern_col.a == 0xff ? pattern_col : bgcolor };
 
     // Pos moved to the first pixel that required alpha blending.
     // From this pos, we need to recover the x/y position to be in the
@@ -138,11 +110,10 @@ void Framebuffer::AlphaComposeBackground(bgcolor_query get_bg,
     const int start_x = (pos - pixels_) % width_;
     const int start_y = (pos - pixels_) / width_;
     for (int y = start_y; y < height_; ++y) {
-        for (int x = (y == start_y ? start_x : 0); x < width_; ++x) {
-            *pos = AlphaBlend(bg_choice[(x + y) % 2], *pos);
-            pos++;
+        for (int x = (y == start_y ? start_x : 0); x < width_; ++x, pos++) {
+            if (pos->a == 0xff) continue;
+            *pos = LinearColor(*pos).AlphaBlend(bg_choice[(x+y) % 2]).repack();
         }
     }
 }
-
 }  // namespace timg
