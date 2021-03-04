@@ -33,13 +33,25 @@
 namespace timg {
 // Probe all file descriptors that might be connect to tty for term size.
 TermSizeResult DetermineTermSize() {
+    TermSizeResult result;
     for (int fd : { STDOUT_FILENO, STDERR_FILENO, STDIN_FILENO }) {
         struct winsize w = {};
         if (ioctl(fd, TIOCGWINSZ, &w) == 0) {
-            return { true, w.ws_col, 2 * (w.ws_row-1) }; // pixels = 2*height
+            // If we get the size of the terminals in pixels, we can determine
+            // what aspect ratio the pixels have and correct if they not 1:2
+            // Infer the font size if we have window pixel size available.
+            // Do some basic plausibility check here.
+            if (w.ws_xpixel >= 2*w.ws_col && w.ws_ypixel >= 4*w.ws_row &&
+                w.ws_col > 0 && w.ws_row > 0) {
+                result.font_height_px = w.ws_ypixel / w.ws_row;
+                result.font_width_px = w.ws_xpixel / w.ws_col;
+            }
+            result.cols = w.ws_col;
+            result.rows = w.ws_row;
+            break;
         }
     }
-    return { false, -1, -1 };
+    return result;
 }
 
 

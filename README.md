@@ -305,9 +305,11 @@ Glitchy. Change TIMG_USE_UPPER_BLOCK| Looks good
 
 #### Wrong font aspect ratio
 
-If you notice that the image displayed is not quite the right aspect ratio
-because of the terminal's font used, you can set an environment variable
-`TIMG_FONT_WIDTH_CORRECT` with a factor to make it look correctly.
+Usually, timg attempts to determine the font aspect ratio and apply some
+correction if it is off from the nominal 1:2. But if you notice that the
+image displayed is not quite the right aspect ratio because of the terminals
+font used, you can set an environment variable `TIMG_FONT_WIDTH_CORRECT` with
+a factor to make it look correctly.
 
 Increasing the visual width by 10% would be setting the value to 1.1 for
 instance.

@@ -86,7 +86,8 @@ static void InterruptHandler(int signo) {
   interrupt_received = 1;
 }
 
-static int usage(const char *progname, ExitCode exit_code, int w, int h) {
+static int usage(const char *progname, ExitCode exit_code,
+                 const timg::DisplayOptions &settings) {
 #ifdef WITH_TIMG_VIDEO
     static constexpr char kFileType[] = "image/video";
 #else
@@ -137,7 +138,7 @@ static int usage(const char *progname, ExitCode exit_code, int w, int h) {
             "\t                unless there is more than one file to show (then: just once)\n"
             "\t--frames=<num>: Only show first num frames (if looping, loop only these)\n"
             "\t-t<seconds>   : Stop after this time, no matter what --loops or --frames say.\n",
-            w, h, kDefaultThreadCount);
+            settings.width, settings.height, kDefaultThreadCount);
     return (int)exit_code;
 }
 
@@ -182,10 +183,14 @@ int main(int argc, char *argv[]) {
     const timg::TermSizeResult term = timg::DetermineTermSize();
     const bool terminal_use_upper_block = GetBoolenEnv("TIMG_USE_UPPER_BLOCK");
 
+    const int x_pixel_per_cell = 1;  // Half block fill full width of cell
+    const int y_pixel_per_cell = 2;  // Two half blocks in height of cell
+
     timg::DisplayOptions display_opts;
-    display_opts.width = term.width;
-    display_opts.height = term.height;
-    display_opts.width_stretch = GetFloatEnv("TIMG_FONT_WIDTH_CORRECT", 1.0f);
+    display_opts.width = x_pixel_per_cell * term.cols;
+    display_opts.height = y_pixel_per_cell * (term.rows - 2);
+    display_opts.width_stretch = GetFloatEnv(
+        "TIMG_FONT_WIDTH_CORRECT", 0.5f*term.font_height_px/term.font_width_px);
 
     const char *bg_color = "auto";  // Experimental
     const char *bg_pattern_color = nullptr;
@@ -254,8 +259,7 @@ int main(int argc, char *argv[]) {
             if (sscanf(optarg, "%dx%d",
                        &display_opts.width, &display_opts.height) < 2) {
                 fprintf(stderr, "Invalid size spec '%s'", optarg);
-                return usage(argv[0], ExitCode::kParameterError,
-                             term.width, term.height);
+                return usage(argv[0], ExitCode::kParameterError, display_opts);
             }
             break;
         case 'w':
@@ -281,7 +285,7 @@ int main(int argc, char *argv[]) {
                     fprintf(stderr, "Paramter for --clear can be 'every', "
                             "got %s\n", optarg);
                     return usage(argv[0], ExitCode::kParameterError,
-                                 term.width, term.height);
+                                 display_opts);
                 }
             } else {
                 clear_screen = ClearScreen::kBeforeFirstImage;
@@ -329,16 +333,14 @@ int main(int argc, char *argv[]) {
             } else {
                 fprintf(stderr, "--rotate=%s: expected 'exif' or 'off'\n",
                         optarg);
-                return usage(argv[0], ExitCode::kParameterError,
-                             term.width, term.height);
+                return usage(argv[0], ExitCode::kParameterError, display_opts);
             }
             break;
         case OPT_GRID:
             switch (sscanf(optarg, "%dx%d", &grid_cols, &grid_rows)) {
             case 0:
                 fprintf(stderr, "Invalid grid spec '%s'", optarg);
-                return usage(argv[0], ExitCode::kParameterError,
-                             term.width, term.height);
+                return usage(argv[0], ExitCode::kParameterError, display_opts);
             case 1:
                 grid_rows = grid_cols;
                 break;
@@ -353,8 +355,7 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "--delta-move=%s: At least dx parameter needed"
                         " e.g. --delta-move=1."
                         "Or you can give dx, dy like so: -d1:-1", optarg);
-                return usage(argv[0], ExitCode::kParameterError,
-                             term.width, term.height);
+                return usage(argv[0], ExitCode::kParameterError, display_opts);
             }
             break;
         case 'C':
@@ -394,34 +395,31 @@ int main(int argc, char *argv[]) {
             output_fd = open(optarg, O_WRONLY|O_CREAT|O_TRUNC, 0664);
             if (output_fd < 0) {
                 fprintf(stderr, "%s: %s\n", optarg, strerror(errno));
-                return usage(argv[0], ExitCode::kCantOpenOutput,
-                             term.width, term.height);
+                return usage(argv[0], ExitCode::kCantOpenOutput, display_opts);
             }
             break;
         case 'f':
             if (!AppendToFileList(optarg, &filelist)) {
-                return usage(argv[0], ExitCode::kFilelistProblem,
-                             term.width, term.height);
+                return usage(argv[0], ExitCode::kFilelistProblem, display_opts);
             }
             break;
         case 'h':
         default:
             return usage(argv[0], (opt == 'h'
                                    ? ExitCode::kSuccess
-                                   : ExitCode::kParameterError),
-                         term.width, term.height);
+                                   : ExitCode::kParameterError), display_opts);
         }
     }
 
     if (display_opts.width < 1 || display_opts.height < 1) {
-        if (!term.size_valid || term.height < 0 || term.width < 0) {
+        if (term.cols < 0 || term.rows < 0) {
             fprintf(stderr, "Failed to read size from terminal; "
                     "Please supply -g<width>x<height> directly.\n");
         } else {
             fprintf(stderr, "%dx%d is a rather unusual size\n",
                     display_opts.width, display_opts.height);
         }
-        return usage(argv[0], ExitCode::kNotATerminal, term.width, term.height);
+        return usage(argv[0], ExitCode::kNotATerminal, display_opts);
     }
 
     for (int imgarg = optind; imgarg < argc && !interrupt_received; ++imgarg) {
@@ -431,8 +429,7 @@ int main(int argc, char *argv[]) {
     if (filelist.size() <= 0) {
         fprintf(stderr, "Expected image filename(s) on command line "
                 "or via -f\n");
-        return usage(argv[0], ExitCode::kImageReadError,
-                     term.width, term.height);
+        return usage(argv[0], ExitCode::kImageReadError, display_opts);
     }
 
     // -- Some sanity checks and configuration editing.
