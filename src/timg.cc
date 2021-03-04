@@ -22,10 +22,11 @@
 #include "image-source.h"
 #include "renderer.h"
 #include "terminal-canvas.h"
+#include "termutils.h"
 #include "thread-pool.h"
 #include "timg-time.h"
 #include "timg-version.h"
-#include "termutils.h"
+#include "unicode-block-canvas.h"
 
 // To display version number
 #include "image-display.h"
@@ -47,18 +48,21 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <string>
-#include <iostream>
-#include <fstream>
-#include <thread>
-#include <future>
-#include <vector>
 #include <Magick++.h>
+#include <fstream>
+#include <future>
+#include <iostream>
+#include <memory>
+#include <string>
+#include <thread>
+#include <vector>
 
 #ifndef TIMG_VERSION
 #  define TIMG_VERSION "(unknown)"
 #endif
 
+using timg::TerminalCanvas;
+using timg::UnicodeBlockCanvas;
 using timg::rgba_t;
 using timg::Duration;
 using timg::Time;
@@ -488,9 +492,10 @@ int main(int argc, char *argv[]) {
 
     display_opts.bg_pattern_color = rgba_t::ParseColor(bg_pattern_color);
 
-    timg::TerminalCanvas canvas(output_fd, terminal_use_upper_block);
+    std::unique_ptr<TerminalCanvas> canvas(
+        new UnicodeBlockCanvas(output_fd, terminal_use_upper_block));
 
-    auto renderer = timg::Renderer::Create(&canvas, display_opts,
+    auto renderer = timg::Renderer::Create(canvas.get(), display_opts,
                                            grid_cols, grid_rows);
 
     // The image sources might need to write to a smaller area if grid.
@@ -509,15 +514,15 @@ int main(int argc, char *argv[]) {
     auto before_image_show = [hide_cursor, &canvas, clear_screen](bool first) {
         signal(SIGTERM, InterruptHandler);
         signal(SIGINT, InterruptHandler);
-        if (hide_cursor) canvas.CursorOff();
+        if (hide_cursor) canvas->CursorOff();
         if ((clear_screen == ClearScreen::kBeforeFirstImage && first) ||
             (clear_screen == ClearScreen::kBeforeEachImage)) {
-            canvas.ClearScreen();
+            canvas->ClearScreen();
         }
     };
 
     auto after_image_show = [hide_cursor, &canvas]() {
-        if (hide_cursor) canvas.CursorOn();
+        if (hide_cursor) canvas->CursorOn();
         signal(SIGTERM, SIG_DFL);
         signal(SIGINT, SIG_DFL);
     };
