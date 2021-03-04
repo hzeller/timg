@@ -277,7 +277,8 @@ void VideoLoader::SendFrames(Duration duration, const int frames, int loops,
                         if (maybe_transparent_) {
                             terminal_fb_->AlphaComposeBackground(
                                 options_.bgcolor_getter,
-                                options_.bg_pattern_color);
+                                options_.bg_pattern_color,
+                                options_.pattern_size, options_.pattern_size);
                         }
                         const int dy = is_first ? 0 : -terminal_fb_->height();
                         sink(center_indentation_, dy, *terminal_fb_);

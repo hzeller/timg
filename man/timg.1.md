@@ -88,6 +88,9 @@ these file decoders (GraphicsMagick or libav respectively).
     the given color, which alternates with the **-b** color.
     Supported color specifications like in **-b**.
 
+**-\-pattern-size**=&lt;*size-factor*&gt;
+:   Scale background checkerboard pattern by this factor.
+
 **-\-auto-crop**[=&lt;*pre-crop*&gt;]
 :    Trim same-color pixels around the border of image before displaying. Use
     this if there is a boring even-colored space aorund the image which uses

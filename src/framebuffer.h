@@ -75,7 +75,8 @@ public:
     //
     // This Alpha compositing merges in the linearized colors domain.
     using bgcolor_query = std::function<rgba_t()>;
-    void AlphaComposeBackground(bgcolor_query get_bg, rgba_t pattern);
+    void AlphaComposeBackground(bgcolor_query get_bg, rgba_t pattern,
+                                int pattern_width, int pattern_height);
 
     // The raw internal buffer containing width()*height() pixels organized
     // from top left to bottom right.

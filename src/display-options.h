@@ -72,6 +72,9 @@ struct DisplayOptions {
     // In case of background color alpha merging, this is the optional
     // 'checkerboard' color if alpha=0xff, or no checkerboard if alpha=0x00.
     rgba_t bg_pattern_color;
+
+    // Factor of pattern-size from the default
+    int pattern_size = 1;
 };
 }  // namespace timg
 #endif  // DISPLAY_OPTIONS_H

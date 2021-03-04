@@ -85,7 +85,9 @@ uint8_t** Framebuffer::row_data() {
 }
 
 void Framebuffer::AlphaComposeBackground(bgcolor_query get_bg,
-                                         rgba_t pattern_col) {
+                                         rgba_t pattern_col,
+                                         int pwidth,
+                                         int pheight) {
     if (!get_bg) return;  // -b none
 
     const rgba_t *const end = pixels_ + width_ * height_;
@@ -93,17 +95,25 @@ void Framebuffer::AlphaComposeBackground(bgcolor_query get_bg,
     for (/**/; pos < end; ++pos) {
         if (pos->a < 0xff) break;  // First pixel that is transparent.
     }
-    if (pos == end) {  // Nothing transparent all the way to the end.
-        return;
-    }
+    if (pos == end) return;  // Nothing transparent all the way to the end.
 
     // Need to do alpha blending, so only now we have to retrieve the bgcolor.
     const rgba_t bgcolor = get_bg();
     if (bgcolor.a == 0x00) return; // nothing to do.
 
+    // Fast path if we don't have a pattern color.
+    if (pattern_col.a == 0x00 || pattern_col == bgcolor ||
+        pwidth <= 0 || pheight <= 0 ) {
+        const LinearColor bg(bgcolor);
+        for (/**/; pos < end; ++pos) {
+            if (pos->a == 0xff) continue;
+            *pos = LinearColor(*pos).AlphaBlend(bg).repack();
+        }
+        return;
+    }
+
     // If we have a pattern color, use that as alternating choice.
-    const LinearColor bg_choice[2] = { bgcolor,
-        pattern_col.a == 0xff ? pattern_col : bgcolor };
+    const LinearColor bg_choice[2] = { bgcolor, pattern_col };
 
     // Pos moved to the first pixel that required alpha blending.
     // From this pos, we need to recover the x/y position to be in the
@@ -111,9 +121,11 @@ void Framebuffer::AlphaComposeBackground(bgcolor_query get_bg,
     const int start_x = (pos - pixels_) % width_;
     const int start_y = (pos - pixels_) / width_;
     for (int y = start_y; y < height_; ++y) {
+        const int y_pattern_pos = y / pheight;
         for (int x = (y == start_y ? start_x : 0); x < width_; ++x, pos++) {
             if (pos->a == 0xff) continue;
-            *pos = LinearColor(*pos).AlphaBlend(bg_choice[(x+y) % 2]).repack();
+            const auto &bg = bg_choice[((x / pwidth) + y_pattern_pos) % 2];
+            *pos = LinearColor(*pos).AlphaBlend(bg).repack();
         }
     }
 }

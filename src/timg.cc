@@ -106,6 +106,7 @@ static int usage(const char *progname, ExitCode exit_code,
             "\t-b<str>        : Background color to use on transparent images.\n"
             "\t                 format 'yellow', '#rrggbb' or 'auto' or 'none' (default 'auto').\n"
             "\t-B<str>        : Checkerboard pattern color to use on transparent images (default '').\n"
+            "\t--pattern-size=<n> : Integer factor size of the checkerboard pattern\n"
             "\t--auto-crop[=<pre-crop>] : Crop away all same-color pixels around image.\n"
             "\t                 The optional pre-crop is the width of border to\n"
             "\t                 remove beforehand to get rid of an uneven border.\n"
@@ -207,6 +208,7 @@ int main(int argc, char *argv[]) {
         OPT_CLEAR_SCREEN = 1000,
         OPT_FRAMES,
         OPT_GRID,
+        OPT_PATTERN_SIZE,
         OPT_ROTATE,
         OPT_THREADS,
         OPT_VERSION,
@@ -224,12 +226,12 @@ int main(int argc, char *argv[]) {
         { "grid",        required_argument, NULL, OPT_GRID },
         { "help",        no_argument,       NULL, 'h' },
         { "loops",       required_argument, NULL, 'c' },
+        { "pattern-size", required_argument,NULL, OPT_PATTERN_SIZE },
         { "rotate",      required_argument, NULL, OPT_ROTATE },
         { "scroll",      optional_argument, NULL, 's' },
         { "threads",     required_argument, NULL, OPT_THREADS },
         { "title",       no_argument,       NULL, 'F' },
         { "version",     no_argument,       NULL, OPT_VERSION },
-        // TODO: add more long-options
         { 0, 0, 0, 0}
     };
     // BSD's don't have a getopt() that has the GNU extension to allow
@@ -292,6 +294,9 @@ int main(int argc, char *argv[]) {
             break;
         case 'B':
             bg_pattern_color = strdup(optarg);
+            break;
+        case OPT_PATTERN_SIZE:
+            display_opts.pattern_size = atoi(optarg);
             break;
         case 's':
             display_opts.scroll_animation = true;

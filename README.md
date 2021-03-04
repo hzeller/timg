@@ -104,6 +104,7 @@ Options:
         -b<str>        : Background color to use on transparent images.
                          format 'yellow', '#rrggbb' or 'auto' or 'none' (default 'auto').
         -B<str>        : Checkerboard pattern color to use on transparent images (default '').
+        --pattern-size=<n> : Integer factor size of the checkerboard pattern
         --auto-crop[=<pre-crop>] : Crop away all same-color pixels around image.
                          The optional pre-crop is the width of border to
                          remove beforehand to get rid of an uneven border.
@@ -231,6 +232,9 @@ timg -b '#0000ff' some-transparent-image.png
 
 # Checkerboard/Photoshop-like background on transparent images
 timg -b lightgray -B darkgray some-transparent-image.png
+
+# .. with adjustable size.
+timg -b lightgray -B darkgray --pattern-size=4 some-transparent-image.png
 ```
 
 ##### Partially transparent icon on champagne-colored terminal emulator
@@ -238,6 +242,10 @@ timg -b lightgray -B darkgray some-transparent-image.png
 -b auto  | -b lightgreen | -b lightgreen -B yellow | -b none  |
 ---------|---------------|-------------------------|----------|
 ![](img/alpha-bauto.png) | ![](img/alpha-blightgreen.png)  | ![](img/alpha-blightgreen-Byellow.png) | ![](img/alpha-bnone.png)
+
+--pattern-size=1                       | --pattern-size=4 |
+---------------------------------------|--------------------------------------|
+![](img/alpha-blightgreen-Byellow.png) | ![](img/alpha-blightgreen-Byellow-4.png) |
 
 ```
 # Another use: can run use this in a fzf preview window:
