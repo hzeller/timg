@@ -32,6 +32,12 @@ TermSizeResult DetermineTermSize();
 // Returns allocated string if successful or nullptr if not.
 char *DetermineBackgroundColor();
 
+// Get boolean value from named environment variable.
+bool GetBoolenEnv(const char *env_name, bool default_value = false);
+
+// Get float value from named environment variable.
+float GetFloatEnv(const char *env_var, float default_value);
+
 }  // namespace timg
 
 #endif  // TIMG_TERMUTILS_H

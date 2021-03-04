@@ -142,19 +142,6 @@ static int usage(const char *progname, ExitCode exit_code,
     return (int)exit_code;
 }
 
-static bool GetBoolenEnv(const char *env_name) {
-    const char *const value = getenv(env_name);
-    return value && atoi(value) != 0;
-}
-
-static float GetFloatEnv(const char *env_var, float fallback) {
-    const char *value = getenv(env_var);
-    if (value == 0) return fallback;
-    char *err = nullptr;
-    float result = strtof(value, &err);
-    return (*err == '\0' ? result : fallback);
-}
-
 // Read list of filenames from newline separated file. Non-absolute files
 // are resolved relative to the filelist_file
 bool AppendToFileList(const std::string &filelist_file,
@@ -181,7 +168,8 @@ int main(int argc, char *argv[]) {
     Magick::InitializeMagick(*argv);
 
     const timg::TermSizeResult term = timg::DetermineTermSize();
-    const bool terminal_use_upper_block = GetBoolenEnv("TIMG_USE_UPPER_BLOCK");
+    const bool terminal_use_upper_block =
+        timg::GetBoolenEnv("TIMG_USE_UPPER_BLOCK");
 
     const int x_pixel_per_cell = 1;  // Half block fill full width of cell
     const int y_pixel_per_cell = 2;  // Two half blocks in height of cell
@@ -189,12 +177,13 @@ int main(int argc, char *argv[]) {
     timg::DisplayOptions display_opts;
     display_opts.width = x_pixel_per_cell * term.cols;
     display_opts.height = y_pixel_per_cell * (term.rows - 2);
-    display_opts.width_stretch = GetFloatEnv(
+    display_opts.width_stretch = timg::GetFloatEnv(
         "TIMG_FONT_WIDTH_CORRECT", 0.5f*term.font_height_px/term.font_width_px);
 
     const char *bg_color = "auto";  // Experimental
     const char *bg_pattern_color = nullptr;
-    display_opts.allow_frame_skipping = GetBoolenEnv("TIMG_ALLOW_FRAME_SKIP");
+    display_opts.allow_frame_skipping =
+        timg::GetBoolenEnv("TIMG_ALLOW_FRAME_SKIP");
 
     int output_fd = STDOUT_FILENO;
     std::vector<std::string> filelist;  // from -f<filelist> and command line

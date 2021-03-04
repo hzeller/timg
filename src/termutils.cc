@@ -193,4 +193,19 @@ char* DetermineBackgroundColor() {
     return strdup(buffer);
 }
 
+bool GetBoolenEnv(const char *env_name, bool default_value) {
+    const char *const value = getenv(env_name);
+    if (!value) return default_value;
+    return (atoi(value) > 0
+            || strcasecmp(value, "on") == 0 || strcasecmp(value, "yes") == 0);
+}
+
+float GetFloatEnv(const char *env_var, float default_value) {
+    const char *value = getenv(env_var);
+    if (!value) return default_value;
+    char *err = nullptr;
+    float result = strtof(value, &err);
+    return (*err == '\0' ? result : default_value);
+}
+
 }  // namespace timg
