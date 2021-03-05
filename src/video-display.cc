@@ -225,6 +225,15 @@ bool VideoLoader::DecodePacket(AVPacket *packet, AVFrame *output_frame) {
     return avcodec_receive_frame(codec_context_, output_frame) == 0;
 }
 
+void VideoLoader::AlphaBlendFramebuffer() {
+    if (!maybe_transparent_) return;
+    terminal_fb_->AlphaComposeBackground(
+        options_.bgcolor_getter,
+        options_.bg_pattern_color,
+        options_.pattern_size * options_.cell_x_px,
+        options_.pattern_size * options_.cell_y_px/2);
+}
+
 void VideoLoader::SendFrames(Duration duration, const int frames, int loops,
                              const volatile sig_atomic_t &interrupt_received,
                              const Renderer::WriteFramebufferFun &sink) {
@@ -274,12 +283,7 @@ void VideoLoader::SendFrames(Duration duration, const int frames, int loops,
                                   0, codec_context_->height,
                                   terminal_fb_->row_data(),
                                   terminal_fb_->stride());
-                        if (maybe_transparent_) {
-                            terminal_fb_->AlphaComposeBackground(
-                                options_.bgcolor_getter,
-                                options_.bg_pattern_color,
-                                options_.pattern_size, options_.pattern_size);
-                        }
+                        AlphaBlendFramebuffer();
                         const int dy = is_first ? 0 : -terminal_fb_->height();
                         sink(center_indentation_, dy, *terminal_fb_);
                         is_first = false;

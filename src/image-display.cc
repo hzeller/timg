@@ -57,7 +57,8 @@ public:
         CopyToFramebuffer(img, &framebuffer_);
         framebuffer_.AlphaComposeBackground(opt.bgcolor_getter,
                                             opt.bg_pattern_color,
-                                            opt.pattern_size, opt.pattern_size);
+                                            opt.pattern_size * opt.cell_x_px,
+                                            opt.pattern_size * opt.cell_y_px/2);
     }
     Duration delay() const { return delay_; }
     const timg::Framebuffer &framebuffer() const { return framebuffer_; }

@@ -52,6 +52,7 @@ public:
 
 private:
     bool DecodePacket(AVPacket *packet, AVFrame *output_frame);
+    void AlphaBlendFramebuffer();
 
     DisplayOptions options_;
     bool maybe_transparent_ = false;
