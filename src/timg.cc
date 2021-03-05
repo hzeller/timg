@@ -176,12 +176,11 @@ int main(int argc, char *argv[]) {
     const bool terminal_use_upper_block =
         timg::GetBoolenEnv("TIMG_USE_UPPER_BLOCK");
 
-    const int x_pixel_per_cell = 1;  // Half block fill full width of cell
-    const int y_pixel_per_cell = 2;  // Two half blocks in height of cell
-
     timg::DisplayOptions display_opts;
-    display_opts.width = x_pixel_per_cell * term.cols;
-    display_opts.height = y_pixel_per_cell * (term.rows - 2);
+    display_opts.cell_x_px = 1;
+    display_opts.cell_y_px = 2;
+    display_opts.width = display_opts.cell_x_px * term.cols;
+    display_opts.height = display_opts.cell_y_px * (term.rows - 2);
     display_opts.width_stretch = timg::GetFloatEnv(
         "TIMG_FONT_WIDTH_CORRECT", 0.5f*term.font_height_px/term.font_width_px);
 

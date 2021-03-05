@@ -51,7 +51,8 @@ public:
 private:
     void RenderTitle(const char *title) {
         if (!title || !options_.show_filename) return;
-        const std::string tout = TrimTitle(title, options_.width);
+        const std::string tout = TrimTitle(
+            title, options_.width / options_.cell_x_px);
         canvas_->WriteBuffer(tout.c_str(), tout.length());
     }
 };
@@ -71,7 +72,7 @@ public:
     ~MultiColumnRenderer() final {
         if (current_column_ != 0) {
             const int down = highest_fb_column_height_ - last_fb_height_;
-            if (down > 0) canvas_->MoveCursorDY(down);
+            if (down > 0) canvas_->MoveCursorDY(down / options_.cell_y_px);
         }
     }
 
@@ -102,11 +103,14 @@ public:
                 // before Send() would do it.
                 // We need to move one more up to be in the 'headline' ypos
                 if (y_offset) {
-                    // two pixels is one line. So move half the pixels, and
+                    // Move pixels needed for cell, then one more
                     // then one line more to reach the place of the title.
-                    canvas_->MoveCursorDY((y_offset-1)/2 - 1);
+                    const int y_move = (-y_offset + options_.cell_y_px - 1) /
+                        options_.cell_y_px;
+                    const int kSpaceForTitle = 1;
+                    canvas_->MoveCursorDY(-y_move - kSpaceForTitle);
                 }
-                canvas_->MoveCursorDX(x_offset);
+                canvas_->MoveCursorDX(x_offset / options_.cell_x_px);
                 canvas_->WriteBuffer(title_.c_str(), title_.length());
                 y_offset = 0;  // No move by Send() needed anymore.
             }
@@ -122,7 +126,7 @@ public:
 private:
     void PrepareTitle(const char *title) {
         if (!title || !options_.show_filename) return;
-        title_ = TrimTitle(title, column_width_);
+        title_ = TrimTitle(title, column_width_ / options_.cell_x_px);
     }
 
     const int columns_;

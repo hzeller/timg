@@ -32,6 +32,10 @@ static constexpr int kNotInitialized = std::numeric_limits<int>::min();
 struct DisplayOptions {
     int width = -1;             // Output size. These need to be set to...
     int height = -1;            // ... valid values.
+
+    int cell_x_px = 1;          // Pixels shown in one character cell
+    int cell_y_px = 2;          // This depends on TerminalCanvas
+
     float width_stretch = 1.0;  // To correct font squareness aspect ratio
 
     bool upscale = false;       // enlarging image only if this is true
