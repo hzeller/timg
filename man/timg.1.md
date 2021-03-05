@@ -47,9 +47,10 @@ these file decoders (GraphicsMagick or libav respectively).
      scaled to fit inside the available box to fill the screen; see **-W** if
      you want to fill the width.
 
-**-p** *&lt;[h|q]&gt;*, **-\-pixelation**=*[h|q]*
+**-p** *&lt;[h|q|k]&gt;*, **-\-pixelation**=*[h|q|k]*
 :    Choice for pixelation of the content. Value 'h' chooses unicode half
      block characters, while 'q' chooses quarter blocks.
+     The choice 'k' chooses kitty-graphics protocol.
 
      Half blocks have a pixel aspect ratio of about 1:1 and allow to represent
      the colors correctly, but they look more 'blocky'.
@@ -60,6 +61,11 @@ these file decoders (GraphicsMagick or libav respectively).
      be foreground or background color. This increases the spatial resolution
      in x-direction at expense of slight less color accuracy.
      It makes it look less 'blocky' and usually better.
+
+     The Kitty graphics protocol allows to display pictures directly on the
+     terminal. This is only implemented in a limited set of terminals
+     (only kitty now ?). If your terminal does
+     not support this protocol, you will get a bunch of random characters.
 
      Default is 'quarter'.
 

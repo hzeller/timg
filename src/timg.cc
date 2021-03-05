@@ -103,7 +103,7 @@ static int usage(const char *progname, ExitCode exit_code,
             kFileType, kFileType);
     fprintf(stderr, "Options:\n"
             "\t-g<w>x<h>      : Output pixel geometry. Default from terminal %dx%d.\n"
-            "\t-p<choice>     : Pixelation choice. 'h'=half blocks; 'q'=quarter blocks.\n"
+            "\t-p<choice>     : Pixelation: 'h'=half blocks; 'q'=quarter blocks; 'k'=kitty graphics protocol.\n"
             "\t-C, --center   : Center image horizontally.\n"
             "\t-W, --fit-width: Scale to fit width of available space, even if it exceeds height.\n"
             "\t                 (default: scale to fit inside available rectangle)\n"
@@ -428,6 +428,8 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    // -- Some sanity checks and configuration editing.
+
     if (display_opts.width < 1 || display_opts.height < 1) {
         if (term.cols < 0 || term.rows < 0) {
             fprintf(stderr, "Failed to read size from terminal; "
@@ -437,6 +439,12 @@ int main(int argc, char *argv[]) {
                     display_opts.width, display_opts.height);
         }
         return usage(argv[0], ExitCode::kNotATerminal, display_opts);
+    }
+
+    if (pixelation == Pixelation::kKittyGraphics &&
+        (term.font_width_px < 0 || term.font_height_px < 0)) {
+        fprintf(stderr, "Kitty graphics protocol not support by terminal.\n");
+        pixelation = Pixelation::kQuarterBlock;
     }
 
     switch (pixelation) {
@@ -469,7 +477,6 @@ int main(int argc, char *argv[]) {
         return usage(argv[0], ExitCode::kImageReadError, display_opts);
     }
 
-    // -- Some sanity checks and configuration editing.
     // There is no scroll if there is no movement.
     if (display_opts.scroll_dx == 0 && display_opts.scroll_dy == 0) {
         fprintf(stderr, "Scrolling chosen, but dx:dy = 0:0. "

@@ -53,10 +53,11 @@ terminal.
 The image is scaled to fit inside the available box to fill the screen;
 see \f[B]-W\f[R] if you want to fill the width.
 .TP
-\f[B]-p\f[R] \f[I]<[h|q]>\f[R], \f[B]--pixelation\f[R]=\f[I][h|q]\f[R]
+\f[B]-p\f[R] \f[I]<[h|q|k]>\f[R], \f[B]--pixelation\f[R]=\f[I][h|q|k]\f[R]
 Choice for pixelation of the content.
 Value `h' chooses unicode half block characters, while `q' chooses
 quarter blocks.
+The choice `k' chooses kitty-graphics protocol.
 .RS
 .PP
 Half blocks have a pixel aspect ratio of about 1:1 and allow to
@@ -69,6 +70,13 @@ background color.
 This increases the spatial resolution in x-direction at expense of
 slight less color accuracy.
 It makes it look less `blocky' and usually better.
+.PP
+The Kitty graphics protocol allows to display pictures directly on the
+terminal.
+This is only implemented in a limited set of terminals (only kitty now
+?).
+If your terminal does not support this protocol, you will get a bunch of
+random characters.
 .PP
 Default is `quarter'.
 .RE

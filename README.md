@@ -95,7 +95,7 @@ sudo make install
 usage: timg [options] <image/video> [<image/video>...]
 Options:
         -g<w>x<h>      : Output pixel geometry. Default from terminal 160x100.
-        -p<choice>     : Pixelation choice. 'h'=half blocks; 'q'=quarter blocks.
+        -p<choice>     : Pixelation: 'h'=half blocks; 'q'=quarter blocks; 'k'=kitty graphics protocol.
         -C, --center   : Center image horizontally.
         -W, --fit-width: Scale to fit width of available space, even if it exceeds height.
                          (default: scale to fit inside available rectangle)
