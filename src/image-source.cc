@@ -114,6 +114,10 @@ bool ImageSource::CalcScaleToFitDisplay(int img_width, int img_height,
     } else {
         *target_height /= width_stretch;
     }
+
+    *target_width  &= ~0x1;  // Round down to next even number to fully
+    *target_height &= ~0x1;  // fill our character pixels.
+
     return *target_width != img_width || *target_height != img_height;
 }
 
