@@ -33,7 +33,7 @@ public:
     ssize_t Send(int x, int dy, const Framebuffer &framebuffer) override;
 
 private:
-    const char *const pixel_character_;
+    struct GlyphPick;
     const bool use_upper_half_block_;
 
     // Ensure that all buffers needed for emitting the framebuffer have
@@ -42,22 +42,21 @@ private:
     char *EnsureBuffers(int width, int height);
 
     char *AppendDoubleRow(char *pos, int indent, int width,
-                          const rgba_t *foreground_line,
-                          const rgba_t *background_line,
+                          const rgba_t *top_line,
+                          const rgba_t *bottom_line,
                           bool emit_difference, int *y_skip);
+
+    // Find best glyph for two rows of color.
+    GlyphPick FindBestGlyph(const rgba_t *top, const rgba_t *bottom) const;
+
     char *content_buffer_ = nullptr;  // Buffer containing content to write out
     size_t content_buffer_size_ = 0;
 
-    struct DoubleRowColor {
-        rgba_t fg;
-        rgba_t bg;
-        inline bool operator==(const DoubleRowColor &other) const {
-            return fg == other.fg && bg == other.bg;
-        }
-    };
-    DoubleRowColor *backing_buffer_ = nullptr;  // Remembering last frame
+    // Backing buffer stores a flattened view of last frame, storing top and
+    // bottom pixel linearly.
+    rgba_t *backing_buffer_ = nullptr;  // Remembering last frame
     size_t backing_buffer_size_ = 0;
-    DoubleRowColor *previous_content_iterator_;
+    rgba_t *prev_content_it_;
     int last_framebuffer_height_ = 0;
     int last_x_indent_ = 0;
 

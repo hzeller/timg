@@ -26,15 +26,7 @@
 #define SCREEN_CURSOR_DN_FORMAT    "\033[%dB"  // Move cursor down given lines.
 #define SCREEN_CURSOR_RIGHT_FORMAT "\033[%dC"  // Move cursor right given cols
 
-// Each character on the screen is divided in a top pixel and bottom pixel.
-// We use a block character to fill one half with the foreground color,
-// the other half is shown as background color.
-// Two pixels one stone. Or something.
-// Some fonts display the top block worse than the bottom block, so use the
-// bottom block by default. Both UTF-8 sequences have the same length.
-#define PIXEL_UPPER_HALF_BLOCK_CHARACTER  "\u2580"  // |▀|
-#define PIXEL_LOWER_HALF_BLOCK_CHARACTER  "\u2584"  // |▄|
-#define PIXEL_BLOCK_CHARACTER_LEN strlen(PIXEL_UPPER_HALF_BLOCK_CHARACTER)
+#define PIXEL_BLOCK_CHARACTER_LEN strlen("\u2584")  // blocks are 3 bytes UTF8
 
 #define PIXEL_SET_FG_COLOR     "38;2;"
 #define PIXEL_SET_BG_COLOR     "48;2;"
@@ -48,6 +40,23 @@
 #define SCREEN_END_OF_LINE_LEN  strlen(SCREEN_END_OF_LINE)
 
 namespace timg {
+enum BlockChoice : uint8_t {
+    kBackground,
+    kLowerBlock,
+    kUpperBlock,
+};
+
+// Each character on the screen is divided in a top pixel and bottom pixel.
+// We use a block character to fill one half with the foreground color,
+// the other half is shown as background color.
+// Two pixels one stone. Or something.
+// Some fonts display the top block worse than the bottom block, so use the
+// bottom block by default, but allow to choose.
+static constexpr const char *kBlockGlyphs[3] = {
+    /*[kBackground] = */ " ",
+    /*[kLowerBlock] = */ "▄",
+    /*[kUpperBlock] = */ "▀",
+};
 
 char *UnicodeBlockCanvas::EnsureBuffers(int width, int height) {
     // Pixels will be variable size depending on if we need to change colors
@@ -73,9 +82,10 @@ char *UnicodeBlockCanvas::EnsureBuffers(int width, int height) {
         content_buffer_size_ = new_content_size;
     }
 
-    const size_t new_backing = width * (height+1)/2 * sizeof(DoubleRowColor);
+    // Depending on even/odd situation, we might need one extra row.
+    const size_t new_backing = width * (height+1) * sizeof(rgba_t);
     if (new_backing > backing_buffer_size_) {
-        backing_buffer_ =(DoubleRowColor*)realloc(backing_buffer_, new_backing);
+        backing_buffer_ =(rgba_t*)realloc(backing_buffer_, new_backing);
         backing_buffer_size_ = new_backing;
     }
 
@@ -90,9 +100,6 @@ char *UnicodeBlockCanvas::EnsureBuffers(int width, int height) {
 
 UnicodeBlockCanvas::UnicodeBlockCanvas(int fd, bool use_upper_half_block)
     : TerminalCanvas(fd),
-      pixel_character_(use_upper_half_block
-                       ? PIXEL_UPPER_HALF_BLOCK_CHARACTER
-                       : PIXEL_LOWER_HALF_BLOCK_CHARACTER),
       use_upper_half_block_(use_upper_half_block) {
 }
 
@@ -114,24 +121,49 @@ static inline char *str_append(char *pos, const char *value, size_t len) {
     return pos + len;
 }
 
-// Append two rows of pixels at once, by writing a half-block character with
-// foreground/background. The caller already chose which lines are written
-// in foreground and background (depending on the used block)
+// Compare pixels of top and bottom row with backing store (see StoreBacking())
+inline bool EqualToBacking(const rgba_t *top, const rgba_t *bottom,
+                           const rgba_t *backing) {
+    return *top == backing[0] && *bottom == backing[1];
+}
+
+// Store pixels of top and bottom row into backing store.
+inline void StoreBacking(rgba_t *backing,
+                         const rgba_t *top, const rgba_t *bottom) {
+    backing[0] = *top;
+    backing[1] = *bottom;
+}
+
 inline bool is_transparent(rgba_t c) {  return c.a < 0x60; }
+
+struct UnicodeBlockCanvas::GlyphPick {
+    rgba_t fg;
+    rgba_t bg;
+    BlockChoice block;
+};
+UnicodeBlockCanvas::GlyphPick UnicodeBlockCanvas::FindBestGlyph(
+    const rgba_t *top,
+    const rgba_t *bottom) const {
+    if (*top == *bottom || (is_transparent(*top) && is_transparent(*bottom)))
+        return { *top, *bottom, kBackground };
+    if (use_upper_half_block_) return { *top, *bottom, kUpperBlock };
+    return { *bottom, *top, kLowerBlock };
+}
+
+// Append two rows of pixels at once.
 char *UnicodeBlockCanvas::AppendDoubleRow(char *pos, int indent, int width,
-                                      const rgba_t *fg_line,
-                                      const rgba_t *bg_line,
+                                      const rgba_t *tline,
+                                      const rgba_t *bline,
                                       bool emit_difference,
                                       int *y_skip) {
     static constexpr char kStartEscape[] = "\033[";
-    DoubleRowColor last = {};
+    static constexpr int N = 1;  // Advancing these number of x-pixels per char
+    GlyphPick last = {};
     bool last_color_unknown = true;
     int x_skip = indent;
     const char *start = pos;
-    for (int x = 0; x < width; ++x, ++previous_content_iterator_) {
-        const DoubleRowColor current_color = { *fg_line++, *bg_line++ };
-
-        if (emit_difference && current_color == *previous_content_iterator_) {
+    for (int x=0; x < width; x+=N, prev_content_it_+=2*N, tline+=N, bline+=N) {
+        if (emit_difference && EqualToBacking(tline, bline, prev_content_it_)) {
             ++x_skip;
             continue;
         }
@@ -151,38 +183,30 @@ char *UnicodeBlockCanvas::AppendDoubleRow(char *pos, int indent, int width,
             x_skip = 0;
         }
 
-        // NOTE, not implemented:
-        // If background has a solid color and _foreground_ is transparent, we
-        // could switch to reverse \033[7m and swap coloring (as we can't switch
-        // the double-block we use). However, given that this is such a niche
-        // application (only if someone chooses -b none) with small quality
-        // improvements, or worse even on a transparent kitty, it is not worth
-        // the branches, so not implementing for now.
+        const GlyphPick pick = FindBestGlyph(tline, bline);
 
         bool color_emitted = false;
-        bool both_transparent = false;
 
         // Foreground
-        if (last_color_unknown || current_color.fg != last.fg) {
+        if (last_color_unknown || pick.fg != last.fg) {
             // Appending prefix. At this point, it can only be kStartEscape
             pos = str_append(pos, kStartEscape, strlen(kStartEscape));
             pos = str_append(pos, PIXEL_SET_FG_COLOR, PIXEL_SET_COLOR_LEN);
-            pos = WriteAnsiColor(pos, current_color.fg);
+            pos = WriteAnsiColor(pos, pick.fg);
             color_emitted = true;
         }
 
         // Background
-        if (last_color_unknown || current_color.bg != last.bg) {
+        if (last_color_unknown || pick.bg != last.bg) {
             if (!color_emitted) {
                 pos = str_append(pos, kStartEscape, strlen(kStartEscape));
             }
-            if (is_transparent(current_color.bg)) {
+            if (is_transparent(pick.bg)) {
                 // This is best effort and only happens with -b none
                 pos = str_append(pos, "49;", 3);  // Reset background color
-                both_transparent = is_transparent(current_color.fg);
             } else {
                 pos = str_append(pos, PIXEL_SET_BG_COLOR, PIXEL_SET_COLOR_LEN);
-                pos = WriteAnsiColor(pos, current_color.bg);
+                pos = WriteAnsiColor(pos, pick.bg);
             }
             color_emitted = true;
         }
@@ -190,14 +214,15 @@ char *UnicodeBlockCanvas::AppendDoubleRow(char *pos, int indent, int width,
         if (color_emitted) {
             *(pos-1) = 'm';   // overwrite semicolon with finish ESC seq.
         }
-        if (current_color.fg == current_color.bg || both_transparent) {
-            *pos++ = ' ';  // Simple background 'block'
+        if (pick.block == kBackground) {
+            *pos++ = ' ';  // Simple background 'block'. One character.
         } else {
-            pos = str_append(pos, pixel_character_, PIXEL_BLOCK_CHARACTER_LEN);
+            pos = str_append(pos, kBlockGlyphs[pick.block],
+                             PIXEL_BLOCK_CHARACTER_LEN);
         }
-        last = current_color;
+        last = pick;
         last_color_unknown = false;
-        *previous_content_iterator_ = current_color;
+        StoreBacking(prev_content_it_, tline, bline);
     }
 
     if (pos == start) {  // Nothing emitted for whole line
@@ -221,11 +246,11 @@ ssize_t UnicodeBlockCanvas::Send(int x, int dy, const Framebuffer &framebuffer) 
     const char *before_image_emission = pos;
 
     const rgba_t *const pixels = framebuffer.data();
-    const rgba_t *fg_line, *bg_line, *top_line, *bottom_line;
+    const rgba_t *top_line, *bottom_line;
 
     // If we just got requested to move back where we started the last image,
     // we just need to emit pixels that changed.
-    previous_content_iterator_ = backing_buffer_;
+    prev_content_it_ = backing_buffer_;
     const bool should_emit_difference = (x == last_x_indent_) &&
         (last_framebuffer_height_ > 0) && abs(dy) == last_framebuffer_height_;
 
@@ -247,10 +272,8 @@ ssize_t UnicodeBlockCanvas::Send(int x, int dy, const Framebuffer &framebuffer) 
         top_line = row < 0 ? empty_line_ : &pixels[width*row];
         bottom_line = (row+1) >= height ? empty_line_ : &pixels[width*(row+1)];
 
-        fg_line = use_upper_half_block_ ? top_line : bottom_line;
-        bg_line = use_upper_half_block_ ? bottom_line : top_line;
         pos = AppendDoubleRow(pos, x, width,
-                              fg_line, bg_line,
+                              top_line, bottom_line,
                               should_emit_difference,
                               &accumulated_y_skip);
     }
