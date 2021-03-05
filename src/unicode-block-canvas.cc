@@ -183,10 +183,24 @@ UnicodeBlockCanvas::GlyphPick UnicodeBlockCanvas::FindBestGlyph(
         return { *bottom, *top, kLowerBlock };
     }
     // N == 2
-    const LinearColor tl(*top);
-    const LinearColor tr(*(top+1));
-    const LinearColor bl(*bottom);
-    const LinearColor br(*(bottom+1));
+    const LinearColor tl(top[0]);
+    const LinearColor tr(top[1]);
+    const LinearColor bl(bottom[0]);
+    const LinearColor br(bottom[1]);
+
+    // If we're all transparent at the top and/or bottom, the choices
+    // we can make for foreground and background are limited.
+    // Even though this adds branches, special casing is worthile.
+    if (is_transparent(top[0]) && is_transparent(top[1]) &&
+        is_transparent(bottom[0]) && is_transparent(bottom[1])) {
+        return { bottom[0], top[0], kBackground };
+    }
+    if (is_transparent(top[0]) && is_transparent(top[1])) {
+        return { linear_average({bl, br}).repack(), top[0], kLowerBlock };
+    }
+    if (is_transparent(bottom[0]) && is_transparent(bottom[1])) {
+        return { linear_average({tl, tr}).repack(), bottom[0], kUpperBlock };
+    }
 
     struct Result {
         BlockChoice block = kBackground;

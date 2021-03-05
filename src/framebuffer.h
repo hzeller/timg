@@ -155,6 +155,12 @@ inline float avd(LinearColor *res, std::initializer_list<LinearColor> values) {
     return sum;
 }
 
+inline LinearColor linear_average(std::initializer_list<LinearColor> values) {
+    LinearColor result;
+    avd(&result, values);
+    return result;
+}
+
 }  // namespace timg
 
 #endif  // TIMG_FRAMEBUFFER_H
