@@ -47,6 +47,22 @@ these file decoders (GraphicsMagick or libav respectively).
      scaled to fit inside the available box to fill the screen; see **-W** if
      you want to fill the width.
 
+**-p** *&lt;[h|q]&gt;*, **-\-pixelation**=*[h|q]*
+:    Choice for pixelation of the content. Value 'h' chooses unicode half
+     block characters, while 'q' chooses quarter blocks.
+
+     Half blocks have a pixel aspect ratio of about 1:1 and allow to represent
+     the colors correctly, but they look more 'blocky'.
+
+     Quarter blocks will have a pixel aspect ratio of 1:2 (timg will stretch
+     the picture accordingly, no worries), and can only
+     represent colors approximately, as the four quadrant sub-pixels can only
+     be foreground or background color. This increases the spatial resolution
+     in x-direction at expense of slight less color accuracy.
+     It makes it look less 'blocky' and usually better.
+
+     Default is 'quarter'.
+
 **-C**, **-\-center**
 :    Center image(s) and title(s) horizontally.
 

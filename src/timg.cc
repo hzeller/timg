@@ -101,6 +101,7 @@ static int usage(const char *progname, ExitCode exit_code,
             kFileType, kFileType);
     fprintf(stderr, "Options:\n"
             "\t-g<w>x<h>      : Output pixel geometry. Default from terminal %dx%d.\n"
+            "\t-p<choice>     : Pixelation choice. 'h'=half blocks; 'q'=quarter blocks.\n"
             "\t-C, --center   : Center image horizontally.\n"
             "\t-W, --fit-width: Scale to fit width of available space, even if it exceeds height.\n"
             "\t                 (default: scale to fit inside available rectangle)\n"
@@ -206,6 +207,11 @@ int main(int argc, char *argv[]) {
     bool do_image_loading = true;
     bool do_video_loading = true;
     int thread_count = kDefaultThreadCount;
+    bool geometry_user_chosen = false;
+    enum class Pixelation {
+        kHalfBlock,
+        kQuarterBlock,
+    } pixelation = Pixelation::kQuarterBlock;
 
     enum LongOptionIds {
         OPT_CLEAR_SCREEN = 1000,
@@ -230,6 +236,7 @@ int main(int argc, char *argv[]) {
         { "help",        no_argument,       NULL, 'h' },
         { "loops",       required_argument, NULL, 'c' },
         { "pattern-size", required_argument,NULL, OPT_PATTERN_SIZE },
+        { "pixelation",  required_argument, NULL, 'p' },
         { "rotate",      required_argument, NULL, OPT_ROTATE },
         { "scroll",      optional_argument, NULL, 's' },
         { "threads",     required_argument, NULL, OPT_THREADS },
@@ -246,7 +253,8 @@ int main(int argc, char *argv[]) {
     int opt;
     int option_index = 0;
     while ((opt = getopt_long(argc, argv,
-                              "vg:w:t:c:f:b:B:hCFEd:UWaVIo:f:" OLD_COMPAT_FLAGS,
+                              "vg:w:t:c:f:b:B:hCFEd:UWaVIo:f:p:"
+                              OLD_COMPAT_FLAGS,
                               long_options, &option_index))!=-1) {
         switch (opt) {
         case 'g':
@@ -255,6 +263,7 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "Invalid size spec '%s'", optarg);
                 return usage(argv[0], ExitCode::kParameterError, display_opts);
             }
+            geometry_user_chosen = true;
             break;
         case 'w':
             between_images_duration
@@ -400,6 +409,12 @@ int main(int argc, char *argv[]) {
                 return usage(argv[0], ExitCode::kFilelistProblem, display_opts);
             }
             break;
+        case 'p':
+            switch (optarg[0]) {
+            case 'h': pixelation = Pixelation::kHalfBlock; break;
+            case 'q': pixelation = Pixelation::kQuarterBlock; break;
+            }
+            break;
         case 'h':
         default:
             return usage(argv[0], (opt == 'h'
@@ -417,6 +432,22 @@ int main(int argc, char *argv[]) {
                     display_opts.width, display_opts.height);
         }
         return usage(argv[0], ExitCode::kNotATerminal, display_opts);
+    }
+
+    switch (pixelation) {
+    case Pixelation::kHalfBlock:
+        display_opts.cell_x_px = 1;
+        display_opts.cell_y_px = 2;
+        break;
+    case Pixelation::kQuarterBlock:
+        display_opts.width_stretch *= 2;
+        display_opts.cell_x_px = 2;
+        display_opts.cell_y_px = 2;
+        break;
+    }
+    if (!geometry_user_chosen) {
+        display_opts.width = display_opts.cell_x_px * term.cols;
+        display_opts.height = display_opts.cell_y_px * (term.rows - 2);
     }
 
     for (int imgarg = optind; imgarg < argc && !interrupt_received; ++imgarg) {
@@ -492,7 +523,9 @@ int main(int argc, char *argv[]) {
     display_opts.bg_pattern_color = rgba_t::ParseColor(bg_pattern_color);
 
     std::unique_ptr<TerminalCanvas> canvas(
-        new UnicodeBlockCanvas(output_fd, terminal_use_upper_block));
+        new UnicodeBlockCanvas(output_fd,
+                               pixelation == Pixelation::kQuarterBlock,
+                               terminal_use_upper_block));
 
     auto renderer = timg::Renderer::Create(canvas.get(), display_opts,
                                            grid_cols, grid_rows);

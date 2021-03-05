@@ -113,8 +113,11 @@ char *UnicodeBlockCanvas::EnsureBuffers(int width, int height) {
     return content_buffer_;
 }
 
-UnicodeBlockCanvas::UnicodeBlockCanvas(int fd, bool use_upper_half_block)
+UnicodeBlockCanvas::UnicodeBlockCanvas(int fd,
+                                       bool use_quarter,
+                                       bool use_upper_half_block)
     : TerminalCanvas(fd),
+      use_quarter_blocks_(use_quarter),
       use_upper_half_block_(use_upper_half_block) {
 }
 
@@ -305,6 +308,8 @@ ssize_t UnicodeBlockCanvas::Send(int x, int dy, const Framebuffer &framebuffer) 
     if (dy < 0) {
         pos += sprintf(pos, SCREEN_CURSOR_UP_FORMAT, (abs(dy) + 1) / 2);
     }
+    if (use_quarter_blocks_) x /= 2;  // That is in character cell units.
+
     const char *before_image_emission = pos;
 
     const rgba_t *const pixels = framebuffer.data();
@@ -334,10 +339,17 @@ ssize_t UnicodeBlockCanvas::Send(int x, int dy, const Framebuffer &framebuffer) 
         top_line = row < 0 ? empty_line_ : &pixels[width*row];
         bottom_line = (row+1) >= height ? empty_line_ : &pixels[width*(row+1)];
 
-        pos = AppendDoubleRow<1>(pos, x, width,
-                                 top_line, bottom_line,
-                                 should_emit_difference,
-                                 &accumulated_y_skip);
+        if (use_quarter_blocks_) {
+            pos = AppendDoubleRow<2>(pos, x, width,
+                                     top_line, bottom_line,
+                                     should_emit_difference,
+                                     &accumulated_y_skip);
+        } else {
+            pos = AppendDoubleRow<1>(pos, x, width,
+                                     top_line, bottom_line,
+                                     should_emit_difference,
+                                     &accumulated_y_skip);
+        }
     }
     last_framebuffer_height_ = height;
     last_x_indent_ = x;

@@ -23,17 +23,22 @@
 
 namespace timg {
 
-// Canvas that can send a framebuffer to a terminal.
+// Canvas that can send a framebuffer to a terminal with either half
+// or quarter blocks.
 class UnicodeBlockCanvas final : public TerminalCanvas {
 public:
-    // Create a terminal canvas, sending to given file-descriptor.
-    UnicodeBlockCanvas(int fd, bool use_upper_half_block);
+    // Create a terminal canvas, sending to given file-descriptor "fd".
+    // If "use_quarter" is set, use quarter blocks instead of half-blocks.
+    // if "use_upper_half_block" is set, uses the upper instead of the
+    // lower block (only for use_quarter == false).
+    UnicodeBlockCanvas(int fd, bool use_quarter, bool use_upper_half_block);
     ~UnicodeBlockCanvas() override;
 
     ssize_t Send(int x, int dy, const Framebuffer &framebuffer) override;
 
 private:
     struct GlyphPick;
+    const bool use_quarter_blocks_;
     const bool use_upper_half_block_;
 
     // Ensure that all buffers needed for emitting the framebuffer have
