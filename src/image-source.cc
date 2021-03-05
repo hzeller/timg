@@ -64,6 +64,12 @@ bool ImageSource::CalcScaleToFitDisplay(int img_width, int img_height,
         (options.fill_width || height_fraction > 1.0)) {
         *target_width = img_width;
         *target_height = img_height;
+        if (options.cell_x_px == 2) {
+            // The quarter block feels a bit like good old EGA graphics
+            // with some broken aspect ratio...
+            *target_width *= 2;
+            return true;
+        }
         return false;
     }
 
