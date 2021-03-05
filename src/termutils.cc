@@ -29,6 +29,7 @@
 #include <unistd.h>
 
 #include <initializer_list>
+#include <functional>
 
 namespace timg {
 // Probe all file descriptors that might be connect to tty for term size.
@@ -55,14 +56,95 @@ TermSizeResult DetermineTermSize() {
 }
 
 
-static struct termios orig_terminal_setting;
-static int tty_fd;
+static struct termios s_orig_terminal_setting;
+static int s_tty_fd;
 static void clean_up_terminal() {
-    if (tty_fd < 0) return;
-    tcsetattr(tty_fd, TCSAFLUSH, &orig_terminal_setting);
-    close(tty_fd);
-    tty_fd = -1;
+    if (s_tty_fd < 0) return;
+    tcsetattr(s_tty_fd, TCSAFLUSH, &s_orig_terminal_setting);
+    close(s_tty_fd);
+    s_tty_fd = -1;
 }
+
+// Send "query" to terminal and wait for response to arrive within
+// "time_budget". Use "buffer" with "len" to store results.
+// Whenever new data arrives, the caller's "response_found_p" response finder
+// is called to determine if we have everything needed. If it returns a
+// non-nullptr, QueryTerminal will return with that result before
+// "time_budget" is reached.
+// Otherwise, returns with nullptr.
+using ResponseFinder = std::function<const char*(const char *, size_t len)>;
+static const char *QueryTerminal(const char *query,
+                                 char *const buffer, const size_t buflen,
+                                 Duration time_budget,
+                                 ResponseFinder response_found_p) {
+    // There might be pipes and redirects.
+    // Let's see if we have at least one file descriptor that is connected
+    // to our terminal. We can then open that terminal directly RD/WR.
+    const char *ttypath;
+    for (int fd : { STDOUT_FILENO, STDERR_FILENO, STDIN_FILENO }) {
+        if (isatty(fd) && (ttypath = ttyname(fd)) != nullptr)
+            break;
+    }
+    if (!ttypath) return nullptr;
+    s_tty_fd = open(ttypath, O_RDWR);
+    if (s_tty_fd < 0) return nullptr;
+
+    struct termios raw_terminal_setting;
+
+    if (tcgetattr(s_tty_fd, &s_orig_terminal_setting) != 0)
+        return nullptr;
+
+    // Get terminal into non-blocking 'raw' mode.
+    raw_terminal_setting = s_orig_terminal_setting;
+
+    // There might be terminals that don't support the query. So our minimum
+    // expectation is to receive zero bytes.
+    raw_terminal_setting.c_cc[VMIN] = 0;
+    raw_terminal_setting.c_cc[VTIME] = 0;  // We handle timeout with select()
+    raw_terminal_setting.c_iflag = 0;
+    raw_terminal_setting.c_lflag &= ~(ICANON | ECHO);
+
+    if (tcsetattr(s_tty_fd, TCSANOW, &raw_terminal_setting) != 0)
+        return nullptr;
+
+    // No matter what happens exiting early for some reason, make sure we
+    // leave the terminal in a good state.
+    atexit(clean_up_terminal);
+
+    const int query_len = strlen(query);
+    if (write(s_tty_fd, query, query_len) != query_len)
+        return nullptr;   // Don't bother. We're best effort here.
+
+    const char *found_pos = nullptr;
+    size_t available = buflen;
+    char *pos = buffer;
+    timg::Time now = Time::Now();
+    const timg::Time deadline = now + time_budget;
+    do {
+        const int64_t remaining_ns = deadline.nanoseconds() - now.nanoseconds();
+        struct timeval timeout{0, (suseconds_t)(remaining_ns / 1000)};
+        fd_set read_fds;
+        FD_ZERO(&read_fds);
+        FD_SET(s_tty_fd, &read_fds);
+        if (select(s_tty_fd + 1, &read_fds, nullptr, nullptr, &timeout) <= 0)
+            break;
+        const int r = read(s_tty_fd, pos, available);
+        if (r < 0)
+            break;
+        pos += r;
+        available -= r;
+        const size_t total_read = pos - buffer;
+        found_pos = response_found_p(buffer, total_read);
+        if (found_pos)
+            break;
+        now = Time::Now();
+    } while (available && now < deadline);
+
+    clean_up_terminal();
+
+    return found_pos;
+}
+
 // Read and allocate background color queried from terminal emulator.
 // Might leak a file-descriptor when bailing out early. Accepted for brevity.
 char* DetermineBackgroundColor() {
@@ -80,58 +162,14 @@ char* DetermineBackgroundColor() {
     // connection resulted in up to 1.2ish seconds).
     const Duration kTimeBudget = Duration::Millis(1500);
 
-    // There might be pipes and redirects.
-    // Let's see if we have at least one file descriptor that is connected
-    // to our terminal. We can then open that terminal directly RD/WR.
-    const char *ttypath;
-    for (int fd : { STDOUT_FILENO, STDERR_FILENO, STDIN_FILENO }) {
-        if (isatty(fd) && (ttypath = ttyname(fd)) != nullptr)
-            break;
-    }
-    if (!ttypath) return nullptr;
-    tty_fd = open(ttypath, O_RDWR);
-    if (tty_fd < 0) return nullptr;
-
-    struct termios raw_terminal_setting;
-
-    if (tcgetattr(tty_fd, &orig_terminal_setting) != 0)
-        return nullptr;
-
-    // Get terminal into non-blocking 'raw' mode.
-    raw_terminal_setting = orig_terminal_setting;
-
-    // There might be terminals that don't support the query. So our minimum
-    // expectation is to receive zero bytes.
-    raw_terminal_setting.c_cc[VMIN] = 0;
-    raw_terminal_setting.c_cc[VTIME] = 0;  // We handle timeout with select()
-    raw_terminal_setting.c_iflag = 0;
-    raw_terminal_setting.c_lflag &= ~(ICANON | ECHO);
-
-    if (tcsetattr(tty_fd, TCSANOW, &raw_terminal_setting) != 0)
-        return nullptr;
-
-    // No matter what happens exiting early for some reason, make sure we
-    // leave the terminal in a good state.
-    atexit(clean_up_terminal);
-
-    // Many terminals accept a specially formulated escape sequence as 'query'
-    // in which the question marks is replaced with the result in the response.
-    // The '11' asks for the background color.
-    // The response comes back from the terminal as if it was typed in.
-    constexpr char query[] = "\033]11;?\033\\";
-    constexpr int query_len = sizeof(query) - 1;  // No \nul byte.
-
-    // clang++ does not constexpr strlen(), so manually give constant.
+    constexpr char query_background_color[] = "\033]11;?\033\\";
     constexpr int kPrefixLen   = 5;  // strlen("\033]11;")
     constexpr int kColorLen    = 18; // strlen("rgb:1234/1234/1234")
     constexpr int kPostfixLen  = 2;  // strlen("\033\\")
     constexpr int kExpectedResponseLen = kPrefixLen + kColorLen + kPostfixLen;
 
-    if (write(tty_fd, query, query_len) != query_len)
-        return nullptr;   // Don't bother. We're best effort here.
-
-    // Reading back the response. It is the query-string with the question mark
-    // replaced with the requested information.
+    // Query and testing the response. It is the query-string with the
+    // question mark replaced with the requested information.
     //
     // We have to deal with two situations
     //  * The response might take a while (see above in kTimeBudget)
@@ -143,47 +181,28 @@ char* DetermineBackgroundColor() {
     //    in multiple read calls until we actually get something we expect.
     //    Make sure to accumulate reads in a more spacious buffer than the
     //    expected response and finish once we found what we're looking for.
-
-    char buffer[512];  // The meat of what we expect is kExpectedResponseLen=25
-    size_t available = sizeof(buffer);
-    char *pos = buffer;
-    char *found_start = nullptr;
-    timg::Time now = Time::Now();
-    const timg::Time deadline = now + kTimeBudget;
-    do {
-        const int64_t remaining_ns = deadline.nanoseconds() - now.nanoseconds();
-        struct timeval timeout{0, (suseconds_t)(remaining_ns / 1000)};
-        fd_set read_fds;
-        FD_ZERO(&read_fds);
-        FD_SET(tty_fd, &read_fds);
-        if (select(tty_fd + 1, &read_fds, nullptr, nullptr, &timeout) <= 0)
-            break;
-        const int r = read(tty_fd, pos, available);
-        if (r < 0)
-            break;
-        pos += r;
-        available -= r;
-        const size_t total_read = pos - buffer;
-        if (total_read >= kExpectedResponseLen) { // starts to be interesting
+    char buffer[512];
+    const char *found = QueryTerminal(
+        query_background_color, buffer, sizeof(buffer), kTimeBudget,
+        [query_background_color, kPrefixLen, kExpectedResponseLen]
+        (const char *buffer, size_t len) -> const char* {
+            if (len < kExpectedResponseLen) return nullptr;
+            const char *found;
             // We might've gotten some spurious bytes in the beginning, so find
             // where the escape code starts. It is the same beginning as query.
-            found_start = (char*)memmem(buffer, total_read, query, kPrefixLen);
-            if (found_start &&
-                total_read - (found_start - buffer) >= kExpectedResponseLen) {
-                break;  // Found start of escape sequence and enough bytes.
-            }
-        }
-        now = Time::Now();
-    } while (available && now < deadline);
+            found = (const char*)memmem(buffer, len,
+                                        query_background_color, kPrefixLen);
+            if (found && len - (found - buffer) >= kExpectedResponseLen)
+                return found; // Found start of esc sequence and enough bytes.
+            return nullptr;
+        });
 
-    clean_up_terminal();
+    if (!found) return nullptr;
 
-    if (!found_start)
-        return nullptr;
+    const char *const start_color = found + kPrefixLen;
 
-    char *const start_color = found_start + kPrefixLen;
-
-    // Assemble a standard #rrggbb string; NB, just not overlapping buffer areas
+    // Assemble a standard #rrggbb string into our existing buffer.
+    // NB, save, as this is not overlapping buffer areas
     buffer[0] = '#';
     memcpy(&buffer[1], &start_color[4], 2);
     memcpy(&buffer[3], &start_color[9], 2);
