@@ -20,6 +20,7 @@
 
 #include "display-options.h"
 #include "image-source.h"
+#include "kitty-canvas.h"
 #include "renderer.h"
 #include "terminal-canvas.h"
 #include "termutils.h"
@@ -61,13 +62,14 @@
 #  define TIMG_VERSION "(unknown)"
 #endif
 
+using timg::Duration;
+using timg::Framebuffer;
+using timg::ImageSource;
+using timg::KittyGraphicsCanvas;
 using timg::TerminalCanvas;
+using timg::Time;
 using timg::UnicodeBlockCanvas;
 using timg::rgba_t;
-using timg::Duration;
-using timg::Time;
-using timg::ImageSource;
-using timg::Framebuffer;
 
 enum class ExitCode {
     kSuccess         = 0,
@@ -178,6 +180,7 @@ int main(int argc, char *argv[]) {
         timg::GetBoolenEnv("TIMG_USE_UPPER_BLOCK");
 
     timg::DisplayOptions display_opts;
+    // Defaults
     display_opts.cell_x_px = 1;
     display_opts.cell_y_px = 2;
     display_opts.width = display_opts.cell_x_px * term.cols;
@@ -211,6 +214,7 @@ int main(int argc, char *argv[]) {
     enum class Pixelation {
         kHalfBlock,
         kQuarterBlock,
+        kKittyGraphics,
     } pixelation = Pixelation::kQuarterBlock;
 
     enum LongOptionIds {
@@ -413,6 +417,7 @@ int main(int argc, char *argv[]) {
             switch (optarg[0]) {
             case 'h': pixelation = Pixelation::kHalfBlock; break;
             case 'q': pixelation = Pixelation::kQuarterBlock; break;
+            case 'k': pixelation = Pixelation::kKittyGraphics; break;
             }
             break;
         case 'h':
@@ -443,6 +448,10 @@ int main(int argc, char *argv[]) {
         display_opts.width_stretch *= 2;
         display_opts.cell_x_px = 2;
         display_opts.cell_y_px = 2;
+        break;
+    case Pixelation::kKittyGraphics:
+        display_opts.cell_x_px = term.font_width_px;
+        display_opts.cell_y_px = term.font_height_px;
         break;
     }
     if (!geometry_user_chosen) {
@@ -523,9 +532,11 @@ int main(int argc, char *argv[]) {
     display_opts.bg_pattern_color = rgba_t::ParseColor(bg_pattern_color);
 
     std::unique_ptr<TerminalCanvas> canvas(
-        new UnicodeBlockCanvas(output_fd,
-                               pixelation == Pixelation::kQuarterBlock,
-                               terminal_use_upper_block));
+        pixelation == Pixelation::kKittyGraphics
+        ? (TerminalCanvas*)new KittyGraphicsCanvas(output_fd, display_opts)
+        : (TerminalCanvas*)new UnicodeBlockCanvas(
+            output_fd, pixelation == Pixelation::kQuarterBlock,
+            terminal_use_upper_block));
 
     auto renderer = timg::Renderer::Create(canvas.get(), display_opts,
                                            grid_cols, grid_rows);

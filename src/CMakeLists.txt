@@ -5,16 +5,17 @@ target_sources(timg PRIVATE
   timg.cc
 
   display-options.h
+  framebuffer.h     framebuffer.cc
   image-display.h   image-display.cc
   image-source.h    image-source.cc
   jpeg-source.h     jpeg-source.cc
+  kitty-canvas.h    kitty-canvas.cc
   renderer.h        renderer.cc
   terminal-canvas.h terminal-canvas.cc
-  unicode-block-canvas.h unicode-block-canvas.cc
   termutils.h       termutils.cc
-  framebuffer.h     framebuffer.cc
   thread-pool.h
   timg-time.h
+  unicode-block-canvas.h unicode-block-canvas.cc
 )
 
 target_link_libraries(timg
