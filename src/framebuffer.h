@@ -21,6 +21,7 @@
 #include <string.h>
 
 #include <functional>
+#include <initializer_list>
 
 namespace timg {
 struct rgba_t {
@@ -109,7 +110,14 @@ public:
     // We approximate x^2.2 with x^2
     LinearColor(rgba_t c) : r(c.r*c.r), g(c.g*c.g), b(c.b*c.b), a(c.a) {}
 
-    inline rgba_t repack() const { return { gamma(r), gamma(g), gamma(b), a }; }
+    inline float dist(const LinearColor &other) const {
+        // quadratic distance. Not bothering sqrt()ing them.
+        return sq(other.r - r) + sq(other.g - g) + sq(other.b - b);
+    }
+
+    inline rgba_t repack() const {
+        return { gamma(r), gamma(g), gamma(b), (uint8_t)a };
+    }
 
     // If this color is transparent, blend in the background according to alpha
     LinearColor &AlphaBlend(const LinearColor &background) {
@@ -123,14 +131,29 @@ public:
     float r;
     float g;
     float b;
-    uint8_t a;
+    float a;
 
 private:
     static uint8_t gamma(float v) {
         const float vg = sqrtf(v);
         return (vg > 255) ? 255 : vg;
     }
+    static float sq(float x) { return x * x; }
 };
+
+// Average "values" into "res" and return sum of distance of all values to avg
+inline float avd(LinearColor *res, std::initializer_list<LinearColor> values) {
+    for (const LinearColor &c : values) {
+        res->r += c.r; res->g += c.g; res->b += c.b; res->a += c.a;
+    }
+    const size_t n = values.size();
+    res->r /= n; res->g /= n; res->b /= n; res->a /= n;
+    float sum = 0;
+    for (const LinearColor &c : values) {
+        sum += res->dist(c);
+    }
+    return sum;
+}
 
 }  // namespace timg
 

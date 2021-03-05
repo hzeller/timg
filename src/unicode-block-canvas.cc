@@ -42,20 +42,35 @@
 namespace timg {
 enum BlockChoice : uint8_t {
     kBackground,
+    kTopLeft, kTopRight,
+    kBotLeft, kBotRight,
+    kLeftBar, kTopLeftBotRight,
     kLowerBlock,
+
     kUpperBlock,
 };
 
+// Half block rendering:
 // Each character on the screen is divided in a top pixel and bottom pixel.
 // We use a block character to fill one half with the foreground color,
 // the other half is shown as background color.
-// Two pixels one stone. Or something.
 // Some fonts display the top block worse than the bottom block, so use the
 // bottom block by default, but allow to choose.
-static constexpr const char *kBlockGlyphs[3] = {
-    /*[kBackground] = */ " ",
-    /*[kLowerBlock] = */ "▄",
-    /*[kUpperBlock] = */ "▀",
+// Two pixels one stone. Or something.
+//
+// Quarter block rendering: similar, but more choices, which means we have
+// to distribute foreground/background color as averages of the 'real' color.
+static constexpr const char *kBlockGlyphs[9] = {
+    /*[kBackground] = */      " ",
+    /*[kTopLeft] = */         "▘",
+    /*[kTopRight] = */        "▝",
+    /*[kBotLeft] = */         "▖",
+    /*[kBotRight] = */        "▗",
+    /*[kLeftBar] = */         "▌",
+    /*[kTopLeftBotRight] = */ "▚",
+    /*[kLowerBlock] = */      "▄",
+
+    /*[kUpperBlock] = */      "▀",
 };
 
 char *UnicodeBlockCanvas::EnsureBuffers(int width, int height) {
@@ -122,16 +137,25 @@ static inline char *str_append(char *pos, const char *value, size_t len) {
 }
 
 // Compare pixels of top and bottom row with backing store (see StoreBacking())
+template <int N>
 inline bool EqualToBacking(const rgba_t *top, const rgba_t *bottom,
                            const rgba_t *backing) {
-    return *top == backing[0] && *bottom == backing[1];
+    if (N == 1)
+        return *top == backing[0] && *bottom == backing[1];
+    return *top == backing[0] && *(top+1) == backing[1] &&
+        *bottom == backing[2] && *(bottom+1) == backing[3];
 }
 
 // Store pixels of top and bottom row into backing store.
+template <int N>
 inline void StoreBacking(rgba_t *backing,
                          const rgba_t *top, const rgba_t *bottom) {
-    backing[0] = *top;
-    backing[1] = *bottom;
+    if (N == 1) {
+        backing[0] = *top; backing[1] = *bottom;
+    } else {
+        backing[0] = top[0]; backing[1] = top[1];
+        backing[2] = bottom[0]; backing[3] = bottom[1];
+    }
 }
 
 inline bool is_transparent(rgba_t c) {  return c.a < 0x60; }
@@ -141,29 +165,67 @@ struct UnicodeBlockCanvas::GlyphPick {
     rgba_t bg;
     BlockChoice block;
 };
+
+template <int N>
 UnicodeBlockCanvas::GlyphPick UnicodeBlockCanvas::FindBestGlyph(
     const rgba_t *top,
     const rgba_t *bottom) const {
-    if (*top == *bottom || (is_transparent(*top) && is_transparent(*bottom)))
-        return { *top, *bottom, kBackground };
-    if (use_upper_half_block_) return { *top, *bottom, kUpperBlock };
-    return { *bottom, *top, kLowerBlock };
+    if (N == 1) {
+        if (*top == *bottom ||
+            (is_transparent(*top) && is_transparent(*bottom))) {
+            return { *top, *bottom, kBackground };
+        }
+        if (use_upper_half_block_)
+            return { *top, *bottom, kUpperBlock };
+        return { *bottom, *top, kLowerBlock };
+    }
+    // N == 2
+    const LinearColor tl(*top);
+    const LinearColor tr(*(top+1));
+    const LinearColor bl(*bottom);
+    const LinearColor br(*(bottom+1));
+
+    struct Result {
+        BlockChoice block = kBackground;
+        LinearColor fg, bg;
+    } best;
+    float best_distance = 1e12;
+    for (int block = 0; block < 8; ++block) {
+        float d;  // Sum of color distance for each sub-block to average color
+        LinearColor fg, bg;
+        switch (block) {
+        case kBackground:      d = avd(&bg, {tl, tr, bl, br}); fg = bg;   break;
+        case kTopLeft:         d = avd(&bg, {tr, bl, br});     fg = tl;   break;
+        case kTopRight:        d = avd(&bg, {tl, bl, br});     fg = tr;   break;
+        case kBotLeft:         d = avd(&bg, {tl, tr, br});     fg = bl;   break;
+        case kBotRight:        d = avd(&bg, {tl, tr, bl});     fg = br;   break;
+        case kLeftBar:         d = avd(&bg, {tr, br})+avd(&fg, {tl, bl}); break;
+        case kTopLeftBotRight: d = avd(&bg, {tr, bl})+avd(&fg, {tl, br}); break;
+        case kLowerBlock:      d = avd(&bg, {tl, tr})+avd(&fg, {bl, br}); break;
+        }
+        if (d < best_distance) {
+            best = { (BlockChoice) block, fg, bg };
+            if (d < 1) break;   // Essentially zero.
+            best_distance = d;
+        }
+    }
+    return { best.fg.repack(), best.bg.repack(), best.block };
 }
 
 // Append two rows of pixels at once.
+template <int N>   // Advancing these number of x-pixels per char
 char *UnicodeBlockCanvas::AppendDoubleRow(char *pos, int indent, int width,
                                       const rgba_t *tline,
                                       const rgba_t *bline,
-                                      bool emit_difference,
+                                      bool emit_diff,
                                       int *y_skip) {
     static constexpr char kStartEscape[] = "\033[";
-    static constexpr int N = 1;  // Advancing these number of x-pixels per char
     GlyphPick last = {};
     bool last_color_unknown = true;
     int x_skip = indent;
     const char *start = pos;
     for (int x=0; x < width; x+=N, prev_content_it_+=2*N, tline+=N, bline+=N) {
-        if (emit_difference && EqualToBacking(tline, bline, prev_content_it_)) {
+        if (emit_diff && EqualToBacking<N>(tline, bline, prev_content_it_)) {
             ++x_skip;
             continue;
         }
@@ -183,7 +245,7 @@ char *UnicodeBlockCanvas::AppendDoubleRow(char *pos, int indent, int width,
             x_skip = 0;
         }
 
-        const GlyphPick pick = FindBestGlyph(tline, bline);
+        const GlyphPick pick = FindBestGlyph<N>(tline, bline);
 
         bool color_emitted = false;
 
@@ -222,7 +284,7 @@ char *UnicodeBlockCanvas::AppendDoubleRow(char *pos, int indent, int width,
         }
         last = pick;
         last_color_unknown = false;
-        StoreBacking(prev_content_it_, tline, bline);
+        StoreBacking<N>(prev_content_it_, tline, bline);
     }
 
     if (pos == start) {  // Nothing emitted for whole line
@@ -254,7 +316,7 @@ ssize_t UnicodeBlockCanvas::Send(int x, int dy, const Framebuffer &framebuffer) 
     const bool should_emit_difference = (x == last_x_indent_) &&
         (last_framebuffer_height_ > 0) && abs(dy) == last_framebuffer_height_;
 
-    // We are always writing two pixels at once with one character, which
+    // We are always writing two lines at once with one character, which
     // requires to leave an empty line if the height of the framebuffer is odd.
     // We want to make sure that this empty line is written in natural terminal
     // background color to match the chosen terminal color.
@@ -272,10 +334,10 @@ ssize_t UnicodeBlockCanvas::Send(int x, int dy, const Framebuffer &framebuffer) 
         top_line = row < 0 ? empty_line_ : &pixels[width*row];
         bottom_line = (row+1) >= height ? empty_line_ : &pixels[width*(row+1)];
 
-        pos = AppendDoubleRow(pos, x, width,
-                              top_line, bottom_line,
-                              should_emit_difference,
-                              &accumulated_y_skip);
+        pos = AppendDoubleRow<1>(pos, x, width,
+                                 top_line, bottom_line,
+                                 should_emit_difference,
+                                 &accumulated_y_skip);
     }
     last_framebuffer_height_ = height;
     last_x_indent_ = x;

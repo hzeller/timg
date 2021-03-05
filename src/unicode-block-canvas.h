@@ -41,12 +41,14 @@ private:
     // Return a buffer large enough to hold the whole ANSI-color encoded text.
     char *EnsureBuffers(int width, int height);
 
+    template <int N>
     char *AppendDoubleRow(char *pos, int indent, int width,
                           const rgba_t *top_line,
                           const rgba_t *bottom_line,
                           bool emit_difference, int *y_skip);
 
     // Find best glyph for two rows of color.
+    template <int N>
     GlyphPick FindBestGlyph(const rgba_t *top, const rgba_t *bottom) const;
 
     char *content_buffer_ = nullptr;  // Buffer containing content to write out
