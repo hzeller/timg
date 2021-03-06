@@ -32,6 +32,9 @@ TermSizeResult DetermineTermSize();
 // Returns allocated string if successful or nullptr if not.
 char *DetermineBackgroundColor();
 
+// Query the terminal if it supports the Kitty graphics protocol.
+bool QueryHasKittyGraphics();
+
 // Get boolean value from named environment variable.
 bool GetBoolenEnv(const char *env_name, bool default_value = false);
 

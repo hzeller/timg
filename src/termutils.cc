@@ -72,6 +72,7 @@ static void clean_up_terminal() {
 // non-nullptr, QueryTerminal will return with that result before
 // "time_budget" is reached.
 // Otherwise, returns with nullptr.
+// Only one query can be going on in parallel (due to cleanup considerations)
 using ResponseFinder = std::function<const char*(const char *, size_t len)>;
 static const char *QueryTerminal(const char *query,
                                  char *const buffer, const size_t buflen,
@@ -185,14 +186,14 @@ char* DetermineBackgroundColor() {
     const char *found = QueryTerminal(
         query_background_color, buffer, sizeof(buffer), kTimeBudget,
         [query_background_color, kPrefixLen, kExpectedResponseLen]
-        (const char *buffer, size_t len) -> const char* {
+        (const char *data, size_t len) -> const char* {
             if (len < kExpectedResponseLen) return nullptr;
             const char *found;
             // We might've gotten some spurious bytes in the beginning, so find
             // where the escape code starts. It is the same beginning as query.
-            found = (const char*)memmem(buffer, len,
+            found = (const char*)memmem(data, len,
                                         query_background_color, kPrefixLen);
-            if (found && len - (found - buffer) >= kExpectedResponseLen)
+            if (found && len - (found - data) >= kExpectedResponseLen)
                 return found; // Found start of esc sequence and enough bytes.
             return nullptr;
         });
@@ -210,6 +211,30 @@ char* DetermineBackgroundColor() {
     buffer[7] = '\0';
 
     return strdup(buffer);
+}
+
+bool QueryHasKittyGraphics() {
+    const Duration kTimeBudget = Duration::Millis(50);
+
+    // We send out two queries: one to determine if the graphics capabilities
+    // are available, and an innocuous general capability query every terminal
+    // should be supporting. That way, we will get back two results for
+    // the terminal that supports it, and one from other terminals.
+    // (Unfortunately, Konsole has a bug, in which it actually spills the
+    // query to the terminal. We work around that in main()).
+    constexpr char graphics_query[] =
+        "\033_Ga=q,i=42,s=1,v=1,t=d,f=24;AAAA\033\\"  // Graphics query
+        "\033[c";                    // primary device attributes query
+    bool found_graphics_response = false;
+    char buffer[512];
+    QueryTerminal(
+        graphics_query, buffer, sizeof(buffer), kTimeBudget,
+        [&found_graphics_response](const char *data, size_t len) {
+            found_graphics_response = (memmem(data, len, "\033_G", 3) != 0);
+            // We finish once we found the response to device query.
+            return (const char*) memmem(data, len, "\033[c", 3);
+        });
+    return found_graphics_response;
 }
 
 bool GetBoolenEnv(const char *env_name, bool default_value) {

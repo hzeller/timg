@@ -212,10 +212,11 @@ int main(int argc, char *argv[]) {
     int thread_count = kDefaultThreadCount;
     bool geometry_user_chosen = false;
     enum class Pixelation {
+        kNotChosen,
         kHalfBlock,
         kQuarterBlock,
         kKittyGraphics,
-    } pixelation = Pixelation::kQuarterBlock;
+    } pixelation = Pixelation::kNotChosen;
 
     enum LongOptionIds {
         OPT_CLEAR_SCREEN = 1000,
@@ -447,6 +448,17 @@ int main(int argc, char *argv[]) {
         pixelation = Pixelation::kQuarterBlock;
     }
 
+    if (pixelation == Pixelation::kNotChosen) {
+        // Konsole has the bad behaviour that it does not absorb the graphics
+        // query but spills it on the screen. "Luckily", Konsole has another
+        // bug not returning the window pixel size, so we can use that to avoid
+        // the query.
+        pixelation = (term.font_width_px > 0 && term.font_height_px > 0 &&
+                      timg::QueryHasKittyGraphics())
+            ? Pixelation::kKittyGraphics
+            : Pixelation::kQuarterBlock;
+    }
+
     switch (pixelation) {
     case Pixelation::kHalfBlock:
         display_opts.cell_x_px = 1;
@@ -461,6 +473,8 @@ int main(int argc, char *argv[]) {
         display_opts.cell_x_px = term.font_width_px;
         display_opts.cell_y_px = term.font_height_px;
         break;
+    case Pixelation::kNotChosen:
+        break;  // Should not happen. Was set above.
     }
     if (!geometry_user_chosen) {
         display_opts.width = display_opts.cell_x_px * term.cols;
