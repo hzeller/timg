@@ -115,8 +115,9 @@ bool ImageSource::CalcScaleToFitDisplay(int img_width, int img_height,
         *target_height /= width_stretch;
     }
 
-    *target_width  &= ~0x1;  // Round down to next even number to fully
-    *target_height &= ~0x1;  // fill our character pixels.
+    // floor() to next full character cell size.
+    *target_width  = *target_width  / options.cell_x_px * options.cell_x_px;
+    *target_height = *target_height / options.cell_y_px * options.cell_y_px;
 
     return *target_width != img_width || *target_height != img_height;
 }

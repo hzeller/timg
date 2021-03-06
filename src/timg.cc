@@ -93,7 +93,7 @@ static void InterruptHandler(int signo) {
 }
 
 static int usage(const char *progname, ExitCode exit_code,
-                 const timg::DisplayOptions &settings) {
+                 int width, int height) {
 #ifdef WITH_TIMG_VIDEO
     static constexpr char kFileType[] = "image/video";
 #else
@@ -102,7 +102,7 @@ static int usage(const char *progname, ExitCode exit_code,
     fprintf(stderr, "usage: %s [options] <%s> [<%s>...]\n", progname,
             kFileType, kFileType);
     fprintf(stderr, "Options:\n"
-            "\t-g<w>x<h>      : Output pixel geometry. Default from terminal %dx%d.\n"
+            "\t-g<w>x<h>      : Output geometry in character cells. Default from terminal %dx%d.\n"
             "\t-p<choice>     : Pixelation: 'h'=half blocks; 'q'=quarter blocks; 'k'=kitty graphics protocol.\n"
             "\t-C, --center   : Center image horizontally.\n"
             "\t-W, --fit-width: Scale to fit width of available space, even if it exceeds height.\n"
@@ -146,7 +146,7 @@ static int usage(const char *progname, ExitCode exit_code,
             "\t                unless there is more than one file to show (then: just once)\n"
             "\t--frames=<num>: Only show first num frames (if looping, loop only these)\n"
             "\t-t<seconds>   : Stop after this time, no matter what --loops or --frames say.\n",
-            settings.width, settings.height, kDefaultThreadCount);
+            width, height, kDefaultThreadCount);
     return (int)exit_code;
 }
 
@@ -180,11 +180,6 @@ int main(int argc, char *argv[]) {
         timg::GetBoolenEnv("TIMG_USE_UPPER_BLOCK");
 
     timg::DisplayOptions display_opts;
-    // Defaults
-    display_opts.cell_x_px = 1;
-    display_opts.cell_y_px = 2;
-    display_opts.width = display_opts.cell_x_px * term.cols;
-    display_opts.height = display_opts.cell_y_px * (term.rows - 2);
     display_opts.width_stretch = timg::GetFloatEnv(
         "TIMG_FONT_WIDTH_CORRECT", 0.5f*term.font_height_px/term.font_width_px);
 
@@ -210,7 +205,8 @@ int main(int argc, char *argv[]) {
     bool do_image_loading = true;
     bool do_video_loading = true;
     int thread_count = kDefaultThreadCount;
-    bool geometry_user_chosen = false;
+    int geometry_width = (term.cols - 2);
+    int geometry_height = (term.rows - 2);
     enum class Pixelation {
         kNotChosen,
         kHalfBlock,
@@ -264,11 +260,11 @@ int main(int argc, char *argv[]) {
         switch (opt) {
         case 'g':
             if (sscanf(optarg, "%dx%d",
-                       &display_opts.width, &display_opts.height) < 2) {
+                       &geometry_width, &geometry_height) < 2) {
                 fprintf(stderr, "Invalid size spec '%s'", optarg);
-                return usage(argv[0], ExitCode::kParameterError, display_opts);
+                return usage(argv[0], ExitCode::kParameterError,
+                             geometry_width, geometry_height);
             }
-            geometry_user_chosen = true;
             break;
         case 'w':
             between_images_duration
@@ -293,7 +289,7 @@ int main(int argc, char *argv[]) {
                     fprintf(stderr, "Paramter for --clear can be 'every', "
                             "got %s\n", optarg);
                     return usage(argv[0], ExitCode::kParameterError,
-                                 display_opts);
+                                 geometry_width, geometry_height);
                 }
             } else {
                 clear_screen = ClearScreen::kBeforeFirstImage;
@@ -344,14 +340,16 @@ int main(int argc, char *argv[]) {
             } else {
                 fprintf(stderr, "--rotate=%s: expected 'exif' or 'off'\n",
                         optarg);
-                return usage(argv[0], ExitCode::kParameterError, display_opts);
+                return usage(argv[0], ExitCode::kParameterError,
+                             geometry_width, geometry_height);
             }
             break;
         case OPT_GRID:
             switch (sscanf(optarg, "%dx%d", &grid_cols, &grid_rows)) {
             case 0:
                 fprintf(stderr, "Invalid grid spec '%s'", optarg);
-                return usage(argv[0], ExitCode::kParameterError, display_opts);
+                return usage(argv[0], ExitCode::kParameterError,
+                             geometry_width, geometry_height);
             case 1:
                 grid_rows = grid_cols;
                 break;
@@ -366,7 +364,8 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "--delta-move=%s: At least dx parameter needed"
                         " e.g. --delta-move=1."
                         "Or you can give dx, dy like so: -d1:-1", optarg);
-                return usage(argv[0], ExitCode::kParameterError, display_opts);
+                return usage(argv[0], ExitCode::kParameterError,
+                             geometry_width, geometry_height);
             }
             break;
         case 'C':
@@ -406,12 +405,14 @@ int main(int argc, char *argv[]) {
             output_fd = open(optarg, O_WRONLY|O_CREAT|O_TRUNC, 0664);
             if (output_fd < 0) {
                 fprintf(stderr, "%s: %s\n", optarg, strerror(errno));
-                return usage(argv[0], ExitCode::kCantOpenOutput, display_opts);
+                return usage(argv[0], ExitCode::kCantOpenOutput,
+                             geometry_width, geometry_height);
             }
             break;
         case 'f':
             if (!AppendToFileList(optarg, &filelist)) {
-                return usage(argv[0], ExitCode::kFilelistProblem, display_opts);
+                return usage(argv[0], ExitCode::kFilelistProblem,
+                             geometry_width, geometry_height);
             }
             break;
         case 'p':
@@ -425,21 +426,23 @@ int main(int argc, char *argv[]) {
         default:
             return usage(argv[0], (opt == 'h'
                                    ? ExitCode::kSuccess
-                                   : ExitCode::kParameterError), display_opts);
+                                   : ExitCode::kParameterError),
+                         geometry_width, geometry_height);
         }
     }
 
     // -- Some sanity checks and configuration editing.
 
-    if (display_opts.width < 1 || display_opts.height < 1) {
+    if (geometry_width < 1 || geometry_height < 1) {
         if (term.cols < 0 || term.rows < 0) {
             fprintf(stderr, "Failed to read size from terminal; "
                     "Please supply -g<width>x<height> directly.\n");
         } else {
             fprintf(stderr, "%dx%d is a rather unusual size\n",
-                    display_opts.width, display_opts.height);
+                    geometry_width, geometry_height);
         }
-        return usage(argv[0], ExitCode::kNotATerminal, display_opts);
+        return usage(argv[0], ExitCode::kNotATerminal,
+                     geometry_width, geometry_height);
     }
 
     if (pixelation == Pixelation::kKittyGraphics &&
@@ -476,10 +479,8 @@ int main(int argc, char *argv[]) {
     case Pixelation::kNotChosen:
         break;  // Should not happen. Was set above.
     }
-    if (!geometry_user_chosen) {
-        display_opts.width = display_opts.cell_x_px * (term.cols - 2);
-        display_opts.height = display_opts.cell_y_px * (term.rows - 2);
-    }
+    display_opts.width = geometry_width * display_opts.cell_x_px;
+    display_opts.height = geometry_height * display_opts.cell_y_px;
 
     for (int imgarg = optind; imgarg < argc && !interrupt_received; ++imgarg) {
         filelist.push_back(argv[imgarg]);
@@ -488,7 +489,8 @@ int main(int argc, char *argv[]) {
     if (filelist.size() <= 0) {
         fprintf(stderr, "Expected image filename(s) on command line "
                 "or via -f\n");
-        return usage(argv[0], ExitCode::kImageReadError, display_opts);
+        return usage(argv[0], ExitCode::kImageReadError,
+                     geometry_width, geometry_height);
     }
 
     // There is no scroll if there is no movement.
