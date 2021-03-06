@@ -477,7 +477,7 @@ int main(int argc, char *argv[]) {
         break;  // Should not happen. Was set above.
     }
     if (!geometry_user_chosen) {
-        display_opts.width = display_opts.cell_x_px * term.cols;
+        display_opts.width = display_opts.cell_x_px * (term.cols - 1);
         display_opts.height = display_opts.cell_y_px * (term.rows - 2);
     }
 
@@ -524,7 +524,8 @@ int main(int argc, char *argv[]) {
     }
 
     if (display_opts.show_filename) {
-        display_opts.height -= 2*grid_rows;  // Leave space for text 2px = 1row
+        // Leave space for text.
+        display_opts.height -= display_opts.cell_y_px*grid_rows;
     }
 
     // Asynconrous image loading (filelist.size()) and terminal query (+1)

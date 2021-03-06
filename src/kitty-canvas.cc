@@ -34,6 +34,21 @@ static char* EncodeFramebufferChunked(char *pos, const Framebuffer &fb) {
     static constexpr char b64[] =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     const int total_encoded =  (3 * fb.width() * fb.height()) * 4 / 3;
+    // TODO: send image with an ID so that in an animation we can just replace
+    // the image with the same ID.
+    // First tests didn't work: sending them with a=t,i=<id>,q=1
+    // right afterwards attempting to a=p,i=<id>, in the same write()
+    // does not work at all (timing ? Maybe it first has to store it somewhere
+    // and only then the ID is available ?)
+    // Sending them with a=T,i=id,q=1 works somewhat, but is very flickery
+    // (probably need two different ids to switch around), but _also_ sometimes
+    // a \e_G.OK response is sent, even though q=1. Something is not right
+    // there, need to look into the code of Kitty to understand what is
+    // happening.
+    //
+    // Anyway, for now, just a=T direct placement, and not using andy ID. Which
+    // means, we probably cycle through a lot of memory in the Graphics adapter
+    // when showing videos :)
     pos += sprintf(pos, "\e_Ga=T,f=24,s=%d,v=%d,m=%d;",
                    fb.width(), fb.height(), total_encoded > kChunkSize);
     int written = 0;

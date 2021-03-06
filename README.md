@@ -10,6 +10,9 @@ timg - Terminal Image and Video Viewer
 A user-friendly viewer that uses 24-Bit color capabilities and unicode
 character blocks to display images, animations and videos in the terminal.
 
+On terminals that implement the [Kitty Graphics Protocol], this displays
+images in full resolution.
+
 ![](./img/sunflower-term.png)
 
 Displays regular images, plays animated gifs, scrolls static images and
@@ -29,65 +32,33 @@ scroll-bar (Or redirecting the output to a file allows you to later
 simply `cat` that file to your terminal. Even `less -R` seems to be happy with
 it).
 
+#### Pixelation
+On a regular terminal, block-characters are used to output images. Half blocks
+present pixels color-accurately, and quarter blocks provide a higher spatial
+resolution at the expense of slightly worse color accuracy. These modes should
+be compatible with most common terminals that support UTF8 and 24Bit color.
+
+If you are on a [Kitty][Kitty Graphics Protocol] terminal, images can be
+shown in full resolution.
+
+-p half  | -p quarter            | -p kitty                          |
+---------|-----------------------|-----------------------------------|
+![](img/pixelation-half.png) | ![](img/pixelation-quarter.png) | ![](img/pixelation-kitty.png) |
+
+#### Grid display
+
+Images can be shown in a grid, which is very useful if you quickly want to
+sieve through a lot of images. You can choose to show the filename as title,
+so it is easy to find exactly the filename you're looking for (The following
+grid is pixelated with `-p quarter`).
+
 ![Grid view of 4 pictures](./img/grid-timg.png)
+<details>
+<summary>This is how the same grid looks with Kitty Graphics mode...</summary>
 
-### Build and Install
+![](img/grid-timg-kitty.png)
 
-#### Get repo
-
-```bash
-git clone https://github.com/hzeller/timg.git
-```
-
-#### Get dependencies on Debian/Ubuntu
-
-```bash
-sudo apt install cmake git g++ pkg-config
-sudo apt install libgraphicsmagick++-dev libturbojpeg-dev libexif-dev libswscale-dev # needed libs
-
-# If you want to include video decoding, also install these additional libraries
-sudo apt install libavcodec-dev libavformat-dev
-
-sudo apt install libavdevice-dev # If you want to read from video devices such as v4l2
-
-sudo apt install pandoc  # If you want to recreate the man page
-```
-
-#### Get dependencies on macOS
-
-```bash
-# Homebrew needs to be available to install required dependencies
-brew install cmake git GraphicsMagick webp jpeg-turbo libexif  # needed libs
-
-# Work around glitch in pkg-config and jpeg-turbo.
-brew unlink jpeg && brew link --force jpeg-turbo
-
-# If you want to include video decoding, install these additional libraries
-brew install ffmpeg
-
-brew install pandoc  # If you want to recreate the man page
-```
-
-#### Compile timg
-
-```bash
-cd timg  # Enter the checked out repository directory.
-mkdir build  # Generate a dedicated build directory.
-cd build
-# WITH_VIDEO_DECODING enables video; WITH_VIDEO_DEVICE reading from webcam
-cmake ../ -DWITH_VIDEO_DECODING=On -DWITH_VIDEO_DEVICE=On
-make
-```
-
-#### Install
-
-You can run timg directly in the build directory using `src/timg`. To install
-the binary and [manpage](man/timg.1.md) on your system, type in the build directory:
-
-```bash
-sudo make install
-```
-
+</details>
 
 ### Synopsis
 
@@ -225,6 +196,8 @@ timg --scroll --delta-move=0:2 some-image.jpg  # vertical, two pixels per step.
 timg --scroll --delta-move=1:1 some-image.jpg  # diagonal, dx=1, dy=1
 
 # Background color for transparent images (SVG-compatible strings are supported)
+# and generally useful if you have a transparent PNG that is otherwise hard
+# to see on your terminal background.
 timg -b auto some-transparent-image.png  # use terminal background if possible
 timg -b none some-transparent-image.png  # Don't use blending
 timg -b lightgreen some-transparent-image.png
@@ -278,34 +251,50 @@ while : ; do xzcat... ; done
 
 ### Terminal considerations
 
-#### Choice of rendering block
-Note, this requires that your terminal can display
-[24 bit true color][24-bit-term] and is able to display the unicode
-characters [▄](U+2584 - 'Lower Half Block') and [▀](U+2580 - 'Upper Half Block').
-If not, it doesn't show anything or it looks like gibberish. These days, most
-terminal emulators meet these minimum requirements.
+#### Half block and quarter block rendering
 
-By default, `timg` uses the 'lower half block' to show the pixels. Depending
-on the font the terminal is using, using the upper block might look better,
-so it is possible to change the default with an environment variable.
+The half block rendering (`-p half`) uses the the unicode
+characters [▄](U+2584 - 'Lower Half Block')
+and [▀](U+2580 - 'Upper Half Block').
+
+The quarter block rendering (`-p quarter`) uses eight different blocks. By
+choosing the foreground color and background 24-bit color, `timg` can simulate
+'pixels'.
+
+Terminals that don't support Unicode or 24 bit color are not supported; they
+will probably not show a very pleasent output.
+
+#### Half block: Choice of rendering block
+
+By default, `timg` uses the 'lower half block' to show the pixels in `-p half`
+mode. Depending on the font the terminal is using, using the upper block might
+look better, so it is possible to change the default with an environment
+variable.
 Play around with this value if the output looks poor on your terminal. I found
 that on my system there is no difference for [`konsole`][konsole] or `xterm` but the
 [`cool-retro-term`][cool-retro-term] looks better with the lower block, this is why it is the default.
 
-In some terminals, such as [alacritty] (and only with small fonts), there
-seems to be the opposite working better. To change, set this environment
+In some terminals, such as [alacritty] (and only with certain font sizes),
+there seems to be the opposite working better. To change, set this environment
 variable:
 
 ```
 export TIMG_USE_UPPER_BLOCK=1   # change default to use upper block.
 ```
+(this only will work with `-p half`. In `-p quarter` mode, this choice has
+no effect).
 
 ##### What the wrong choice of block looks like
 
 The image generally looks a bit 'glitchy' if the terminal leaves little
 space between blocks, so that the wrong background color shows on a single
-line between pixels. In the following illustration you see how that looks like.
-If you see that, change the `TIMG_USE_UPPER_BLOCK` environment variable.
+line between pixels.
+This is likely not intended by the terminal emulator and possibly happening
+on rounding issues of font height or similar.
+
+Anyway, we can work around it (in `-p half` mode). In the following
+illustration you see how that looks like. If you see that, change
+the `TIMG_USE_UPPER_BLOCK` environment variable.
 
 Glitchy. Change TIMG_USE_UPPER_BLOCK| Looks good
 ------------------------------------|-------------------------------|
@@ -339,6 +328,9 @@ Terminal font too narrow   | Correct. Here with `TIMG_FONT_WIDTH_CORRECT=1.375`
 
 #### Tested terminal emulators
 
+(Needs update; these comparisons are from 2016 when I tested this last with
+timg, so newer terminals are probably even better).
+
 Tested terminals: `konsole` >= 2.14.1, `gnome-terminal` > 3.6.2 look good,
 recent xterms also seem to work (albeit with less color richness).
 Like gnome-terminal, libvte based terminals in general should work, such as
@@ -351,7 +343,65 @@ there, please let me know.
 
 For Mac users, at least the combination of macOS 11.2 and iTerm2 3.4.3 works.
 
+### Build and Install
+
+#### Get repo
+
+```bash
+git clone https://github.com/hzeller/timg.git
+```
+
+#### Get dependencies on Debian/Ubuntu
+
+```bash
+sudo apt install cmake git g++ pkg-config
+sudo apt install libgraphicsmagick++-dev libturbojpeg-dev libexif-dev libswscale-dev # needed libs
+
+# If you want to include video decoding, also install these additional libraries
+sudo apt install libavcodec-dev libavformat-dev
+
+sudo apt install libavdevice-dev # If you want to read from video devices such as v4l2
+
+sudo apt install pandoc  # If you want to recreate the man page
+```
+
+#### Get dependencies on macOS
+
+```bash
+# Homebrew needs to be available to install required dependencies
+brew install cmake git GraphicsMagick webp jpeg-turbo libexif  # needed libs
+
+# Work around glitch in pkg-config and jpeg-turbo.
+brew unlink jpeg && brew link --force jpeg-turbo
+
+# If you want to include video decoding, install these additional libraries
+brew install ffmpeg
+
+brew install pandoc  # If you want to recreate the man page
+```
+
+#### Compile timg
+
+```bash
+cd timg  # Enter the checked out repository directory.
+mkdir build  # Generate a dedicated build directory.
+cd build
+# WITH_VIDEO_DECODING enables video; WITH_VIDEO_DEVICE reading from webcam
+cmake ../ -DWITH_VIDEO_DECODING=On -DWITH_VIDEO_DEVICE=On
+make
+```
+
+#### Install
+
+You can run timg directly in the build directory using `src/timg`. To install
+the binary and [manpage](man/timg.1.md) on your system, type in the build directory:
+
+```bash
+sudo make install
+```
+
 [24-bit-term]: https://gist.github.com/XVilka/8346728
 [cool-retro-term]: https://github.com/Swordfish90/cool-retro-term
 [konsole]: https://konsole.kde.org/
 [alacritty]: https://github.com/alacritty/alacritty
+[Kitty Graphics Protocol]: https://sw.kovidgoyal.net/kitty/graphics-protocol.html
