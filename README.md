@@ -65,7 +65,7 @@ grid is pixelated with `-p quarter`).
 ```
 usage: timg [options] <image/video> [<image/video>...]
 Options:
-        -g<w>x<h>      : Output pixel geometry. Default from terminal 160x100.
+        -g<w>x<h>      : Output geometry in character cells. Default from terminal 160x50.
         -p<choice>     : Pixelation: 'h'=half blocks; 'q'=quarter blocks; 'k'=kitty graphics protocol.
         -C, --center   : Center image horizontally.
         -W, --fit-width: Scale to fit width of available space, even if it exceeds height.
@@ -239,7 +239,11 @@ filextype *.avi,*.mp4,*.wmv,*.dat,*.3gp,*.ogv,*.mkv,*.mpg,*.mpeg,*.vob,
 filextype *.bmp,*.jpg,*.jpeg,*.png,*.gif,*.xpm
         \ {View in timg}
         \ timg --title --center --clear %f; read -n1 -s -r -p "Press any key to return",
+```
 
+#### Other fun things
+
+```
 # Also, you could store the output and cat later to your terminal...
 timg -g80x40 some-image.jpg > /tmp/imageout.txt
 cat /tmp/imageout.txt
