@@ -221,9 +221,24 @@ timg -b lightgray -B darkgray --pattern-size=4 some-transparent-image.png
 ---------------------------------------|--------------------------------------|
 ![](img/alpha-blightgreen-Byellow.png) | ![](img/alpha-blightgreen-Byellow-4.png) |
 
+#### Include in file browsers
+
+There are many terminal based file-browsers. Adding `timg` to their
+configuration is usually straight forward.
 ```
 # Another use: can run use this in a fzf preview window:
 echo some-image.jpg | fzf --preview='timg -E --frames=1 --loops=1 -g $(( $COLUMNS / 2 - 4 ))x$(( $FZF_PREVIEW_LINES * 2 )) {}'
+
+# Use in vifm. ~/.config/vifm/vifmrc
+filextype *.avi,*.mp4,*.wmv,*.dat,*.3gp,*.ogv,*.mkv,*.mpg,*.mpeg,*.vob,
+         \*.fl[icv],*.m2v,*.mov,*.webm,*.ts,*.mts,*.m4v,*.r[am],*.qt,*.divx,
+         \*.as[fx]
+        \ {View in timg}
+        \ timg --title --center --clear %f,
+
+filextype *.bmp,*.jpg,*.jpeg,*.png,*.gif,*.xpm
+        \ {View in timg}
+        \ timg --title --center --clear %f; read -n1 -s -r -p "Press any key to return",
 
 # Also, you could store the output and cat later to your terminal...
 timg -g80x40 some-image.jpg > /tmp/imageout.txt
