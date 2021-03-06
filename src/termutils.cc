@@ -164,10 +164,10 @@ char* DetermineBackgroundColor() {
     const Duration kTimeBudget = Duration::Millis(1500);
 
     constexpr char query_background_color[] = "\033]11;?\033\\";
-    constexpr int kPrefixLen   = 5;  // strlen("\033]11;")
-    constexpr int kColorLen    = 18; // strlen("rgb:1234/1234/1234")
-    constexpr int kPostfixLen  = 2;  // strlen("\033\\")
-    constexpr int kExpectedResponseLen = kPrefixLen + kColorLen + kPostfixLen;
+    constexpr size_t kPrefixLen   = 5;  // strlen("\033]11;")
+    constexpr size_t kColorLen    = 18; // strlen("rgb:1234/1234/1234")
+    constexpr size_t kPostfixLen  = 2;  // strlen("\033\\")
+    constexpr size_t kExpectedResponseLen = kPrefixLen+kColorLen+kPostfixLen;
 
     // Query and testing the response. It is the query-string with the
     // question mark replaced with the requested information.
@@ -185,8 +185,7 @@ char* DetermineBackgroundColor() {
     char buffer[512];
     const char *found = QueryTerminal(
         query_background_color, buffer, sizeof(buffer), kTimeBudget,
-        [query_background_color, kPrefixLen, kExpectedResponseLen]
-        (const char *data, size_t len) -> const char* {
+        [query_background_color](const char *data, size_t len) -> const char* {
             if (len < kExpectedResponseLen) return nullptr;
             const char *found;
             // We might've gotten some spurious bytes in the beginning, so find
