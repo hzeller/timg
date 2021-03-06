@@ -112,8 +112,10 @@ bool ImageSource::CalcScaleToFitDisplay(int img_width, int img_height,
     }
 
     // floor() to next full character cell size.
-    *target_width  = *target_width  / options.cell_x_px * options.cell_x_px;
-    *target_height = *target_height / options.cell_y_px * options.cell_y_px;
+    if (options.cell_x_px <= 2 && options.cell_y_px <= 2) {
+        *target_width  = *target_width/options.cell_x_px * options.cell_x_px;
+        *target_height = *target_height/options.cell_y_px * options.cell_y_px;
+    }
 
     // Don't scale down to nothing...
     if (*target_width <= 0)  *target_width = 1;
