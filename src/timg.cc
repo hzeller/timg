@@ -477,7 +477,7 @@ int main(int argc, char *argv[]) {
         break;  // Should not happen. Was set above.
     }
     if (!geometry_user_chosen) {
-        display_opts.width = display_opts.cell_x_px * (term.cols - 1);
+        display_opts.width = display_opts.cell_x_px * (term.cols - 2);
         display_opts.height = display_opts.cell_y_px * (term.rows - 2);
     }
 
