@@ -180,9 +180,6 @@ int main(int argc, char *argv[]) {
         timg::GetBoolenEnv("TIMG_USE_UPPER_BLOCK");
 
     timg::DisplayOptions display_opts;
-    display_opts.width_stretch = timg::GetFloatEnv(
-        "TIMG_FONT_WIDTH_CORRECT", 0.5f*term.font_height_px/term.font_width_px);
-
     const char *bg_color = "auto";  // Experimental
     const char *bg_pattern_color = nullptr;
     display_opts.allow_frame_skipping =
@@ -461,6 +458,15 @@ int main(int argc, char *argv[]) {
             ? Pixelation::kKittyGraphics
             : Pixelation::kQuarterBlock;
     }
+
+    // If we're using block graphics, we might need to adapt the aspect ratio
+    // slightly depending if the font-cell has a 1:2 ratio.
+    // Kitty graphics that uses direct pixels don't need this.
+    const float stretch_correct = (pixelation == Pixelation::kKittyGraphics)
+        ? 1.0f
+        : 0.5f * term.font_height_px / term.font_width_px;
+    display_opts.width_stretch = timg::GetFloatEnv("TIMG_FONT_WIDTH_CORRECT",
+                                                   stretch_correct);
 
     switch (pixelation) {
     case Pixelation::kHalfBlock:
