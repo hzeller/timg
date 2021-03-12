@@ -5,13 +5,13 @@ timg - Terminal Image and Video Viewer
 [![Ubuntu Build](../../workflows/Ubuntu%20Build/badge.svg)](../../actions?query=workflow%3A"Ubuntu+Build")
 [![macOS Build](../../workflows/macOS%20Build/badge.svg)](../../actions?query=workflow%3A"macOS+Build")
 
-### http://timg.sh
+### http://timg.sh/
 
 A user-friendly viewer that uses 24-Bit color capabilities and unicode
 character blocks to display images, animations and videos in the terminal.
 
-On terminals that implement the [Kitty Graphics Protocol], this displays
-images in full resolution.
+On terminals that implement the [Kitty Graphics Protocol] or the
+[iTerm2 Graphics Protocol] this displays images in full resolution.
 
 ![](./img/sunflower-term.png)
 
@@ -41,7 +41,7 @@ be compatible with most common terminals that support UTF8 and 24Bit color.
 If you are on a [Kitty][Kitty Graphics Protocol] terminal, images can be
 shown in full resolution.
 
--p half  | -p quarter            | -p kitty                          |
+-p half  | -p quarter            | -p kitty  or -p iterm2            |
 ---------|-----------------------|-----------------------------------|
 ![](img/pixelation-half.png) | ![](img/pixelation-quarter.png) | ![](img/pixelation-kitty.png) |
 
@@ -50,7 +50,7 @@ shown in full resolution.
 Images can be shown in a grid, which is very useful if you quickly want to
 sieve through a lot of images. You can choose to show the filename as title,
 so it is easy to find exactly the filename you're looking for (The following
-grid is pixelated with `-p quarter`).
+grid uses `--grid=2` and is pixelated with `-pq`).
 
 ![Grid view of 4 pictures](./img/grid-timg.png)
 <details>
@@ -243,7 +243,7 @@ filextype *.bmp,*.jpg,*.jpeg,*.png,*.gif,*.xpm
 
 #### Other fun things
 
-```
+```bash
 # Also, you could store the output and cat later to your terminal...
 timg -g80x40 some-image.jpg > /tmp/imageout.txt
 cat /tmp/imageout.txt
@@ -260,7 +260,7 @@ timg -g60x30 --loops=10 nyan.gif | xz > /tmp/nyan.term.xz
 # rush through as fast as possible, we have to use a trick to wait between
 # frames: Each frame has a 'move cursor up' escape sequence that contains
 # an upper-case 'A'. We can latch on that to generate a delay between frames:
-xzcat /tmp/nyan.term.xz | gawk '/A/ { system("sleep 0.1"); } { print $0 }'
+xzcat /tmp/nyan.term.xz | gawk '/\[.*A/ { system("sleep 0.1"); } { print $0 }'
 
 # You can wrap all that in a loop to get an infinite repeat.
 while : ; do xzcat... ; done
@@ -272,16 +272,33 @@ while : ; do xzcat... ; done
 
 #### Half block and quarter block rendering
 
-The half block rendering (`-p half`) uses the the unicode
+The half block pixelation (`-p half`) uses the the unicode
 characters [▄](U+2584 - 'Lower Half Block')
 and [▀](U+2580 - 'Upper Half Block').
 
-The quarter block rendering (`-p quarter`) uses eight different blocks. By
-choosing the foreground color and background 24-bit color, `timg` can simulate
-'pixels'.
+The quarter block pixelation (`-p quarter`) uses eight different blocks.
+
+With both of these pixelations, choosing the foreground color and background
+24-bit color, `timg` can simulate 'pixels'. With the half-block pixelation,
+this can assign the correct color to the two 'pixels' available in one
+character cell, in the quarter pixelation, four 'pixels' have to share two
+colors, so the color accuracy is slighlty worse but it allows for higher spatial
+resolution.
+
+The `-q` command line flag allows to choose between `-p half`, `-p quarter`,
+also possible to just shorten to `-ph` and `-pq`. Default is `-pq`
+(see [above](#pixelation) how tihs looks like).
 
 Terminals that don't support Unicode or 24 bit color are not supported; they
 will probably not show a very pleasent output.
+
+The [Kitty] terminal has a special feature that allows for directly displaying
+high-resolution pictures. If `timg` is running in a Kitty terminal, it will
+automatically use that mode (or you can choose it explicitly with `-pk`).
+
+The [iTerm2] and [wezterm] also have a mode that allows to show images directly.
+This currently is not autodetected yet. So if you are on iterm or wezterm use
+`-pi` to choose that mode.
 
 #### Half block: Choice of rendering block
 
@@ -423,4 +440,8 @@ sudo make install
 [cool-retro-term]: https://github.com/Swordfish90/cool-retro-term
 [konsole]: https://konsole.kde.org/
 [alacritty]: https://github.com/alacritty/alacritty
+[Kitty]: https://sw.kovidgoyal.net/kitty/
 [Kitty Graphics Protocol]: https://sw.kovidgoyal.net/kitty/graphics-protocol.html
+[iTerm2]: https://iterm2.com/
+[iTerm2 Graphics Protocol]: https://iterm2.com/documentation-images.html
+[wezterm]: https://wezfurlong.org/wezterm/

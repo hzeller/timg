@@ -8,6 +8,7 @@ target_sources(timg PRIVATE
   framebuffer.h     framebuffer.cc
   image-display.h   image-display.cc
   image-source.h    image-source.cc
+  iterm2-canvas.h   iterm2-canvas.cc
   jpeg-source.h     jpeg-source.cc
   kitty-canvas.h    kitty-canvas.cc
   renderer.h        renderer.cc

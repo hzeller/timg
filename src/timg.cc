@@ -20,6 +20,7 @@
 
 #include "display-options.h"
 #include "image-source.h"
+#include "iterm2-canvas.h"
 #include "kitty-canvas.h"
 #include "renderer.h"
 #include "terminal-canvas.h"
@@ -66,6 +67,7 @@ using timg::Duration;
 using timg::Framebuffer;
 using timg::ImageSource;
 using timg::KittyGraphicsCanvas;
+using timg::ITerm2GraphicsCanvas;
 using timg::TerminalCanvas;
 using timg::Time;
 using timg::UnicodeBlockCanvas;
@@ -103,7 +105,7 @@ static int usage(const char *progname, ExitCode exit_code,
             kFileType, kFileType);
     fprintf(stderr, "Options:\n"
             "\t-g<w>x<h>      : Output geometry in character cells. Default from terminal %dx%d.\n"
-            "\t-p<choice>     : Pixelation: 'h'=half blocks; 'q'=quarter blocks; 'k'=kitty graphics protocol.\n"
+            "\t-p<choice>     : Pixelation: 'h'=half blocks; 'q'=quarter blocks; 'k'=kitty graphics, 'i' = iTerm2 graphics.\n"
             "\t-C, --center   : Center image horizontally.\n"
             "\t-W, --fit-width: Scale to fit width of available space, even if it exceeds height.\n"
             "\t                 (default: scale to fit inside available rectangle)\n"
@@ -209,6 +211,7 @@ int main(int argc, char *argv[]) {
         kHalfBlock,
         kQuarterBlock,
         kKittyGraphics,
+        kiTerm2Graphics,
     } pixelation = Pixelation::kNotChosen;
 
     enum LongOptionIds {
@@ -417,6 +420,7 @@ int main(int argc, char *argv[]) {
             case 'h': pixelation = Pixelation::kHalfBlock; break;
             case 'q': pixelation = Pixelation::kQuarterBlock; break;
             case 'k': pixelation = Pixelation::kKittyGraphics; break;
+            case 'i': pixelation = Pixelation::kiTerm2Graphics; break;
             }
             break;
         case 'h':
@@ -442,9 +446,10 @@ int main(int argc, char *argv[]) {
                      geometry_width, geometry_height);
     }
 
-    if (pixelation == Pixelation::kKittyGraphics &&
+    if ((pixelation == Pixelation::kKittyGraphics ||
+         pixelation == Pixelation::kiTerm2Graphics) &&
         (term.font_width_px < 0 || term.font_height_px < 0)) {
-        fprintf(stderr, "Kitty graphics protocol not support by terminal.\n");
+        fprintf(stderr, "Graphics protocol not support by terminal.\n");
         pixelation = Pixelation::kQuarterBlock;
     }
 
@@ -479,6 +484,7 @@ int main(int argc, char *argv[]) {
         display_opts.cell_y_px = 2;
         break;
     case Pixelation::kKittyGraphics:
+    case Pixelation::kiTerm2Graphics:
         display_opts.cell_x_px = term.font_width_px;
         display_opts.cell_y_px = term.font_height_px;
         break;
@@ -561,12 +567,21 @@ int main(int argc, char *argv[]) {
 
     display_opts.bg_pattern_color = rgba_t::ParseColor(bg_pattern_color);
 
-    std::unique_ptr<TerminalCanvas> canvas(
-        pixelation == Pixelation::kKittyGraphics
-        ? (TerminalCanvas*)new KittyGraphicsCanvas(output_fd, display_opts)
-        : (TerminalCanvas*)new UnicodeBlockCanvas(
-            output_fd, pixelation == Pixelation::kQuarterBlock,
-            terminal_use_upper_block));
+    std::unique_ptr<TerminalCanvas> canvas;
+    switch (pixelation) {
+    case Pixelation::kKittyGraphics:
+        canvas.reset(new KittyGraphicsCanvas(output_fd, display_opts));
+        break;
+    case Pixelation::kiTerm2Graphics:
+        canvas.reset(new ITerm2GraphicsCanvas(output_fd, display_opts));
+        break;
+    case Pixelation::kHalfBlock:
+    case Pixelation::kQuarterBlock:
+    case Pixelation::kNotChosen:  // Should not happen.
+        canvas.reset(new UnicodeBlockCanvas(
+                         output_fd, pixelation == Pixelation::kQuarterBlock,
+                         terminal_use_upper_block));
+    }
 
     auto renderer = timg::Renderer::Create(canvas.get(), display_opts,
                                            grid_cols, grid_rows);
