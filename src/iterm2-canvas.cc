@@ -48,12 +48,11 @@ static char* EncodeFramebuffer(char *pos, const Framebuffer &fb) {
     }
 
     // Image content. Each RGB triple is encoded to 4 base64 bytes.
-    const rgba_t *end = fb.data() + fb.width() * fb.height();
-    for (const rgba_t *it = fb.data(); it < end; ++it) {
-        *pos++ = b64[(it->r >> 2) & 0x3f];
-        *pos++ = b64[((it->r & 0x03) << 4) | ((int) (it->g & 0xf0) >> 4)];
-        *pos++ = b64[((it->g & 0x0f) << 2) | ((int) (it->b & 0xc0) >> 6)];
-        *pos++ = b64[it->b & 0x3f];
+    for (const rgba_t &pixel : fb) {
+        *pos++ = b64[(pixel.r >> 2) & 0x3f];
+        *pos++ = b64[((pixel.r & 0x03) << 4) | ((int) (pixel.g & 0xf0) >> 4)];
+        *pos++ = b64[((pixel.g & 0x0f) << 2) | ((int) (pixel.b & 0xc0) >> 6)];
+        *pos++ = b64[pixel.b & 0x3f];
     }
 
     *pos++ = '\007';

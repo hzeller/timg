@@ -75,16 +75,16 @@ static timg::Framebuffer *ApplyExifOp(timg::Framebuffer *orig,
     const int w = orig->width();
     if (op.mirror) {
         for (int y = 0; y < h; ++y) {
-            rgba_t *left = &orig->data()[y * w];
-            rgba_t *right = &orig->data()[(y+1) * w - 1];
+            Framebuffer::iterator left = &orig->begin()[y * w];
+            Framebuffer::iterator right = &orig->begin()[(y+1) * w - 1];
             while (left < right) {
                 std::swap(*left++, *right--);
             }
         }
     }
     if (op.angle == 180) {
-        rgba_t *top_left = orig->data();
-        rgba_t *bottom_right = orig->data() + w * h - 1;
+        Framebuffer::iterator top_left = orig->begin();
+        Framebuffer::iterator bottom_right = orig->end() - 1;
         while (top_left < bottom_right) {
             std::swap(*top_left++, *bottom_right--);
         }
@@ -172,7 +172,7 @@ bool JPEGSource::LoadAndScale(const DisplayOptions &opts, int max_frames) {
     const int decode_row_bytes = decode_width * decode_pixel_width;
     timg::Framebuffer decode_image(decode_width, decode_height);
     if (tjDecompress2(handle, jpeg_content, filesize,
-                      (uint8_t*) decode_image.data(),
+                      (uint8_t*) decode_image.begin(),
                       decode_width, decode_row_bytes, decode_height,
                       decode_pixel_format, 0) != 0) {
         return false;

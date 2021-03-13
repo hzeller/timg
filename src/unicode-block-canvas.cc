@@ -332,7 +332,7 @@ ssize_t UnicodeBlockCanvas::Send(int x, int dy,
 
     const char *before_image_emission = pos;
 
-    const rgba_t *const pixels = framebuffer.data();
+    const rgba_t *const pixels = framebuffer.begin();
     const rgba_t *top_line, *bottom_line;
 
     // If we just got requested to move back where we started the last image,

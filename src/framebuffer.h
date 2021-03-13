@@ -46,6 +46,9 @@ static_assert(sizeof(rgba_t) == 4, "Unexpected size for rgba_t struct");
 // Very simple framebuffer, storing widht*height pixels in RGBA format.
 class Framebuffer {
 public:
+    typedef rgba_t * iterator;
+    typedef const rgba_t * const_iterator;
+
     Framebuffer(int width, int height);
     Framebuffer() = delete;
     Framebuffer(const Framebuffer &other) = delete;
@@ -81,8 +84,10 @@ public:
 
     // The raw internal buffer containing width()*height() pixels organized
     // from top left to bottom right.
-    rgba_t *data() { return pixels_; }
-    const rgba_t *data() const { return pixels_; }
+    const_iterator begin() const { return pixels_; }
+    iterator begin() { return pixels_; }
+    const_iterator end() const { return end_; }
+    iterator end() { return end_; }
 
     /* the following two methods are useful with line-oriented sws_scale()
      * to allow it to directly write into our frame-buffer
@@ -99,6 +104,7 @@ private:
     const int width_;
     const int height_;
     rgba_t *const pixels_;
+    rgba_t *const end_;
     int strides_[2];
     uint8_t **row_data_ = nullptr;  // Only allocated if requested.
 };

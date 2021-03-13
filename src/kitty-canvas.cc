@@ -53,12 +53,11 @@ static char* EncodeFramebufferChunked(char *pos, const Framebuffer &fb) {
                    fb.width(), fb.height(), total_encoded > kChunkSize);
     int written = 0;
     // TODO: consider zlib compression of raw data. Protocol allows for that.
-    const rgba_t *end = fb.data() + fb.width() * fb.height();
-    for (const rgba_t *it = fb.data(); it < end; ++it) {
-        *pos++ = b64[(it->r >> 2) & 0x3f];
-        *pos++ = b64[((it->r & 0x03) << 4) | ((int) (it->g & 0xf0) >> 4)];
-        *pos++ = b64[((it->g & 0x0f) << 2) | ((int) (it->b & 0xc0) >> 6)];
-        *pos++ = b64[it->b & 0x3f];
+    for (const rgba_t &pixel : fb) {
+        *pos++ = b64[(pixel.r >> 2) & 0x3f];
+        *pos++ = b64[((pixel.r & 0x03) << 4) | ((int) (pixel.g & 0xf0) >> 4)];
+        *pos++ = b64[((pixel.g & 0x0f) << 2) | ((int) (pixel.b & 0xc0) >> 6)];
+        *pos++ = b64[pixel.b & 0x3f];
         written += 4;
         if (written % kChunkSize == 0 && total_encoded - written > 0) {
             pos += sprintf(pos, "\e\\\e_Gm=%d;",

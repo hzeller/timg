@@ -49,7 +49,8 @@ rgba_t rgba_t::ParseColor(const char *color) {
 }
 
 Framebuffer::Framebuffer(int w, int h)
-    : width_(w), height_(h), pixels_(new rgba_t [ width_ * height_]) {
+    : width_(w), height_(h), pixels_(new rgba_t [ width_ * height_]),
+      end_(pixels_ + width_ * height_) {
     strides_[0] = (int)sizeof(rgba_t) * width_;
     strides_[1] = 0;  // empty sentinel value.
     Clear();
