@@ -61,16 +61,16 @@ enum BlockChoice : uint8_t {
 // Quarter block rendering: similar, but more choices, which means we have
 // to distribute foreground/background color as averages of the 'real' color.
 static constexpr const char *kBlockGlyphs[9] = {
-    /*[kBackground] = */      " ",
-    /*[kTopLeft] = */         "▘",
-    /*[kTopRight] = */        "▝",
-    /*[kBotLeft] = */         "▖",
-    /*[kBotRight] = */        "▗",
-    /*[kLeftBar] = */         "▌",
-    /*[kTopLeftBotRight] = */ "▚",
+    /*[kBackground] = */      " ",  // space
+    /*[kTopLeft] = */         "▘",  // U+2598 Quadrant upper left
+    /*[kTopRight] = */        "▝",  // U+259D Quadrant upper right
+    /*[kBotLeft] = */         "▖",  // U+2596 Quadrant lower left
+    /*[kBotRight] = */        "▗",  // U+2597 Quadrant lower right
+    /*[kLeftBar] = */         "▌",  // U+258C Left half block
+    /*[kTopLeftBotRight] = */ "▚",  // U+259A Quadrant upper left & lower right
 
-    /*[kLowerBlock] = */      "▄",
-    /*[kUpperBlock] = */      "▀",
+    /*[kLowerBlock] = */      "▄",  // U+2584 Lower half block
+    /*[kUpperBlock] = */      "▀",  // U+2580 Upper half block
 };
 
 char *UnicodeBlockCanvas::EnsureBuffers(int width, int height) {
