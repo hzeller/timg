@@ -38,8 +38,8 @@ present pixels color-accurately, and quarter blocks provide a higher spatial
 resolution at the expense of slightly worse color accuracy. These modes should
 be compatible with most common terminals that support UTF8 and 24Bit color.
 
-If you are on a [Kitty][Kitty Graphics Protocol] terminal, images can be
-shown in full resolution.
+If you are on a [Kitty][Kitty Graphics Protocol], [iTerm2], or [wezterm]
+terminal, images can be shown in full resolution.
 
 -p half  | -p quarter            | -p kitty  or -p iterm2            |
 ---------|-----------------------|-----------------------------------|
@@ -54,7 +54,7 @@ grid uses `--grid=2` and is pixelated with `-pq`).
 
 ![Grid view of 4 pictures](./img/grid-timg.png)
 <details>
-<summary>This is how the same grid looks with Kitty Graphics mode...</summary>
+<summary>This is how the same grid looks with Kitty or iTerm2 Graphics mode...</summary>
 
 ![](img/grid-timg-kitty.png)
 
@@ -66,7 +66,7 @@ grid uses `--grid=2` and is pixelated with `-pq`).
 usage: timg [options] <image/video> [<image/video>...]
 Options:
         -g<w>x<h>      : Output geometry in character cells. Default from terminal 160x50.
-        -p<choice>     : Pixelation: 'h'=half blocks; 'q'=quarter blocks; 'k'=kitty graphics protocol.
+        -p<pixelation> : Pixelation: 'h'=half blocks; 'q'=quarter blocks; 'k'=kitty graphics, 'i' = iTerm2 graphics.
         -C, --center   : Center image horizontally.
         -W, --fit-width: Scale to fit width of available space, even if it exceeds height.
                          (default: scale to fit inside available rectangle)
@@ -81,7 +81,7 @@ Options:
                          The optional pre-crop is the width of border to
                          remove beforehand to get rid of an uneven border.
         --rotate=<exif|off> : Rotate according to included exif orientation or off. Default: exif.
-        --clear        : Clear screen first. Optional argument 'every' will clean terminal before every image (useful with -w)
+        --clear        : Clear screen first. Optional argument 'every' will clean before every image (useful with -w)
         -U             : Toggle Upscale. If an image is smaller (e.g. an icon) than the
                          available frame, enlarge it to fit.
         -V             : Only use Video subsystem. Don't attempt to probe image decoding first.
@@ -270,11 +270,16 @@ while : ; do xzcat... ; done
 
 ### Terminal considerations
 
+This section contains some details that you only might need to ever look at if
+the output is not as expected.
+
 #### Half block and quarter block rendering
 
 The half block pixelation (`-p half`) uses the the unicode
 characters [▄](U+2584 - 'Lower Half Block')
-and [▀](U+2580 - 'Upper Half Block').
+or [▀](U+2580 - 'Upper Half Block') (depending on the
+[`TIMG_USE_UPPER_BLOCK`](#half-block-choice-of-rendering-block)
+environment variable).
 
 The quarter block pixelation (`-p quarter`) uses eight different blocks.
 
@@ -285,20 +290,31 @@ character cell, in the quarter pixelation, four 'pixels' have to share two
 colors, so the color accuracy is slighlty worse but it allows for higher spatial
 resolution.
 
-The `-q` command line flag allows to choose between `-p half`, `-p quarter`,
+The `-p` command line flag allows to choose between `-p half`, `-p quarter`,
 also possible to just shorten to `-ph` and `-pq`. Default is `-pq`
-(see [above](#pixelation) how tihs looks like).
+(see [above](#pixelation) how this looks like).
 
 Terminals that don't support Unicode or 24 bit color are not supported; they
 will probably not show a very pleasent output.
+
+#### Some terminals support direct image output
 
 The [Kitty] terminal has a special feature that allows for directly displaying
 high-resolution pictures. If `timg` is running in a Kitty terminal, it will
 automatically use that mode (or you can choose it explicitly with `-pk`).
 
 The [iTerm2] and [wezterm] also have a mode that allows to show images directly.
-This currently is not autodetected yet. So if you are on iterm or wezterm use
+This currently is not autodetected yet. So if you are on iTerm2 or wezterm use
 `-pi` to choose that mode.
+
+All the features with arranging images (center, grid, adding titles) or
+transparency settings behave exactly the same.
+
+Note, if watching videos remotely with this is too slow (due to high bandwidth
+requirements or simply because your terminal has to do more work), try
+setting the environment variable `TIMG_ALLOW_FRAME_SKIP=1` to allow timg
+leaving out frames to stay on track (see `man timg`, environment variable
+section).
 
 #### Half block: Choice of rendering block
 
@@ -317,10 +333,10 @@ variable:
 ```
 export TIMG_USE_UPPER_BLOCK=1   # change default to use upper block.
 ```
-(this only will work with `-p half`. In `-p quarter` mode, this choice has
-no effect).
+(this only will work fully with `-p half`. In `-p quarter` mode, there are
+additional blocks that can't be worked around)
 
-##### What the wrong choice of block looks like
+##### What a problematic choice of block looks like
 
 The image generally looks a bit 'glitchy' if the terminal leaves little
 space between blocks, so that the wrong background color shows on a single
@@ -328,14 +344,21 @@ line between pixels.
 This is likely not intended by the terminal emulator and possibly happening
 on rounding issues of font height or similar.
 
-Anyway, we can work around it (in `-p half` mode). In the following
-illustration you see how that looks like. If you see that, change
-the `TIMG_USE_UPPER_BLOCK` environment variable.
+Anyway, we can work around it (fully in `-p half`, partially in `-p quarter`
+mode). In the following illustration you see how that looks like. If you
+see that, change the `TIMG_USE_UPPER_BLOCK` environment variable.
+
 
 Glitchy. Change TIMG_USE_UPPER_BLOCK| Looks good
 ------------------------------------|-------------------------------|
 ![](img/needs-block-change.png)     | ![](img/block-ok.png)|
 
+#### Other artifacts
+
+Some terminals leave one pixel of horizontal space between characters that
+result in fine vertical lines in the image.
+That can't be worked around, send a bug or better pull request to your terminal
+emulator.
 
 #### Wrong font aspect ratio
 
