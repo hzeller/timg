@@ -25,21 +25,21 @@ ITerm2GraphicsCanvas::ITerm2GraphicsCanvas(int fd, const DisplayOptions &opts)
     : TerminalCanvas(fd), options_(opts) {
 }
 
-// iterm2 does not read pixles directly but filenames. So closest is
-// to actually just encode it as PPM for now, but might be worthwile
-// re-encoding things as PNG for more compact transmission.
+// ITerm2 does not read pixles directly but image file content. Closest to our
+// representation is PPM (netpbm), so use that to encode; but might be
+// worthwhile re-encoding things as PNG for more compact transmission ?
 static char* EncodeFramebufferChunked(char *pos, const Framebuffer &fb) {
     static constexpr char b64[] =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    pos += sprintf(pos, "\e]1337;File=inline=1:");
+    pos += sprintf(pos, "\e]1337;File=width=%dpx;height=%dpx;inline=1:",
+                   fb.width(), fb.height());
 
     char ppm_header[32];
     int header_len = snprintf(ppm_header, sizeof(ppm_header),
                               "P6\n%4d  %4d\n255\n", fb.width(), fb.height());
     assert(header_len % 3 == 0);
-    // For ease of encoding later, we pad the header to be multiple of 3 bytes.
+    // For ease of encoding later, we padded the header to multiple of 3 bytes.
     // That way, we get a multiple of 4 bytes encoded.
-    header_len = header_len / 3 * 3;
     for (const char *h = ppm_header; h < ppm_header + header_len; h += 3) {
         *pos++ = b64[(h[0] >> 2) & 0x3f];
         *pos++ = b64[((h[0] & 0x03) << 4) | ((int) (h[1] & 0xf0) >> 4)];
@@ -47,6 +47,7 @@ static char* EncodeFramebufferChunked(char *pos, const Framebuffer &fb) {
         *pos++ = b64[h[2] & 0x3f];
     }
 
+    // Image content. Each RGB triple is encoded to 4 base64 bytes.
     const rgba_t *end = fb.data() + fb.width() * fb.height();
     for (const rgba_t *it = fb.data(); it < end; ++it) {
         *pos++ = b64[(it->r >> 2) & 0x3f];

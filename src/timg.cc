@@ -105,7 +105,7 @@ static int usage(const char *progname, ExitCode exit_code,
             kFileType, kFileType);
     fprintf(stderr, "Options:\n"
             "\t-g<w>x<h>      : Output geometry in character cells. Default from terminal %dx%d.\n"
-            "\t-p<choice>     : Pixelation: 'h'=half blocks; 'q'=quarter blocks; 'k'=kitty graphics, 'i' = iTerm2 graphics.\n"
+            "\t-p<pixelation> : Pixelation: 'h'=half blocks; 'q'=quarter blocks; 'k'=kitty graphics, 'i' = iTerm2 graphics.\n"
             "\t-C, --center   : Center image horizontally.\n"
             "\t-W, --fit-width: Scale to fit width of available space, even if it exceeds height.\n"
             "\t                 (default: scale to fit inside available rectangle)\n"
@@ -449,25 +449,32 @@ int main(int argc, char *argv[]) {
     if ((pixelation == Pixelation::kKittyGraphics ||
          pixelation == Pixelation::kiTerm2Graphics) &&
         (term.font_width_px < 0 || term.font_height_px < 0)) {
+        // All graphics compatible terminals report terminal size in pixel.
         fprintf(stderr, "Graphics protocol not support by terminal.\n");
         pixelation = Pixelation::kQuarterBlock;
     }
 
+    // Determine best default to pixelate images.
     if (pixelation == Pixelation::kNotChosen) {
+        pixelation = Pixelation::kQuarterBlock;  // Good default.
         // Konsole has the bad behaviour that it does not absorb the graphics
         // query but spills it on the screen. "Luckily", Konsole has another
         // bug not returning the window pixel size, so we can use that to avoid
-        // the query.
-        pixelation = (term.font_width_px > 0 && term.font_height_px > 0 &&
-                      timg::QueryHasKittyGraphics())
-            ? Pixelation::kKittyGraphics
-            : Pixelation::kQuarterBlock;
+        // the query :)
+        if (term.font_width_px > 0 && term.font_height_px > 0) {
+            if (timg::QueryHasITerm2Graphics())
+                pixelation = Pixelation::kiTerm2Graphics;
+            else if (timg::QueryHasKittyGraphics())
+                pixelation = Pixelation::kKittyGraphics;
+        }
     }
 
     // If we're using block graphics, we might need to adapt the aspect ratio
     // slightly depending if the font-cell has a 1:2 ratio.
-    // Kitty graphics that uses direct pixels don't need this.
-    const float stretch_correct = (pixelation == Pixelation::kKittyGraphics)
+    // Terminals using direct pixels don't need this.
+    const float stretch_correct =
+        (pixelation == Pixelation::kKittyGraphics ||
+         pixelation == Pixelation::kiTerm2Graphics)
         ? 1.0f
         : 0.5f * term.font_height_px / term.font_width_px;
     display_opts.width_stretch = timg::GetFloatEnv("TIMG_FONT_WIDTH_CORRECT",

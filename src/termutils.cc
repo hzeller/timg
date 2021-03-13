@@ -57,7 +57,7 @@ TermSizeResult DetermineTermSize() {
 
 
 static struct termios s_orig_terminal_setting;
-static int s_tty_fd;
+static int s_tty_fd = -1;
 static void clean_up_terminal() {
     if (s_tty_fd < 0) return;
     tcsetattr(s_tty_fd, TCSAFLUSH, &s_orig_terminal_setting);
@@ -175,6 +175,9 @@ char* DetermineBackgroundColor() {
     // We have to deal with two situations
     //  * The response might take a while (see above in kTimeBudget)
     //    and have to wait for the full time budget.
+    //  * Unfortunately, we can't shorten that time with the trick we do
+    //    below with a DSR 5 dummy query: turns out that alacritty answers
+    //    these out-of-order https://github.com/alacritty/alacritty/issues/4872
     //  * The terminal outputs the response as if it was 'typed in', so we
     //    might not only get the response from the terminal itself, but also
     //    characters from user pressing a key while we do our query.
@@ -216,24 +219,48 @@ bool QueryHasKittyGraphics() {
     const Duration kTimeBudget = Duration::Millis(50);
 
     // We send out two queries: one to determine if the graphics capabilities
-    // are available, and an innocuous general capability query every terminal
-    // should be supporting. That way, we will get back two results for
-    // the terminal that supports it, and one from other terminals.
+    // are available, and one standard simple DSR 5. If we only get a response
+    // to the innocuous status report request, we don't have graphics
+    // capability.
     // (Unfortunately, Konsole has a bug, in which it actually spills the
     // query to the terminal. We work around that in main()).
     constexpr char graphics_query[] =
         "\033_Ga=q,i=42,s=1,v=1,t=d,f=24;AAAA\033\\"  // Graphics query
-        "\033[c";                    // primary device attributes query
+        "\033[5n";                                    // general status report.
     bool found_graphics_response = false;
     char buffer[512];
     QueryTerminal(
         graphics_query, buffer, sizeof(buffer), kTimeBudget,
         [&found_graphics_response](const char *data, size_t len) {
             found_graphics_response = (memmem(data, len, "\033_G", 3) != 0);
-            // We finish once we found the response to device query.
-            return (const char*) memmem(data, len, "\033[c", 3);
+            // We finish once we found the response to DSR 5
+            return (const char*) memmem(data, len, "\033[0n", 3);
         });
     return found_graphics_response;
+}
+
+// TODO: this terminal detection works iTerm2 currently.
+// Is there a way to detect wezterm reliably ?
+bool QueryHasITerm2Graphics() {
+    const Duration kTimeBudget = Duration::Millis(50);
+
+    // We send out two queries: one DSR that is special to iterm2 (1337) and
+    // one standard simple DSR 5. If we only get a response to the
+    // innocuous status report request, we don't have an iTerm2.
+    // (Based on suggested technique in https://iterm2.com/utilities/it2check )
+    constexpr char term_query[] =
+        "\033[1337n"  // iterm query
+        "\033[5n";    // general status report.
+    bool is_iterm = false;
+    char buffer[512];
+    QueryTerminal(
+        term_query, buffer, sizeof(buffer), kTimeBudget,
+        [&is_iterm](const char *data, size_t len) {
+            is_iterm = (memmem(data, len, "ITERM", 5) != 0);
+            // We finish once we found the response to DSR5
+            return (const char*) memmem(data, len, "\033[0n", 3);
+        });
+    return is_iterm;
 }
 
 bool GetBoolenEnv(const char *env_name, bool default_value) {

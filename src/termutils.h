@@ -35,6 +35,9 @@ char *DetermineBackgroundColor();
 // Query the terminal if it supports the Kitty graphics protocol.
 bool QueryHasKittyGraphics();
 
+// Query if the terminal supports the iTerm2 graphics.
+bool QueryHasITerm2Graphics();
+
 // Get boolean value from named environment variable.
 bool GetBoolenEnv(const char *env_name, bool default_value = false);
 
