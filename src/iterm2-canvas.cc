@@ -28,7 +28,7 @@ ITerm2GraphicsCanvas::ITerm2GraphicsCanvas(int fd, const DisplayOptions &opts)
 // ITerm2 does not read pixles directly but image file content. Closest to our
 // representation is PPM (netpbm), so use that to encode; but might be
 // worthwhile re-encoding things as PNG for more compact transmission ?
-static char* EncodeFramebufferChunked(char *pos, const Framebuffer &fb) {
+static char* EncodeFramebuffer(char *pos, const Framebuffer &fb) {
     static constexpr char b64[] =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     pos += sprintf(pos, "\e]1337;File=width=%dpx;height=%dpx;inline=1:",
@@ -72,7 +72,7 @@ ssize_t ITerm2GraphicsCanvas::Send(int x, int dy, const Framebuffer &fb) {
         pos += sprintf(pos, SCREEN_CURSOR_RIGHT_FORMAT, x / options_.cell_x_px);
     }
 
-    pos = EncodeFramebufferChunked(pos, fb);
+    pos = EncodeFramebuffer(pos, fb);
     return WriteBuffer(buffer, pos - buffer);
 }
 
