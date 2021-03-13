@@ -299,13 +299,11 @@ will probably not show a very pleasent output.
 
 #### Some terminals support direct image output
 
-The [Kitty] terminal has a special feature that allows for directly displaying
-high-resolution pictures. If `timg` is running in a Kitty terminal, it will
-automatically use that mode (or you can choose it explicitly with `-pk`).
-
-The [iTerm2] and [wezterm] also have a mode that allows to show images directly.
-This currently is not autodetected yet. So if you are on iTerm2 or wezterm use
-`-pi` to choose that mode.
+The [Kitty], [iTerm2], and [wezterm] terminals have a special feature that
+allows for directly displaying high-resolution pictures.
+If `timg` is running in such a terminal, it will automatically use that mode.
+(You can choose Kitty mode explicitly with `-pk`, iTerm and wezterm mode
+with `-pi`).
 
 All the features with arranging images (center, grid, adding titles) or
 transparency settings behave exactly the same.

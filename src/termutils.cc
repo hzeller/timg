@@ -239,28 +239,30 @@ bool QueryHasKittyGraphics() {
     return found_graphics_response;
 }
 
-// TODO: this terminal detection works iTerm2 currently.
-// Is there a way to detect wezterm reliably ?
 bool QueryHasITerm2Graphics() {
     const Duration kTimeBudget = Duration::Millis(50);
 
-    // We send out two queries: one DSR that is special to iterm2 (1337) and
-    // one standard simple DSR 5. If we only get a response to the
-    // innocuous status report request, we don't have an iTerm2.
-    // (Based on suggested technique in https://iterm2.com/utilities/it2check )
+    // We send out two queries: one CSI for terminal version detection that
+    // is supported at leasht by the terminals we're interested in. From the
+    // returned string we can determine if they are in supported set.
+    //
+    // This is followed by DSR 5 that is always expected to work.
+    // If we only get a response to the innocuous status report request,
+    // we don't have a terminal that supports the CSI >q
     constexpr char term_query[] =
-        "\033[1337n"  // iterm query
-        "\033[5n";    // general status report.
-    bool is_iterm = false;
+        "\033[>q"    // terminal version query
+        "\033[5n";   // general status report.
+    bool has_iterm_graphics = false;
     char buffer[512];
     QueryTerminal(
         term_query, buffer, sizeof(buffer), kTimeBudget,
-        [&is_iterm](const char *data, size_t len) {
-            is_iterm = (memmem(data, len, "ITERM", 5) != 0);
+        [&has_iterm_graphics](const char *data, size_t len) {
+            has_iterm_graphics |= (memmem(data, len, "iTerm2", 6) != 0);
+            has_iterm_graphics |= (memmem(data, len, "WezTerm", 7) != 0);
             // We finish once we found the response to DSR5
             return (const char*) memmem(data, len, "\033[0n", 3);
         });
-    return is_iterm;
+    return has_iterm_graphics;
 }
 
 bool GetBoolenEnv(const char *env_name, bool default_value) {
