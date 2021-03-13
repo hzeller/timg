@@ -45,8 +45,8 @@ enum BlockChoice : uint8_t {
     kTopLeft, kTopRight,
     kBotLeft, kBotRight,
     kLeftBar, kTopLeftBotRight,
-    kLowerBlock,
 
+    kLowerBlock,   // Depending on user choice, one of these is used.
     kUpperBlock,
 };
 
@@ -68,8 +68,8 @@ static constexpr const char *kBlockGlyphs[9] = {
     /*[kBotRight] = */        "▗",
     /*[kLeftBar] = */         "▌",
     /*[kTopLeftBotRight] = */ "▚",
-    /*[kLowerBlock] = */      "▄",
 
+    /*[kLowerBlock] = */      "▄",
     /*[kUpperBlock] = */      "▀",
 };
 
@@ -203,13 +203,17 @@ UnicodeBlockCanvas::GlyphPick UnicodeBlockCanvas::FindBestGlyph(
     }
 
     struct Result {
-        BlockChoice block = kBackground;
         LinearColor fg, bg;
+        BlockChoice block = kBackground;
     } best;
     float best_distance = 1e12;
-    for (int block = 0; block < 8; ++block) {
+    for (int b = 0; b < 8; ++b) {
         float d;  // Sum of color distance for each sub-block to average color
         LinearColor fg, bg;
+        // We can't fix all the blocks that the user tries to work around
+        // with TIMG_USE_UPPER_BLOCK. But fix the half-blocks at least.
+        const BlockChoice block = (BlockChoice)
+            (b < 7 ? b : (use_upper_half_block_ ? kUpperBlock : kLowerBlock));
         switch (block) {
         case kBackground:      d = avd(&bg, {tl, tr, bl, br}); fg = bg;   break;
         case kTopLeft:         d = avd(&bg, {tr, bl, br});     fg = tl;   break;
@@ -219,9 +223,10 @@ UnicodeBlockCanvas::GlyphPick UnicodeBlockCanvas::FindBestGlyph(
         case kLeftBar:         d = avd(&bg, {tr, br})+avd(&fg, {tl, bl}); break;
         case kTopLeftBotRight: d = avd(&bg, {tr, bl})+avd(&fg, {tl, br}); break;
         case kLowerBlock:      d = avd(&bg, {tl, tr})+avd(&fg, {bl, br}); break;
+        case kUpperBlock:      d = avd(&bg, {bl, br})+avd(&fg, {tl, tr}); break;
         }
         if (d < best_distance) {
-            best = { (BlockChoice) block, fg, bg };
+            best = { fg, bg, block };
             if (d < 1) break;   // Essentially zero.
             best_distance = d;
         }
@@ -313,7 +318,8 @@ char *UnicodeBlockCanvas::AppendDoubleRow(char *pos, int indent, int width,
     return pos;
 }
 
-ssize_t UnicodeBlockCanvas::Send(int x, int dy, const Framebuffer &framebuffer) {
+ssize_t UnicodeBlockCanvas::Send(int x, int dy,
+                                 const Framebuffer &framebuffer) {
     const int width = framebuffer.width();
     const int height = framebuffer.height();
     char *const start_buffer = EnsureBuffers(width, height);
@@ -332,7 +338,7 @@ ssize_t UnicodeBlockCanvas::Send(int x, int dy, const Framebuffer &framebuffer) 
     // If we just got requested to move back where we started the last image,
     // we just need to emit pixels that changed.
     prev_content_it_ = backing_buffer_;
-    const bool should_emit_difference = (x == last_x_indent_) &&
+    const bool emit_difference = (x == last_x_indent_) &&
         (last_framebuffer_height_ > 0) && abs(dy) == last_framebuffer_height_;
 
     // We are always writing two lines at once with one character, which
@@ -354,15 +360,11 @@ ssize_t UnicodeBlockCanvas::Send(int x, int dy, const Framebuffer &framebuffer) 
         bottom_line = (row+1) >= height ? empty_line_ : &pixels[width*(row+1)];
 
         if (use_quarter_blocks_) {
-            pos = AppendDoubleRow<2>(pos, x, width,
-                                     top_line, bottom_line,
-                                     should_emit_difference,
-                                     &accumulated_y_skip);
+            pos = AppendDoubleRow<2>(pos, x, width, top_line, bottom_line,
+                                     emit_difference, &accumulated_y_skip);
         } else {
-            pos = AppendDoubleRow<1>(pos, x, width,
-                                     top_line, bottom_line,
-                                     should_emit_difference,
-                                     &accumulated_y_skip);
+            pos = AppendDoubleRow<1>(pos, x, width, top_line, bottom_line,
+                                     emit_difference, &accumulated_y_skip);
         }
     }
     last_framebuffer_height_ = height;
