@@ -87,16 +87,14 @@ uint8_t** Framebuffer::row_data() {
 
 void Framebuffer::AlphaComposeBackground(bgcolor_query get_bg,
                                          rgba_t pattern_col,
-                                         int pwidth,
-                                         int pheight) {
+                                         int pwidth, int pheight) {
     if (!get_bg) return;  // -b none
 
-    const rgba_t *const end = pixels_ + width_ * height_;
-    rgba_t *pos = pixels_;
-    for (/**/; pos < end; ++pos) {
+    iterator pos = begin();
+    for (/**/; pos < end(); ++pos) {
         if (pos->a < 0xff) break;  // First pixel that is transparent.
     }
-    if (pos == end) return;  // Nothing transparent all the way to the end.
+    if (pos == end()) return;  // Nothing transparent all the way to the end.
 
     // Need to do alpha blending, so only now we have to retrieve the bgcolor.
     const rgba_t bgcolor = get_bg();
@@ -106,7 +104,7 @@ void Framebuffer::AlphaComposeBackground(bgcolor_query get_bg,
     if (pattern_col.a == 0x00 || pattern_col == bgcolor ||
         pwidth <= 0 || pheight <= 0 ) {
         const LinearColor bg(bgcolor);
-        for (/**/; pos < end; ++pos) {
+        for (/**/; pos < end(); ++pos) {
             if (pos->a == 0xff) continue;
             *pos = LinearColor(*pos).AlphaBlend(bg).repack();
         }
@@ -119,8 +117,8 @@ void Framebuffer::AlphaComposeBackground(bgcolor_query get_bg,
     // Pos moved to the first pixel that required alpha blending.
     // From this pos, we need to recover the x/y position to be in the
     // right place for the checkerboard pattern.
-    const int start_x = (pos - pixels_) % width_;
-    const int start_y = (pos - pixels_) / width_;
+    const int start_x = (pos - begin()) % width_;
+    const int start_y = (pos - begin()) / width_;
     for (int y = start_y; y < height_; ++y) {
         const int y_pattern_pos = y / pheight;
         for (int x = (y == start_y ? start_x : 0); x < width_; ++x, pos++) {
