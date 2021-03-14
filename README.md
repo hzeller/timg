@@ -66,29 +66,36 @@ grid uses `--grid=2` and is pixelated with `-pq`).
 usage: timg [options] <image/video> [<image/video>...]
 Options:
         -g<w>x<h>      : Output geometry in character cells. Default from terminal 160x50.
-        -p<pixelation> : Pixelation: 'h'=half blocks; 'q'=quarter blocks; 'k'=kitty graphics, 'i' = iTerm2 graphics.
+        -p<pixelation> : Pixelation: 'h'=half blocks    'q'=quarter blocks
+                                     'k'=kitty graphics 'i' = iTerm2 graphics
+                         Default: Auto-detect Kitty, iTerm2 or WezTerm otherwise 'quarter'
+        --compress     : Only for -pk or -pi: PNG-compress image data before sending to
+                         terminal. More CPU use for timg, but less bandwidth needed.
         -C, --center   : Center image horizontally.
-        -W, --fit-width: Scale to fit width of available space, even if it exceeds height.
-                         (default: scale to fit inside available rectangle)
+        -W, --fit-width: Scale to fit width of available space, even if it exceeds
+                         height. (default: scale to fit inside available rectangle)
         --grid=<cols>[x<rows>] : Arrange images in a grid (contact sheet).
         -w<seconds>    : If multiple images given: Wait time between (default: 0.0).
         -a             : Switch off anti aliasing (default: on)
-        -b<str>        : Background color to use on transparent images.
+        -b<str>        : Background color to use behind transparent images.
                          format 'yellow', '#rrggbb' or 'auto' or 'none' (default 'auto').
-        -B<str>        : Checkerboard pattern color to use on transparent images (default '').
-        --pattern-size=<n> : Integer factor size of the checkerboard pattern
+        -B<str>        : Checkerboard pattern color to use on transparent (default '').
+        --pattern-size=<n> : Integer factor scale of the checkerboard pattern
         --auto-crop[=<pre-crop>] : Crop away all same-color pixels around image.
                          The optional pre-crop is the width of border to
                          remove beforehand to get rid of an uneven border.
-        --rotate=<exif|off> : Rotate according to included exif orientation or off. Default: exif.
-        --clear        : Clear screen first. Optional argument 'every' will clean before every image (useful with -w)
+        --rotate=<exif|off> : Rotate according to included exif orientation or off.
+                              Default: exif.
+        --clear        : Clear screen first. Optional argument 'every' will clean
+                         before every image (useful with -w)
         -U             : Toggle Upscale. If an image is smaller (e.g. an icon) than the
                          available frame, enlarge it to fit.
-        -V             : Only use Video subsystem. Don't attempt to probe image decoding first.
+        -V             : Directly use Video subsystem. Don't probe image decoding first.
                          (useful, if you stream video from stdin).
         -I             : Only  use Image subsystem. Don't attempt video decoding.
         -F, --title    : Print filename as title above each image.
-        -f<filelist>   : Read newline-separated list of image files to show. Can be there multiple times.
+        -f<filelist>   : Read newline-separated list of image files to show.
+                         (Can be provided multiple times.)
         -o<outfile>    : Write to <outfile> instead of stdout.
         -E             : Don't hide the cursor while showing images.
         --threads=<n>  : Run image decoding in parallel with n threads

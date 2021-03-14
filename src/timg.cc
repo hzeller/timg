@@ -105,31 +105,38 @@ static int usage(const char *progname, ExitCode exit_code,
             kFileType, kFileType);
     fprintf(stderr, "Options:\n"
             "\t-g<w>x<h>      : Output geometry in character cells. Default from terminal %dx%d.\n"
-            "\t-p<pixelation> : Pixelation: 'h'=half blocks; 'q'=quarter blocks; 'k'=kitty graphics, 'i' = iTerm2 graphics.\n"
+            "\t-p<pixelation> : Pixelation: 'h'=half blocks    'q'=quarter blocks\n"
+            "\t                             'k'=kitty graphics 'i' = iTerm2 graphics\n"
+            "\t                 Default: Auto-detect Kitty, iTerm2 or WezTerm otherwise 'quarter'\n"
+            "\t--compress     : Only for -pk or -pi: PNG-compress image data before sending to\n"
+            "\t                 terminal. More CPU use for timg, but less bandwidth needed.\n"
             "\t-C, --center   : Center image horizontally.\n"
-            "\t-W, --fit-width: Scale to fit width of available space, even if it exceeds height.\n"
-            "\t                 (default: scale to fit inside available rectangle)\n"
+            "\t-W, --fit-width: Scale to fit width of available space, even if it exceeds\n"
+            "\t                 height. (default: scale to fit inside available rectangle)\n"
             "\t--grid=<cols>[x<rows>] : Arrange images in a grid (contact sheet).\n"
             "\t-w<seconds>    : If multiple images given: Wait time between (default: 0.0).\n"
             "\t-a             : Switch off anti aliasing (default: on)\n"
-            "\t-b<str>        : Background color to use on transparent images.\n"
+            "\t-b<str>        : Background color to use behind transparent images.\n"
             "\t                 format 'yellow', '#rrggbb' or 'auto' or 'none' (default 'auto').\n"
-            "\t-B<str>        : Checkerboard pattern color to use on transparent images (default '').\n"
-            "\t--pattern-size=<n> : Integer factor size of the checkerboard pattern\n"
+            "\t-B<str>        : Checkerboard pattern color to use on transparent (default '').\n"
+            "\t--pattern-size=<n> : Integer factor scale of the checkerboard pattern\n"
             "\t--auto-crop[=<pre-crop>] : Crop away all same-color pixels around image.\n"
             "\t                 The optional pre-crop is the width of border to\n"
             "\t                 remove beforehand to get rid of an uneven border.\n"
-            "\t--rotate=<exif|off> : Rotate according to included exif orientation or off. Default: exif.\n"
-            "\t--clear        : Clear screen first. Optional argument 'every' will clean before every image (useful with -w)\n"
+            "\t--rotate=<exif|off> : Rotate according to included exif orientation or off.\n"
+            "\t                      Default: exif.\n"
+            "\t--clear        : Clear screen first. Optional argument 'every' will clean\n"
+            "\t                 before every image (useful with -w)\n"
             "\t-U             : Toggle Upscale. If an image is smaller (e.g. an icon) than the \n"
             "\t                 available frame, enlarge it to fit.\n"
 #ifdef WITH_TIMG_VIDEO
-            "\t-V             : Only use Video subsystem. Don't attempt to probe image decoding first.\n"
+            "\t-V             : Directly use Video subsystem. Don't probe image decoding first.\n"
             "\t                 (useful, if you stream video from stdin).\n"
             "\t-I             : Only  use Image subsystem. Don't attempt video decoding.\n"
 #endif
             "\t-F, --title    : Print filename as title above each image.\n"
-            "\t-f<filelist>   : Read newline-separated list of image files to show. Can be there multiple times.\n"
+            "\t-f<filelist>   : Read newline-separated list of image files to show.\n"
+            "\t                 (Can be provided multiple times.)\n"
             "\t-o<outfile>    : Write to <outfile> instead of stdout.\n"
             "\t-E             : Don't hide the cursor while showing images.\n"
             "\t--threads=<n>  : Run image decoding in parallel with n threads\n"
@@ -423,11 +430,11 @@ int main(int argc, char *argv[]) {
             }
             break;
         case 'p':
-            switch (optarg[0]) {
-            case 'h': pixelation = Pixelation::kHalfBlock; break;
-            case 'q': pixelation = Pixelation::kQuarterBlock; break;
-            case 'k': pixelation = Pixelation::kKittyGraphics; break;
-            case 'i': pixelation = Pixelation::kiTerm2Graphics; break;
+            switch (optarg[0]) {  // Just looking at first character sufficient
+            case 'h': case 'H': pixelation = Pixelation::kHalfBlock; break;
+            case 'q': case 'Q': pixelation = Pixelation::kQuarterBlock; break;
+            case 'k': case 'K': pixelation = Pixelation::kKittyGraphics; break;
+            case 'i': case 'I': pixelation = Pixelation::kiTerm2Graphics; break;
             }
             break;
         case OPT_COMPRESS_PIXEL:
@@ -496,12 +503,10 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // When PNG compression is requested in the graphics pixel formats,
-    // then we don't need 'auto' to figure out the background color: the
-    // terminal does the alpha-blending on the transparent PNG we send.
-    if (display_opts.compress_pixel_format && is_pixel_direct_p(pixelation) &&
-        strcasecmp(bg_color, "auto") == 0) {
-        bg_color = "none";
+    // If 'none' is chosen for background color, then using the
+    // PNG compression with alpha channels gives us compositing on client side
+    if (is_pixel_direct_p(pixelation) && strcasecmp(bg_color, "none") == 0) {
+        display_opts.compress_pixel_format = true;
     }
 
     // If we're using block graphics, we might need to adapt the aspect ratio
