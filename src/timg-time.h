@@ -54,7 +54,10 @@ public:
         return Duration(1000000000, 0);  // a few years; infinite enough :)
     }
 
-    struct timespec duration() const { return duration_; }
+    struct timespec AsTimespec() const { return duration_; }
+    struct timeval  AsTimeval() const {
+        return { duration_.tv_sec, (suseconds_t)(duration_.tv_nsec / 1000)};
+    }
 
     bool is_zero() const {
         return duration_.tv_sec <= 0 && duration_.tv_nsec == 0;
@@ -86,6 +89,10 @@ public:
         return (int64_t)time_.tv_sec * 1000000000 + time_.tv_nsec;
     }
 
+    Duration operator-(const Time &other) const {
+        return Duration::Nanos(nanoseconds() - other.nanoseconds());
+    }
+
     Time& operator=(const Time &other) { time_ = other.time_; return *this; }
 
     bool operator <(const Time &other) const {
@@ -97,8 +104,8 @@ public:
     bool operator >=(const Time &other) const { return !(*this < other); }
 
     void Add(Duration d) {
-        time_.tv_sec += d.duration().tv_sec;
-        time_.tv_nsec += d.duration().tv_nsec;
+        time_.tv_sec += d.AsTimespec().tv_sec;
+        time_.tv_nsec += d.AsTimespec().tv_nsec;
         while (time_.tv_nsec > 1000000000) {
             time_.tv_nsec -= 1000000000;
             time_.tv_sec += 1;

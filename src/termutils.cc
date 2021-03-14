@@ -122,8 +122,7 @@ static const char *QueryTerminal(const char *query,
     timg::Time now = Time::Now();
     const timg::Time deadline = now + time_budget;
     do {
-        const int64_t remaining_ns = deadline.nanoseconds() - now.nanoseconds();
-        struct timeval timeout{0, (suseconds_t)(remaining_ns / 1000)};
+        struct timeval timeout = (deadline - now).AsTimeval();
         fd_set read_fds;
         FD_ZERO(&read_fds);
         FD_SET(s_tty_fd, &read_fds);
