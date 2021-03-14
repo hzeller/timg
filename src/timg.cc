@@ -182,7 +182,7 @@ int main(int argc, char *argv[]) {
         timg::GetBoolenEnv("TIMG_USE_UPPER_BLOCK");
 
     timg::DisplayOptions display_opts;
-    const char *bg_color = "auto";  // Experimental
+    const char *bg_color = "auto";
     const char *bg_pattern_color = nullptr;
     display_opts.allow_frame_skipping =
         timg::GetBoolenEnv("TIMG_ALLOW_FRAME_SKIP");
@@ -213,6 +213,11 @@ int main(int argc, char *argv[]) {
         kKittyGraphics,
         kiTerm2Graphics,
     } pixelation = Pixelation::kNotChosen;
+
+    // Convenience predicate: pixelation sending high-res images, no blocks.
+    const auto is_pixel_direct_p = [](Pixelation p) {
+        return p==Pixelation::kKittyGraphics || p==Pixelation::kiTerm2Graphics;
+    };
 
     enum LongOptionIds {
         OPT_CLEAR_SCREEN = 1000,
@@ -437,7 +442,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // -- Some sanity checks and configuration editing.
+    // -- A sieve of sanity checks and configuration refinement.
 
     if (geometry_width < 1 || geometry_height < 1) {
         if (term.cols < 0 || term.rows < 0) {
@@ -451,21 +456,38 @@ int main(int argc, char *argv[]) {
                      geometry_width, geometry_height);
     }
 
-    if ((pixelation == Pixelation::kKittyGraphics ||
-         pixelation == Pixelation::kiTerm2Graphics) &&
-        (term.font_width_px < 0 || term.font_height_px < 0)) {
-        // All graphics compatible terminals report terminal size in pixel.
-        fprintf(stderr, "Graphics protocol not support by terminal.\n");
-        pixelation = Pixelation::kQuarterBlock;
+    if ((term.font_width_px < 0 || term.font_height_px < 0) &&
+        is_pixel_direct_p(pixelation)) {
+        // Best effort mode if someone requests graphics protocol, but
+        // we don't know cell size in pixels.
+        //
+        // Either they want to create some output for another terminal, or
+        // they are on a terminal that supports the graphics protocol but
+        // not much else.
+        //
+        // For instance, Chromium Secure Shell (hterm) extension supports
+        // iTerm2 graphics, but unfortunately does not report size :(
+        fprintf(stderr, "Terminal does not support pixel size query, "
+                "but graphics protocol requested.\n"
+                "Can't show animations or have columns in grid.\n");
+        max_frames = 1;   // Since don't know how many cells move up next frame
+        // We need a cell size to have something to scale the image into.
+        display_opts.cell_x_px = 9;  // Make up some typical values.
+        display_opts.cell_y_px = 18;
+        // hterm does _not_ support PNM, always convert to PNG.
+        display_opts.compress_pixel_format = true;
+        // Because we don't know how much to move up and right. Also, hterm
+        // does not seem to place an image in X-direction in the first place.
+        grid_cols = 1;
     }
 
     // Determine best default to pixelate images.
     if (pixelation == Pixelation::kNotChosen) {
         pixelation = Pixelation::kQuarterBlock;  // Good default.
-        // Konsole has the bad behaviour that it does not absorb the graphics
-        // query but spills it on the screen. "Luckily", Konsole has another
-        // bug not returning the window pixel size, so we can use that to avoid
-        // the query :)
+        // Konsole has the bad behaviour that it does not absorb the kitty
+        // graphics query but spills it on the screen. "Luckily", Konsole has
+        // another bug not returning the window pixel size, so we can use that
+        // to avoid the query :)
         if (term.font_width_px > 0 && term.font_height_px > 0) {
             if (timg::QueryHasITerm2Graphics())
                 pixelation = Pixelation::kiTerm2Graphics;
@@ -474,12 +496,18 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    // When PNG compression is requested in the graphics pixel formats,
+    // then we don't need 'auto' to figure out the background color: the
+    // terminal does the alpha-blending on the transparent PNG we send.
+    if (display_opts.compress_pixel_format && is_pixel_direct_p(pixelation) &&
+        strcasecmp(bg_color, "auto") == 0) {
+        bg_color = "none";
+    }
+
     // If we're using block graphics, we might need to adapt the aspect ratio
     // slightly depending if the font-cell has a 1:2 ratio.
     // Terminals using direct pixels don't need this.
-    const float stretch_correct =
-        (pixelation == Pixelation::kKittyGraphics ||
-         pixelation == Pixelation::kiTerm2Graphics)
+    const float stretch_correct = is_pixel_direct_p(pixelation)
         ? 1.0f
         : 0.5f * term.font_height_px / term.font_width_px;
     display_opts.width_stretch = timg::GetFloatEnv("TIMG_FONT_WIDTH_CORRECT",
@@ -497,8 +525,8 @@ int main(int argc, char *argv[]) {
         break;
     case Pixelation::kKittyGraphics:
     case Pixelation::kiTerm2Graphics:
-        display_opts.cell_x_px = term.font_width_px;
-        display_opts.cell_y_px = term.font_height_px;
+        if (term.font_width_px>0)  display_opts.cell_x_px = term.font_width_px;
+        if (term.font_height_px>0) display_opts.cell_y_px = term.font_height_px;
         break;
     case Pixelation::kNotChosen:
         break;  // Should not happen. Was set above.
