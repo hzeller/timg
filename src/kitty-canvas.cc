@@ -15,12 +15,14 @@
 
 #include "kitty-canvas.h"
 
-#include <assert.h>
+#include <algorithm>
+
+#include "timg-base64.h"
 
 #define SCREEN_CURSOR_UP_FORMAT    "\033[%dA"  // Move cursor up given lines.
 #define SCREEN_CURSOR_RIGHT_FORMAT "\033[%dC"  // Move cursor right given cols
 
-static constexpr int kChunkSize = 4096;  // Max allowed: 4096.
+static constexpr int kBase64EncodedChunkSize = 4096;  // Max allowed: 4096.
 
 namespace timg {
 KittyGraphicsCanvas::KittyGraphicsCanvas(int fd, const DisplayOptions &opts)
@@ -30,41 +32,43 @@ KittyGraphicsCanvas::KittyGraphicsCanvas(int fd, const DisplayOptions &opts)
 // Currently writing 24bit RGB to minimize bytes written to terminal and to
 // have nice even mapping to base64 encoding.
 // We already did all the transparency blending upstream anyway.
+//
+// TODO: send image with an ID so that in an animation we can just replace
+// the image with the same ID.
+// First tests didn't work: sending them with a=t,i=<id>,q=1
+// right afterwards attempting to a=p,i=<id>, in the same write()
+// does not work at all (timing ? Maybe it first has to store it somewhere
+// and only then the ID is available ?)
+// Sending them with a=T,i=id,q=1 works somewhat, but is very flickery
+// (probably need two different ids to switch around)
+//
+// Anyway, for now, just a=T direct placement, and not using andy ID. Which
+// means, we probably cycle through a lot of memory in the Graphics adapter
+// when showing videos :)
+//
+// TODO: consider zlib compression of raw data. Protocol allows for that.
+// Then even RGBA might be very cheap and we don't have to go out of our way
+// to skip all the A bytes.
 static char* EncodeFramebufferChunked(char *pos, const Framebuffer &fb) {
-    static constexpr char b64[] =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    const int total_encoded =  (3 * fb.width() * fb.height()) * 4 / 3;
-    // TODO: send image with an ID so that in an animation we can just replace
-    // the image with the same ID.
-    // First tests didn't work: sending them with a=t,i=<id>,q=1
-    // right afterwards attempting to a=p,i=<id>, in the same write()
-    // does not work at all (timing ? Maybe it first has to store it somewhere
-    // and only then the ID is available ?)
-    // Sending them with a=T,i=id,q=1 works somewhat, but is very flickery
-    // (probably need two different ids to switch around), but _also_ sometimes
-    // a \e_G.OK response is sent, even though q=1. Something is not right
-    // there, need to look into the code of Kitty to understand what is
-    // happening.
-    //
-    // Anyway, for now, just a=T direct placement, and not using andy ID. Which
-    // means, we probably cycle through a lot of memory in the Graphics adapter
-    // when showing videos :)
+    // Number of pixels to be emitted per chunk.
+    // One pixel encodes to 4 base64 bytes.
+    static constexpr int kPixelChunk = kBase64EncodedChunkSize / 4;
+
+    int pixels_left = fb.width() * fb.height();
     pos += sprintf(pos, "\e_Ga=T,f=24,s=%d,v=%d,m=%d;",
-                   fb.width(), fb.height(), total_encoded > kChunkSize);
-    int written = 0;
-    // TODO: consider zlib compression of raw data. Protocol allows for that.
-    for (const rgba_t &pixel : fb) {
-        *pos++ = b64[(pixel.r >> 2) & 0x3f];
-        *pos++ = b64[((pixel.r & 0x03) << 4) | ((int) (pixel.g & 0xf0) >> 4)];
-        *pos++ = b64[((pixel.g & 0x0f) << 2) | ((int) (pixel.b & 0xc0) >> 6)];
-        *pos++ = b64[pixel.b & 0x3f];
-        written += 4;
-        if (written % kChunkSize == 0 && total_encoded - written > 0) {
-            pos += sprintf(pos, "\e\\\e_Gm=%d;",
-                           (total_encoded - written) > kChunkSize);
-        }
+                   fb.width(), fb.height(), pixels_left > kPixelChunk);
+
+    int offset = 0;
+    while (pixels_left) {
+        int chunk_pixels = std::min(pixels_left, kPixelChunk);
+        pos = timg::EncodeBase64(fb.rgb_begin(offset), 3 * chunk_pixels, pos);
+        pixels_left -= chunk_pixels;
+        offset += chunk_pixels;
+
+        if (pixels_left)
+            pos += sprintf(pos, "\e\\\e_Gm=%d;", pixels_left > kPixelChunk);
     }
-    // (No base64 trailer needed as right now, we have multiple of 4 bytes.)
+
     *pos++ = '\e';
     *pos++ = '\\';
 
@@ -93,14 +97,13 @@ KittyGraphicsCanvas::~KittyGraphicsCanvas() {
 
 char *KittyGraphicsCanvas::EnsureBuffer(int width, int height) {
     // Allocate enough to do RGBA encoding, though currently, we only do RGB
-    const int encoded_base64_rgba_size =  (4 * width * height + 2) * 4 / 3;
+    const int encoded_base64_rgba =  (4 * width * height + 2) * 4 / 3;
     const size_t new_content_size =
-        strlen(SCREEN_CURSOR_UP_FORMAT) + 2        // extra space for digits
-        + strlen(SCREEN_CURSOR_RIGHT_FORMAT) + 2
-        + encoded_base64_rgba_size
+        strlen(SCREEN_CURSOR_UP_FORMAT) + strlen(SCREEN_CURSOR_RIGHT_FORMAT)
+        + encoded_base64_rgba
         + strlen("\e_Ga=T,f=XX,s=9999,v=9999,m=1;\e\\")
-        + (encoded_base64_rgba_size / kChunkSize) * strlen("\e_Gm=0;\e\\")
-        + 1;  /* \n */
+        + (encoded_base64_rgba / kBase64EncodedChunkSize)*strlen("\e_Gm=0;\e\\")
+        + 4 + 1;  /* digit space for cursor up/right; \n */
 
     if (new_content_size > content_buffer_size_) {
         content_buffer_ = (char*)realloc(content_buffer_, new_content_size);

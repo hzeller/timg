@@ -15,6 +15,7 @@ target_sources(timg PRIVATE
   terminal-canvas.h terminal-canvas.cc
   termutils.h       termutils.cc
   thread-pool.h
+  timg-base64.h
   timg-time.h
   unicode-block-canvas.h unicode-block-canvas.cc
 )
