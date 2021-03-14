@@ -49,7 +49,7 @@ KittyGraphicsCanvas::KittyGraphicsCanvas(int fd, const DisplayOptions &opts)
 // TODO: consider zlib compression of raw data. Protocol allows for that.
 // Then even RGBA might be very cheap and we don't have to go out of our way
 // to skip all the A bytes.
-static char* EncodeFramebufferChunked(char *pos, const Framebuffer &fb) {
+static char* EncodeFramebufferPlain(char *pos, const Framebuffer &fb) {
     // Number of pixels to be emitted per chunk.
     // One pixel encodes to 4 base64 bytes.
     static constexpr int kPixelChunk = kBase64EncodedChunkSize / 4;
@@ -76,6 +76,32 @@ static char* EncodeFramebufferChunked(char *pos, const Framebuffer &fb) {
     return pos;
 }
 
+// Encode image as PNG and send over. This uses a lot more CPU here, but
+// can reduce transfer over the wire.
+static char* EncodeFramebufferCompressed(char *pos, const Framebuffer &fb,
+                                         char *png_buffer,
+                                         size_t png_buffer_size) {
+    int png_size = timg::EncodePNG(fb, png_buffer, png_buffer_size);
+    if (!png_size) return pos;  // Error. Ignore.
+
+    static constexpr int kByteChunk = kBase64EncodedChunkSize / 4 * 3;
+    pos += sprintf(pos, "\e_Ga=T,f=100,m=%d;", png_size > kByteChunk);
+
+    while (png_size) {
+        int chunk_bytes = std::min(png_size, kByteChunk);
+        pos = timg::EncodeBase64(png_buffer, chunk_bytes, pos);
+        png_buffer += chunk_bytes;
+        png_size -= chunk_bytes;
+        if (png_size)
+            pos += sprintf(pos, "\e\\\e_Gm=%d;", png_size > kByteChunk);
+    }
+    *pos++ = '\e';
+    *pos++ = '\\';
+
+    *pos++ = '\n';  // Need one final cursor movement.
+    return pos;
+}
+
 ssize_t KittyGraphicsCanvas::Send(int x, int dy, const Framebuffer &fb) {
     char *const buffer = EnsureBuffer(fb.width(), fb.height());
     char *pos = buffer;
@@ -87,7 +113,12 @@ ssize_t KittyGraphicsCanvas::Send(int x, int dy, const Framebuffer &fb) {
         pos += sprintf(pos, SCREEN_CURSOR_RIGHT_FORMAT, x / options_.cell_x_px);
     }
 
-    pos = EncodeFramebufferChunked(pos, fb);
+    if (options_.compress_pixel_format) {
+        pos = EncodeFramebufferCompressed(pos, fb, png_buf_, png_buf_size_);
+    } else {
+        pos = EncodeFramebufferPlain(pos, fb);
+    }
+
     return WriteBuffer(buffer, pos - buffer);
 }
 
@@ -96,18 +127,25 @@ KittyGraphicsCanvas::~KittyGraphicsCanvas() {
 }
 
 char *KittyGraphicsCanvas::EnsureBuffer(int width, int height) {
-    // Allocate enough to do RGBA encoding, though currently, we only do RGB
-    const int encoded_base64_rgba =  (4 * width * height + 2) * 4 / 3;
+    // We don't really know how much size the encoded image takes, though one
+    // would expect typically smaller, and hopefully not more than twice...
+    const size_t png_compressed_size = (4 * width * height) * 2;
+    const int encoded_base64_size = png_compressed_size * 4 / 3;
     const size_t new_content_size =
         strlen(SCREEN_CURSOR_UP_FORMAT) + strlen(SCREEN_CURSOR_RIGHT_FORMAT)
-        + encoded_base64_rgba
+        + encoded_base64_size
         + strlen("\e_Ga=T,f=XX,s=9999,v=9999,m=1;\e\\")
-        + (encoded_base64_rgba / kBase64EncodedChunkSize)*strlen("\e_Gm=0;\e\\")
+        + (encoded_base64_size / kBase64EncodedChunkSize)*strlen("\e_Gm=0;\e\\")
         + 4 + 1;  /* digit space for cursor up/right; \n */
 
     if (new_content_size > content_buffer_size_) {
         content_buffer_ = (char*)realloc(content_buffer_, new_content_size);
         content_buffer_size_ = new_content_size;
+    }
+
+    if (png_compressed_size > png_buf_size_) {
+        png_buf_ = (char*)realloc(png_buf_, png_compressed_size);
+        png_buf_size_ = png_compressed_size;
     }
 
     return content_buffer_;

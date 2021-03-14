@@ -21,6 +21,8 @@
 #include <string.h>
 #include <strings.h>
 
+#include <png.h>
+
 namespace timg {
 
 rgba_t rgba_t::ParseColor(const char *color) {
@@ -128,4 +130,19 @@ void Framebuffer::AlphaComposeBackground(bgcolor_query get_bg,
         }
     }
 }
+
+// Encode image as PNG and store in buffer. Returns bytes written.
+size_t EncodePNG(const Framebuffer &fb, char *buffer, size_t size) {
+    png_image image;
+    memset(&image, 0x00, sizeof(image));
+    image.version = PNG_IMAGE_VERSION;
+    image.width   = fb.width();
+    image.height  = fb.height();
+    image.format  = PNG_FORMAT_RGBA;
+    image.flags   = PNG_IMAGE_FLAG_FAST;
+    if (png_image_write_to_memory(&image, buffer, &size, 0, fb.begin(), 0, 0))
+        return size;
+    return 0;
+}
+
 }  // namespace timg

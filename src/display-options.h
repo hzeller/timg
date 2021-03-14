@@ -36,6 +36,14 @@ struct DisplayOptions {
     int cell_x_px = 1;          // Pixels shown in one character cell
     int cell_y_px = 2;          // This depends on TerminalCanvas
 
+    // Terminals that allow to transfer high-resolution pixels (Kitty,
+    // iTerm2, and WezTerm) often allow some compressed option. This reduces
+    // the amount of data that has to be sent to the terminal (in particular
+    // useful when SSH-ed in remotely), at the expense of more CPU time
+    // used by timg to re-compress (usefulness might be negative when playing
+    // a video locally).
+    bool compress_pixel_format = false;
+
     float width_stretch = 1.0;  // To correct font squareness aspect ratio
 
     bool upscale = false;       // enlarging image only if this is true

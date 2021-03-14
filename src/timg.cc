@@ -216,6 +216,7 @@ int main(int argc, char *argv[]) {
 
     enum LongOptionIds {
         OPT_CLEAR_SCREEN = 1000,
+        OPT_COMPRESS_PIXEL,
         OPT_FRAMES,
         OPT_GRID,
         OPT_PATTERN_SIZE,
@@ -230,6 +231,7 @@ int main(int argc, char *argv[]) {
         { "auto-crop",   optional_argument, NULL, 'T' },
         { "center",      no_argument,       NULL, 'C' },
         { "clear",       optional_argument, NULL, OPT_CLEAR_SCREEN },
+        { "compress-pixel", no_argument,    NULL, OPT_COMPRESS_PIXEL },
         { "delta-move",  required_argument, NULL, 'd' },
         { "fit-width",   no_argument,       NULL, 'W' },
         { "frames",      required_argument, NULL, OPT_FRAMES },
@@ -422,6 +424,9 @@ int main(int argc, char *argv[]) {
             case 'k': pixelation = Pixelation::kKittyGraphics; break;
             case 'i': pixelation = Pixelation::kiTerm2Graphics; break;
             }
+            break;
+        case OPT_COMPRESS_PIXEL:
+            display_opts.compress_pixel_format = true;
             break;
         case 'h':
         default:

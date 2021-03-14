@@ -24,6 +24,7 @@ target_link_libraries(timg
   PkgConfig::GRAPHICSMAGICKXX
   PkgConfig::EXIF
   PkgConfig::TURBOJPEG
+  PkgConfig::PNG
   PkgConfig::SWSCALE
   PkgConfig::AVUTIL
   Threads::Threads)

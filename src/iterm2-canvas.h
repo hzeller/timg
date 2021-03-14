@@ -35,6 +35,9 @@ private:
 
     char *content_buffer_ = nullptr;
     size_t content_buffer_size_ = 0;
+
+    char *png_buf_ = nullptr;   // Scratch buffer to encode PNG into
+    size_t png_buf_size_ = 0;
 };
 }  // namespace timg
 #endif  // ITERM2_CANVAS_H

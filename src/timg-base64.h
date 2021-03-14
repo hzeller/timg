@@ -38,7 +38,14 @@ inline output_iterator EncodeBase64(input_iterator begin, int input_len,
         *out++ = b64[((b1 & 0x0f) << 2) | ((int)(b2 & 0xc0) >> 6)];
         *out++ = b64[b2 & 0x3f];
     }
-    assert(input_len == 0);  // TODO: implement once we use non-multiple of 3
+    if (input_len > 0) {
+        uint8_t b0 = *begin; ++begin;
+        uint8_t b1 = input_len > 1 ? *begin : 0;
+        *out++ = b64[(b0 >> 2) & 0x3f];
+        *out++ = b64[((b0 & 0x03) << 4) | ((int)(b1 & 0xf0) >> 4)];
+        *out++ = input_len > 1 ? b64[((b1 & 0x0f) << 2)] : '=';
+        *out++ = '=';
+    }
     return out;
 }
 }  // namespace timg
