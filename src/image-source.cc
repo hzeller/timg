@@ -111,10 +111,12 @@ bool ImageSource::CalcScaleToFitDisplay(int img_width, int img_height,
         *target_height /= width_stretch;
     }
 
-    // floor() to next full character cell size.
-    if (options.cell_x_px <= 2 && options.cell_y_px <= 2) {
-        *target_width  = *target_width/options.cell_x_px * options.cell_x_px;
-        *target_height = *target_height/options.cell_y_px * options.cell_y_px;
+    // floor() to next full character cell size but only if we in one of
+    // the block modes.
+    if (options.cell_x_px > 0 && options.cell_x_px <= 2 &&
+        options.cell_y_px > 0 && options.cell_y_px <= 2) {
+        *target_width  = *target_width / options.cell_x_px * options.cell_x_px;
+        *target_height = *target_height / options.cell_y_px * options.cell_y_px;
     }
 
     // Don't scale down to nothing...
