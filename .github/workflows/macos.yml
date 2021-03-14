@@ -12,7 +12,7 @@ jobs:
       - name: Install dependencies
         run: |
           brew install GraphicsMagick webp cmake
-          brew install ffmpeg jpeg-turbo libexif
+          brew install ffmpeg jpeg-turbo libexif libpng
           brew install pandoc
           brew unlink jpeg
           brew link --force jpeg-turbo
