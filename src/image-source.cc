@@ -128,18 +128,18 @@ bool ImageSource::CalcScaleToFitDisplay(int img_width, int img_height,
 
 ImageSource *ImageSource::Create(const std::string &filename,
                                  const DisplayOptions &options,
-                                 int max_frames,
+                                 int frame_offset, int frame_count,
                                  bool attempt_image_loading,
                                  bool attempt_video_loading) {
     std::unique_ptr<ImageSource> result;
     if (attempt_image_loading) {
         result.reset(new JPEGSource(filename));
-        if (result->LoadAndScale(options, max_frames)) {
+        if (result->LoadAndScale(options, frame_offset, frame_count)) {
             return result.release();
         }
 
         result.reset(new ImageLoader(filename));
-        if (result->LoadAndScale(options, max_frames)) {
+        if (result->LoadAndScale(options, frame_offset, frame_count)) {
             return result.release();
         }
     }
@@ -147,7 +147,7 @@ ImageSource *ImageSource::Create(const std::string &filename,
 #ifdef WITH_TIMG_VIDEO
     if (attempt_video_loading) {
         result.reset(new VideoLoader(filename));
-        if (result->LoadAndScale(options, max_frames)) {
+        if (result->LoadAndScale(options, frame_offset, frame_count)) {
             return result.release();
         }
     }

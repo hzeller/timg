@@ -42,7 +42,8 @@ public:
     // if set.
     // If this is not a loadable image, returns false, otherwise
     // We're ready for display.
-    bool LoadAndScale(const DisplayOptions &options, int max_frames) final;
+    bool LoadAndScale(const DisplayOptions &options,
+                      int frame_offset, int frame_count) final;
 
     // Display loaded image. If this is an animation, then
     // "duration", "max_frames" and "loops" will limit the duration of the
@@ -50,7 +51,7 @@ public:
     //
     // The reference to the "interrupt_received" can be updated by a signal
     // while the method is running and shall be checked often.
-    void SendFrames(Duration duration, int max_frames, int loops,
+    void SendFrames(Duration duration, int loops,
                     const volatile sig_atomic_t &interrupt_received,
                     const Renderer::WriteFramebufferFun &sink) final;
 
@@ -68,6 +69,7 @@ private:
 
     DisplayOptions options_;
     std::vector<PreprocessedFrame *> frames_;
+    int max_frames_;
     bool is_animation_ = false;
 };
 

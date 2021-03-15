@@ -107,7 +107,8 @@ static ExifImageOp GetExifOp(Magick::Image &img) {
     return {};
 }
 
-bool ImageLoader::LoadAndScale(const DisplayOptions &opts, int max_frames) {
+bool ImageLoader::LoadAndScale(const DisplayOptions &opts,
+                               int frame_offset, int frame_count) {
     options_ = opts;
 
     std::vector<Magick::Image> frames;
@@ -137,9 +138,12 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts, int max_frames) {
     const bool could_be_animation =
         !EndsWith(filename(), "ico") && !EndsWith(filename(), "pdf");
 
-    if (max_frames > 0 && max_frames < (int)frames.size()) {
-        frames.resize(max_frames);
+    // We can't remove the offset yet as the coalesceImages() might need images
+    // prior to our desired set.
+    if (frame_count > 0 && frame_offset + frame_count < (int)frames.size()) {
+        frames.resize(frame_offset + frame_count);
     }
+
     std::vector<Magick::Image> result;
     // Put together the animation from single frames. GIFs can have nasty
     // disposal modes, but they are handled nicely by coalesceImages()
@@ -149,6 +153,11 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts, int max_frames) {
     } else {
         result.insert(result.end(), frames.begin(), frames.end());
         is_animation_ = false;
+    }
+
+    if (frame_offset > 0) {
+        frame_offset = std::min(frame_offset, (int)result.size() - 1);
+        result.erase(result.begin(), result.begin() + frame_offset);
     }
 
     for (Magick::Image &img : result) {
@@ -196,6 +205,10 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts, int max_frames) {
         frames_.push_back(new PreprocessedFrame(img, opts, result.size() > 1));
     }
 
+    max_frames_ = (frame_count < 0)
+        ? (int)frames_.size()
+        : std::min(frame_count, (int)frames_.size());
+
     return true;
 }
 
@@ -205,20 +218,14 @@ int ImageLoader::IndentationIfCentered(const PreprocessedFrame *frame) const {
         : 0;
 }
 
-void ImageLoader::SendFrames(Duration duration, int max_frames, int loops,
+void ImageLoader::SendFrames(Duration duration, int loops,
                              const volatile sig_atomic_t &interrupt_received,
                              const Renderer::WriteFramebufferFun &sink) {
     if (options_.scroll_animation) {
-        Scroll(duration, /*max_frames,*/ loops, interrupt_received,
+        Scroll(duration, loops, interrupt_received,
                options_.scroll_dx, options_.scroll_dy, options_.scroll_delay,
                sink);
         return;
-    }
-
-    if (max_frames < 0) {
-        max_frames = (int)frames_.size();
-    } else {
-        max_frames = std::min(max_frames, (int)frames_.size());
     }
 
     const Time end_time = Time::Now() + duration;
@@ -237,7 +244,7 @@ void ImageLoader::SendFrames(Duration duration, int max_frames, int loops,
              && !interrupt_received
              && frame_start < end_time;
          ++k) {
-        for (int f = 0; f < max_frames && !interrupt_received; ++f) {
+        for (int f = 0; f < max_frames_ && !interrupt_received; ++f) {
             const auto &frame = frames_[f];
             // Waiting until we show the next frame.
             // We remembered the previous frame delay and await that at the

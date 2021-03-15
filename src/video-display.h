@@ -40,13 +40,14 @@ public:
 
     // Attempt to load given filename as video, open stream and set-up scaling.
     // Returns true on success.
-    bool LoadAndScale(const DisplayOptions &options, int max_frames) final;
+    bool LoadAndScale(const DisplayOptions &options,
+                      int frame_offset, int frame_count) final;
 
     // Play video up to given duration.
     //
     // The reference to the "interrupt_received" can be updated by a signal
     // while the method is running and shall be checked often.
-    void SendFrames(Duration duration, int max_frames, int loops,
+    void SendFrames(Duration duration, int loops,
                     const volatile sig_atomic_t &interrupt_received,
                     const Renderer::WriteFramebufferFun &sink) final;
 
@@ -56,6 +57,8 @@ private:
 
     DisplayOptions options_;
     bool maybe_transparent_ = false;
+    int frame_offset_ = 0;
+    int frame_count_ = -1;
 
     int video_stream_index_ = -1;
     AVFormatContext *format_context_ = nullptr;

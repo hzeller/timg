@@ -110,8 +110,11 @@ const char *VideoLoader::VersionInfo() {
 }
 
 bool VideoLoader::LoadAndScale(const DisplayOptions &display_options,
-                               int max_frames) {
+                               int frame_offset, int frame_count) {
     options_ = display_options;
+    frame_offset_ = frame_offset;
+    frame_count_ = frame_count;
+
     const char *file = (filename() == "-")
         ? "/dev/stdin"
         : filename().c_str();
@@ -234,12 +237,12 @@ void VideoLoader::AlphaBlendFramebuffer() {
         options_.pattern_size * options_.cell_y_px/2);
 }
 
-void VideoLoader::SendFrames(Duration duration, const int frames, int loops,
+void VideoLoader::SendFrames(Duration duration, int loops,
                              const volatile sig_atomic_t &interrupt_received,
                              const Renderer::WriteFramebufferFun &sink) {
-    const bool frame_limit = (frames >= 0);
+    const bool frame_limit = (frame_count_ > 0);
 
-    if (frames == 1)  // If there is only one frame, nothing to repeat.
+    if (frame_count_ == 1)  // If there is only one frame, nothing to repeat.
         loops = 1;
 
     // Unlike animated images, in which a not set value in loops means
@@ -265,34 +268,47 @@ void VideoLoader::SendFrames(Duration duration, const int frames, int loops,
                           AVSEEK_FLAG_ANY);
             avcodec_flush_buffers(codec_context_);
         }
-        int remaining_frames = frames;
+        int remaining_frames = frame_count_;
+        int skip_offset = frame_offset_;
 
         while (!interrupt_received && Time::Now() < end_time
                && av_read_frame(format_context_, packet) >= 0
                && (!frame_limit || remaining_frames > 0)) {
-            if (packet->stream_index == video_stream_index_) {
-                // Determine absolute end of this frame now so that we don't
-                // include decoding overhead and can skip if we fall behind.
+            if (packet->stream_index != video_stream_index_) {
+                av_packet_unref(packet);
+                continue;
+            }
+
+            // Determine absolute end of this frame now so that we don't
+            // include decoding overhead and can skip if we fall behind.
+            if (!skip_offset)
                 end_next_frame.Add(frame_duration_);
 
-                if (DecodePacket(packet, decode_frame)) {
-                    if (!options_.allow_frame_skipping ||
-                        Time::Now() < end_next_frame) {
-                        sws_scale(sws_context_,
-                                  decode_frame->data, decode_frame->linesize,
-                                  0, codec_context_->height,
-                                  terminal_fb_->row_data(),
-                                  terminal_fb_->stride());
-                        AlphaBlendFramebuffer();
-                        const int dy = is_first ? 0 : -terminal_fb_->height();
-                        sink(center_indentation_, dy, *terminal_fb_);
-                        is_first = false;
-                    }
-                    if (frame_limit) --remaining_frames;
+            if (DecodePacket(packet, decode_frame)) {
+                if (skip_offset > 0) {
+                    // TODO: there is probably a faster/better way to skip
+                    // ahead to the last keyframe first.
+                    --skip_offset;
+                    av_packet_unref(packet);
+                    continue;
                 }
-                end_next_frame.WaitUntil();
+
+                if (!options_.allow_frame_skipping ||
+                    Time::Now() < end_next_frame) {
+                    sws_scale(sws_context_,
+                              decode_frame->data, decode_frame->linesize,
+                              0, codec_context_->height,
+                              terminal_fb_->row_data(),
+                              terminal_fb_->stride());
+                    AlphaBlendFramebuffer();
+                    const int dy = is_first ? 0 : -terminal_fb_->height();
+                    sink(center_indentation_, dy, *terminal_fb_);
+                    is_first = false;
+                }
+                if (frame_limit) --remaining_frames;
             }
             av_packet_unref(packet);  // was allocated by av_read_frame
+            end_next_frame.WaitUntil();
         }
     }
 

@@ -112,7 +112,7 @@ const char *JPEGSource::VersionInfo() {
     return "TurboJPEG "; // TODO: version number ?
 }
 
-bool JPEGSource::LoadAndScale(const DisplayOptions &opts, int max_frames) {
+bool JPEGSource::LoadAndScale(const DisplayOptions &opts, int, int) {
     options_ = opts;
     if (opts.scroll_animation ||
         filename() == "/dev/stdin" || filename() == "-") {
@@ -203,7 +203,7 @@ int JPEGSource::IndentationIfCentered(timg::Framebuffer &image) const {
         : 0;
 }
 
-void JPEGSource::SendFrames(Duration duration, int max_frames, int loops,
+void JPEGSource::SendFrames(Duration duration, int loops,
                             const volatile sig_atomic_t &interrupt_received,
                             const Renderer::WriteFramebufferFun &sink) {
     sink(IndentationIfCentered(*image_), 0, *image_);

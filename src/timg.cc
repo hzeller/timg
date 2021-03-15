@@ -199,6 +199,7 @@ int main(int argc, char *argv[]) {
     bool hide_cursor = true;
     Duration duration = Duration::InfiniteFuture();
     Duration between_images_duration = Duration::Millis(0);
+    int frame_offset = 0;
     int max_frames = timg::kNotInitialized;
     int loops  = timg::kNotInitialized;
     int grid_rows = 1;
@@ -208,8 +209,8 @@ int main(int argc, char *argv[]) {
         kBeforeFirstImage,
         kBeforeEachImage,
     } clear_screen = ClearScreen::kNot;
-    bool do_image_loading = true;
-    bool do_video_loading = true;
+    bool do_img_loading = true;
+    bool do_vid_loading = true;
     int thread_count = kDefaultThreadCount;
     int geometry_width = (term.cols - 2);
     int geometry_height = (term.rows - 2);
@@ -229,7 +230,8 @@ int main(int argc, char *argv[]) {
     enum LongOptionIds {
         OPT_CLEAR_SCREEN = 1000,
         OPT_COMPRESS_PIXEL,
-        OPT_FRAMES,
+        OPT_FRAME_OFFSET,
+        OPT_FRAME_COUNT,
         OPT_GRID,
         OPT_PATTERN_SIZE,
         OPT_ROTATE,
@@ -246,7 +248,8 @@ int main(int argc, char *argv[]) {
         { "compress-pixel", no_argument,    NULL, OPT_COMPRESS_PIXEL },
         { "delta-move",  required_argument, NULL, 'd' },
         { "fit-width",   no_argument,       NULL, 'W' },
-        { "frames",      required_argument, NULL, OPT_FRAMES },
+        { "frame-offset",required_argument, NULL, OPT_FRAME_OFFSET },
+        { "frames",      required_argument, NULL, OPT_FRAME_COUNT },
         { "grid",        required_argument, NULL, OPT_GRID },
         { "help",        no_argument,       NULL, 'h' },
         { "loops",       required_argument, NULL, 'c' },
@@ -309,9 +312,11 @@ int main(int argc, char *argv[]) {
                 clear_screen = ClearScreen::kBeforeFirstImage;
             }
             break;
-        case OPT_FRAMES:
+        case OPT_FRAME_OFFSET:
+            frame_offset = atoi(optarg);
+            break;
+        case OPT_FRAME_COUNT:
             max_frames = atoi(optarg);
-            // TODO: also provide an option for frame offset ?
             break;
         case 'a':
             display_opts.antialias = false;
@@ -333,16 +338,16 @@ int main(int argc, char *argv[]) {
             break;
         case 'V':
 #ifdef WITH_TIMG_VIDEO
-            do_image_loading = false;
-            do_video_loading = true;
+            do_img_loading = false;
+            do_vid_loading = true;
 #else
             fprintf(stderr, "-V: Video support not compiled in\n");
 #endif
             break;
         case 'I':
-            do_image_loading = true;
+            do_img_loading = true;
 #if WITH_TIMG_VIDEO
-            do_video_loading = false;
+            do_vid_loading = false;
 #endif
             break;
         case OPT_ROTATE:
@@ -667,13 +672,13 @@ int main(int argc, char *argv[]) {
     for (const std::string &filename : filelist) {
         if (interrupt_received) break;
         std::function<timg::ImageSource*()> f =
-            [filename, max_frames, do_image_loading, do_video_loading,
+            [filename, frame_offset, max_frames, do_img_loading, do_vid_loading,
              &display_opts, &exit_code]() -> timg::ImageSource* {
                 if (interrupt_received) return nullptr;
                 auto result = ImageSource::Create(filename, display_opts,
-                                                  max_frames,
-                                                  do_image_loading,
-                                                  do_video_loading);
+                                                  frame_offset, max_frames,
+                                                  do_img_loading,
+                                                  do_vid_loading);
                 if (!result) exit_code = ExitCode::kImageReadError;
                 return result;
             };
@@ -687,7 +692,7 @@ int main(int argc, char *argv[]) {
         std::unique_ptr<timg::ImageSource> source(source_future.get());
         if (!source) continue;
         before_image_show(is_first);
-        source->SendFrames(duration, max_frames, loops, interrupt_received,
+        source->SendFrames(duration, loops, interrupt_received,
                            renderer->render_cb(source->filename().c_str()));
         after_image_show();
         if (!between_images_duration.is_zero()) {

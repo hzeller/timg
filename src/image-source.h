@@ -34,7 +34,7 @@ public:
     // can be called on, or nullptr if file can not be opened
     static ImageSource *Create(const std::string &filename,
                                const DisplayOptions &options,
-                               int max_frames,
+                               int frame_offset, int frames_count,
                                bool attempt_image_loading,
                                bool attempt_video_loading);
 
@@ -43,7 +43,7 @@ public:
     // Send preprocessed frames for a maximum of given, max frames and loops,
     // whatever comes first. Stop loop when "interrupt_received" is true.
     // Send all frames to "sink", a callback that accepts Framebuffers.
-    virtual void SendFrames(Duration duration, int max_frames, int loops,
+    virtual void SendFrames(Duration duration, int loops,
                             const volatile sig_atomic_t &interrupt_received,
                             const Renderer::WriteFramebufferFun &sink) = 0;
 
@@ -59,7 +59,8 @@ protected:
     // SendFrames().
     // Implementations of this will be called by the ImageSource::Create
     // factory.
-    virtual bool LoadAndScale(const DisplayOptions &options,int max_frames) = 0;
+    virtual bool LoadAndScale(const DisplayOptions &options,
+                              int frame_offset, int frame_count) = 0;
 
 
     // Utility function that derived ImageSources are interested in.

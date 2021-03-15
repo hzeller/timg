@@ -31,9 +31,10 @@ public:
 
     static const char *VersionInfo();
 
-    bool LoadAndScale(const DisplayOptions &options, int max_frames) final;
+    bool LoadAndScale(const DisplayOptions &options,
+                      int frame_offset, int frame_count) final;
 
-    void SendFrames(Duration duration, int max_frames, int loops,
+    void SendFrames(Duration duration, int loops,
                     const volatile sig_atomic_t &interrupt_received,
                     const Renderer::WriteFramebufferFun &sink) final;
 
