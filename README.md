@@ -131,7 +131,7 @@ timg --grid=3 -t5 *.gif            # Load gifs one by one in grid. Play each for
 # Putting it all together; making an alias to list images; let's call it ils = 'image ls'
 # This prints images two per row with a filename title. Only showing one frame
 # so for animated gifs only the first frame is shown statically.
-alias ils='timg --grid=2 --center --title --frame=1 '
+alias ils='timg --grid=2 --center --title --frames=1 '
 
 # ... using this alias
 ils *.jpg *.gif
