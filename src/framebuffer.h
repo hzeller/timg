@@ -104,7 +104,7 @@ public:
     const int* stride() const { return strides_; }
 
     // Return an array containing pointers to the data for each line.
-    uint8_t** row_data();
+    uint8_t** row_data() const;
 
 private:
     const int width_;
@@ -112,7 +112,7 @@ private:
     rgba_t *const pixels_;
     rgba_t *const end_;
     int strides_[2];
-    uint8_t **row_data_ = nullptr;  // Only allocated if requested.
+    mutable uint8_t **row_data_ = nullptr;  // Only allocated if requested.
 };
 
 // An iterator that yields bytes in RGBRGB... sequence and skips the alpha
