@@ -163,10 +163,7 @@ char* DetermineBackgroundColor() {
     const Duration kTimeBudget = Duration::Millis(1500);
 
     constexpr char query_background_color[] = "\033]11;?\033\\";
-    constexpr size_t kPrefixLen   = 5;  // strlen("\033]11;")
     constexpr size_t kColorLen    = 18; // strlen("rgb:1234/1234/1234")
-    constexpr size_t kPostfixLen  = 2;  // strlen("\033\\")
-    constexpr size_t kExpectedResponseLen = kPrefixLen+kColorLen+kPostfixLen;
 
     // Query and testing the response. It is the query-string with the
     // question mark replaced with the requested information.
@@ -185,23 +182,19 @@ char* DetermineBackgroundColor() {
     //    Make sure to accumulate reads in a more spacious buffer than the
     //    expected response and finish once we found what we're looking for.
     char buffer[512];
-    const char *found = QueryTerminal(
+    const char *const start_color = QueryTerminal(
         query_background_color, buffer, sizeof(buffer), kTimeBudget,
-        [query_background_color](const char *data, size_t len) -> const char* {
-            if (len < kExpectedResponseLen) return nullptr;
-            const char *found;
-            // We might've gotten some spurious bytes in the beginning, so find
-            // where the escape code starts. It is the same beginning as query.
-            found = (const char*)memmem(data, len,
-                                        query_background_color, kPrefixLen);
-            if (found && len - (found - data) >= kExpectedResponseLen)
-                return found; // Found start of esc sequence and enough bytes.
+        [](const char *data, size_t len) -> const char* {
+            // We might've gotten some spurious bytes in the beginning from
+            // keypresses, so find where the color starts.
+            const char *found = (const char*)memmem(data, len, "rgb:", 4);
+            if (found && len - (found - data) > kColorLen) // at least 1 more
+                return found; // Found start of color sequence and enough bytes.
             return nullptr;
         });
 
-    if (!found) return nullptr;
-
-    const char *const start_color = found + kPrefixLen;
+    if (!start_color)
+        return nullptr;
 
     // Assemble a standard #rrggbb string into our existing buffer.
     // NB, save, as this is not overlapping buffer areas
@@ -215,6 +208,17 @@ char* DetermineBackgroundColor() {
 }
 
 bool QueryHasKittyGraphics() {
+    const char *term = getenv("TERM");
+    return term && (strcmp(term, "xterm-kitty") == 0);
+
+    // The following would be the corrct query, but the graphics query seems
+    // to disturb other terminals such as Konsole (which spits out the graphics
+    // query on the screen) or iTerm2 (in which the terminal sometimes puts
+    // the query as the window title ?
+    // Need to find a less intrusive way. Ideally with a "\033[>q"
+    // For now, the above environment variable hack is probably an ok
+    // work-around as xterm-kitty is sufficiently unique
+#if 0
     const Duration kTimeBudget = Duration::Millis(50);
 
     // We send out two queries: one to determine if the graphics capabilities
@@ -236,6 +240,7 @@ bool QueryHasKittyGraphics() {
             return (const char*) memmem(data, len, "\033[0n", 3);
         });
     return found_graphics_response;
+#endif
 }
 
 bool QueryHasITerm2Graphics() {
