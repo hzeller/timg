@@ -715,7 +715,7 @@ int main(int argc, char *argv[]) {
     // that the terminal does not spill the result on the screen once we've
     // returned. If the result is already there, this will return immediately
     if (background_color_future.valid())
-        background_color_future.wait_for(std::chrono::milliseconds(50));
+        background_color_future.wait_for(std::chrono::milliseconds(200));
 
     // Deliberately leaking thread pool as we don't bother waiting for
     // lingering threads
