@@ -244,7 +244,7 @@ bool QueryHasKittyGraphics() {
 }
 
 bool QueryHasITerm2Graphics() {
-    const Duration kTimeBudget = Duration::Millis(50);
+    const Duration kTimeBudget = Duration::Millis(150);
 
     // We send out two queries: one CSI for terminal version detection that
     // is supported at leasht by the terminals we're interested in. From the
