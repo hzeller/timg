@@ -47,13 +47,14 @@ these file decoders (GraphicsMagick or libav respectively).
      scaled to fit inside the available box to fill the screen; see **-W** if
      you want to fill the width.
 
-**-p** *&lt;[h|q|k]&gt;*, **-\-pixelation**=*[h|q|k]*
+**-p** *&lt;[h|q|k|i]&gt;*, **-\-pixelation**=*[h|q|k|i]*
 :    Choice for pixelation of the content. Value 'h' chooses unicode half
      block characters, while 'q' chooses quarter blocks.
-     The choice 'k' chooses kitty-graphics protocol.
+     The choice 'k' chooses kitty-graphics protocol, 'i' the iTerm2 graphics
+     protocol.
 
      Half blocks have a pixel aspect ratio of about 1:1 and allow to represent
-     the colors correctly, but they look more 'blocky'.
+     colors correctly, but they look more 'blocky'.
 
      Quarter blocks will have a pixel aspect ratio of 1:2 (timg will stretch
      the picture accordingly, no worries), and can only
@@ -62,12 +63,18 @@ these file decoders (GraphicsMagick or libav respectively).
      in x-direction at expense of slight less color accuracy.
      It makes it look less 'blocky' and usually better.
 
-     The Kitty graphics protocol allows to display pictures directly on the
-     terminal. This is only implemented in a limited set of terminals
-     (only kitty now ?). If your terminal does
-     not support this protocol, you will get a bunch of random characters.
+     There are terminal emulators that allow to display high-resolution
+     pictures. If timg is detecting to run in a Kitty, iTerm2 or WezTerm,
+     the corresponding mode is auto-selected. You can choose the modes
+     explicitly with -pk (Kitty) or -pi (iTerm2 protocol, also implemented
+     by WezTerm).
 
-     Default is 'quarter'.
+     Default is 'quarter' unless the terminal is graphics-capable.
+
+**-\-compress**
+:   For the graphics modes: this switches on compression for the transmission to
+    the terminal. This uses more CPU on timg, but is desirable when connected
+    over a slow network.
 
 **-C**, **-\-center**
 :    Center image(s) and title(s) horizontally.
