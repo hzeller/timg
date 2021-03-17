@@ -245,7 +245,7 @@ int main(int argc, char *argv[]) {
         { "auto-crop",   optional_argument, NULL, 'T' },
         { "center",      no_argument,       NULL, 'C' },
         { "clear",       optional_argument, NULL, OPT_CLEAR_SCREEN },
-        { "compress-pixel", no_argument,    NULL, OPT_COMPRESS_PIXEL },
+        { "compress",    no_argument,       NULL, OPT_COMPRESS_PIXEL },
         { "delta-move",  required_argument, NULL, 'd' },
         { "experimental-frame-offset",required_argument, NULL, OPT_FRAME_OFFSET },
         { "fit-width",   no_argument,       NULL, 'W' },
