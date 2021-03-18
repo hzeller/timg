@@ -252,7 +252,7 @@ int main(int argc, char *argv[]) {
         { "frames",      required_argument, NULL, OPT_FRAME_COUNT },
         { "grid",        required_argument, NULL, OPT_GRID },
         { "help",        no_argument,       NULL, 'h' },
-        { "loops",       required_argument, NULL, 'c' },
+        { "loops",       optional_argument, NULL, 'c' },
         { "pattern-size", required_argument,NULL, OPT_PATTERN_SIZE },
         { "pixelation",  required_argument, NULL, 'p' },
         { "rotate",      required_argument, NULL, OPT_ROTATE },
@@ -295,7 +295,8 @@ int main(int argc, char *argv[]) {
             }
             break;
         case 'c':  // Legacy option, now long opt. Keep for now.
-            loops = atoi(optarg);
+            // No parameter --loop essentially defaults to loop forever.
+            loops = optarg ? atoi(optarg) : -1;
             break;
         case OPT_CLEAR_SCREEN:
             if (optarg) {
