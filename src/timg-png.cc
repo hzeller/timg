@@ -90,8 +90,9 @@ private:
 }  // namespace
 
 
-size_t EncodePNG(const Framebuffer &fb, char *const buffer, size_t size) {
-    static constexpr int kCompressionLevel = 1;
+template <int with_alpha>
+static size_t EncodePNGInternal(const Framebuffer &fb, int compression_level,
+                                char *const buffer, size_t size) {
     static constexpr int kCompressionStrategy = Z_RLE;
     static constexpr uint8_t kFilterType = 0x01;
 
@@ -111,7 +112,7 @@ size_t EncodePNG(const Framebuffer &fb, char *const buffer, size_t size) {
     block.writeInt(width);   // width
     block.writeInt(height);  // height
     block.writeByte(8);      // bith depth
-    block.writeByte(6);      // RGBA
+    block.writeByte(with_alpha ? 6 : 2);  // PNG color type
     block.writeByte(0);      // compression type: deflate()
     block.writeByte(0);      // filter method.
     block.writeByte(0);      // interlace. None.
@@ -119,10 +120,10 @@ size_t EncodePNG(const Framebuffer &fb, char *const buffer, size_t size) {
     block.StartNextBlock("IDAT");
     z_stream stream;
     memset(&stream, 0x00, sizeof(stream));
-    deflateInit2(&stream, kCompressionLevel, Z_DEFLATED,
+    deflateInit2(&stream, compression_level, Z_DEFLATED,
                  15 /*window bits*/, 9 /* memlevel*/, kCompressionStrategy);
 
-    const int bytes_per_pixel = 4;
+    const int bytes_per_pixel = with_alpha ? 4 : 3;
     const int compress_avail = size - 13;  // IHDR size
     stream.avail_out = compress_avail;
     stream.next_out = block.writePos();
@@ -136,7 +137,7 @@ size_t EncodePNG(const Framebuffer &fb, char *const buffer, size_t size) {
             *out++ = current_line[i].r - current_line[i-1].r;
             *out++ = current_line[i].g - current_line[i-1].g;
             *out++ = current_line[i].b - current_line[i-1].b;
-            *out++ = current_line[i].a - current_line[i-1].a;
+            if (with_alpha) *out++ = current_line[i].a - current_line[i-1].a;
         }
 
         stream.avail_in = 1 + width * bytes_per_pixel;
@@ -154,4 +155,12 @@ size_t EncodePNG(const Framebuffer &fb, char *const buffer, size_t size) {
     return block.Finalize() - (uint8_t*)buffer;
 }
 
+size_t EncodePNG(const Framebuffer &fb, int compression_level,
+                 ColorEncoding encoding,
+                 char *buffer, size_t size) {
+    if (encoding == ColorEncoding::kRGBA_32)
+        return EncodePNGInternal<true>(fb, compression_level, buffer, size);
+    else
+        return EncodePNGInternal<false>(fb, compression_level, buffer, size);
+}
 }  // namespace timg

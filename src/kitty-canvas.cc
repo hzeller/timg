@@ -82,7 +82,8 @@ static char* EncodeFramebufferPlain(char *pos, const Framebuffer &fb) {
 static char* EncodeFramebufferCompressed(char *pos, const Framebuffer &fb,
                                          char *png_buffer,
                                          size_t png_buffer_size) {
-    int png_size = timg::EncodePNG(fb, png_buffer, png_buffer_size);
+    int png_size = timg::EncodePNG(fb, 1, ColorEncoding::kRGBA_32,
+                                   png_buffer, png_buffer_size);
     if (!png_size) return pos;  // Error. Ignore.
 
     static constexpr int kByteChunk = kBase64EncodedChunkSize / 4 * 3;

@@ -53,7 +53,8 @@ static char* EncodeFramebufferPlain(char *pos, const Framebuffer &fb) {
 static char* EncodeFramebufferCompressed(char *pos, const Framebuffer &fb,
                                          char *png_buffer,
                                          size_t png_buffer_size) {
-    const int png_size = timg::EncodePNG(fb, png_buffer, png_buffer_size);
+    const int png_size = timg::EncodePNG(fb, 1, ColorEncoding::kRGBA_32,
+                                         png_buffer, png_buffer_size);
     if (!png_size) return pos;  // Error. Ignore.
 
     pos += sprintf(pos, "\e]1337;File=width=%dpx;height=%dpx;inline=1:",
