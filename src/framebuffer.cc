@@ -77,7 +77,7 @@ void Framebuffer::Clear() {
     memset(pixels_, 0, sizeof(*pixels_) * width_ * height_);
 }
 
-uint8_t** Framebuffer::row_data() const {
+uint8_t** Framebuffer::row_data() {
     if (!row_data_) {
         row_data_ = new uint8_t* [ height_ + 1];
         for (int i = 0; i < height_; ++i)

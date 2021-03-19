@@ -28,45 +28,6 @@ ITerm2GraphicsCanvas::ITerm2GraphicsCanvas(int fd, const DisplayOptions &opts)
     : TerminalCanvas(fd), options_(opts) {
 }
 
-// iTerm2 does not read pixels directly but image file content. Filetype
-// closest to our representation is PPM (netpbm), so use that to encode: just
-// a short header is needed.
-// Might be worthwhile compressing as PNG for more compact transmission ?
-static char* EncodeFramebufferPlain(char *pos, const Framebuffer &fb) {
-    pos += sprintf(pos, "\e]1337;File=width=%dpx;height=%dpx;inline=1:",
-                   fb.width(), fb.height());
-
-    char ppm_header[32];
-    int header_len = snprintf(ppm_header, sizeof(ppm_header),
-                              "P6\n%4d  %4d\n255\n", fb.width(), fb.height());
-    assert(header_len % 3 == 0);  // Don't want do deal with base64== suffix
-    pos = timg::EncodeBase64(ppm_header, header_len, pos);
-    pos = timg::EncodeBase64(fb.rgb_begin(), 3 * fb.width()*fb.height(), pos);
-
-    *pos++ = '\007';
-    *pos++ = '\n';  // Need one final cursor movement.
-    return pos;
-}
-
-// Encode image as PNG and send over. This uses a lot more CPU here, but
-// can reduce transfer over the wire.
-static char* EncodeFramebuffer(char *pos, const Framebuffer &fb,
-                               bool local_alpha,
-                               char *png_buffer, size_t png_buffer_size) {
-    const int png_size = timg::EncodePNG(
-        fb, 1, local_alpha ? ColorEncoding::kRGB_24 : ColorEncoding::kRGBA_32,
-        png_buffer, png_buffer_size);
-    if (!png_size) return pos;  // Error. Ignore.
-
-    pos += sprintf(pos, "\e]1337;File=width=%dpx;height=%dpx;inline=1:",
-                   fb.width(), fb.height());
-    pos = timg::EncodeBase64(png_buffer, png_size, pos);
-
-    *pos++ = '\007';
-    *pos++ = '\n';  // Need one final cursor movement.
-    return pos;
-}
-
 ssize_t ITerm2GraphicsCanvas::Send(int x, int dy, const Framebuffer &fb) {
     char *const buffer = EnsureBuffer(fb.width(), fb.height());
     char *pos = buffer;
@@ -78,12 +39,20 @@ ssize_t ITerm2GraphicsCanvas::Send(int x, int dy, const Framebuffer &fb) {
         pos += sprintf(pos, SCREEN_CURSOR_RIGHT_FORMAT, x / options_.cell_x_px);
     }
 
-    if (options_.compress_pixel_format) {
-        pos = EncodeFramebuffer(pos, fb, options_.local_alpha_handling,
-                                png_buf_, png_buf_size_);
-    } else {
-        pos = EncodeFramebufferPlain(pos, fb);
-    }
+    int png_size = timg::EncodePNG(fb, options_.compress_pixel_format ? 1 : 0,
+                                   options_.local_alpha_handling
+                                   ? ColorEncoding::kRGB_24
+                                   : ColorEncoding::kRGBA_32,
+                                   png_buf_, png_buf_size_);
+
+    if (!png_size) return pos - buffer;  // Error. Ignore.
+
+    pos += sprintf(pos, "\e]1337;File=width=%dpx;height=%dpx;inline=1:",
+                   fb.width(), fb.height());
+    pos = timg::EncodeBase64(png_buf_, png_size, pos);
+
+    *pos++ = '\007';
+    *pos++ = '\n';  // Need one final cursor movement.
 
     return WriteBuffer(buffer, pos - buffer);
 }

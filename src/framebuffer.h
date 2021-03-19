@@ -90,11 +90,6 @@ public:
     const_iterator end() const { return end_; }
     iterator end() { return end_; }
 
-    // An iterator that returns a sequence of uint8_t bytes RGB (leaving
-    // out the alpha channel). Optional "pixel_offset" how many pixels in
-    // we're starting.
-    inline rgb_iterator rgb_begin(size_t pixel_offset = 0) const;
-
     /* the following two methods are useful with line-oriented sws_scale()
      * to allow it to directly write into our frame-buffer
      */
@@ -104,7 +99,7 @@ public:
     const int* stride() const { return strides_; }
 
     // Return an array containing pointers to the data for each line.
-    uint8_t** row_data() const;
+    uint8_t** row_data();
 
 private:
     const int width_;
@@ -112,37 +107,8 @@ private:
     rgba_t *const pixels_;
     rgba_t *const end_;
     int strides_[2];
-    mutable uint8_t **row_data_ = nullptr;  // Only allocated if requested.
+    uint8_t **row_data_ = nullptr;  // Only allocated if requested.
 };
-
-// An iterator that yields bytes in RGBRGB... sequence and skips the alpha
-// bytes from the underlying RGBA iterator.
-class Framebuffer::rgb_iterator {
-public:
-    rgb_iterator &operator++() {
-        color_++;
-        if (color_ > 2) { color_ = 0; rgba_source_++; }
-        return *this;
-    }
-    uint8_t operator*() {
-        switch (color_) {
-        case 0: return rgba_source_->r;
-        case 1: return rgba_source_->g;
-        case 2: return rgba_source_->b;
-        }
-        return 0;
-    }
-
-private:
-    friend class Framebuffer;
-    rgb_iterator(const_iterator rgba_source) : rgba_source_(rgba_source) {}
-    uint8_t color_ = 0;
-    const_iterator rgba_source_;
-};
-
-Framebuffer::rgb_iterator Framebuffer::rgb_begin(size_t pixel_offset) const {
-    return rgb_iterator(begin() + pixel_offset);
-}
 
 // Unpacked rgba_t into linear color space, useful to do any blending ops on.
 class LinearColor {
