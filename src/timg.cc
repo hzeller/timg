@@ -184,6 +184,7 @@ bool AppendToFileList(const std::string &filelist_file,
 int main(int argc, char *argv[]) {
     Magick::InitializeMagick(*argv);
 
+    bool verbose = false;
     const timg::TermSizeResult term = timg::DetermineTermSize();
     const bool terminal_use_upper_block =
         timg::GetBoolenEnv("TIMG_USE_UPPER_BLOCK");
@@ -230,12 +231,13 @@ int main(int argc, char *argv[]) {
     enum LongOptionIds {
         OPT_CLEAR_SCREEN = 1000,
         OPT_COMPRESS_PIXEL,
-        OPT_FRAME_OFFSET,
         OPT_FRAME_COUNT,
+        OPT_FRAME_OFFSET,
         OPT_GRID,
         OPT_PATTERN_SIZE,
         OPT_ROTATE,
         OPT_THREADS,
+        OPT_VERBOSE,
         OPT_VERSION,
     };
 
@@ -259,6 +261,7 @@ int main(int argc, char *argv[]) {
         { "scroll",      optional_argument, NULL, 's' },
         { "threads",     required_argument, NULL, OPT_THREADS },
         { "title",       no_argument,       NULL, 'F' },
+        { "verbose",     no_argument,       NULL, OPT_VERBOSE },
         { "version",     no_argument,       NULL, OPT_VERSION },
         { 0, 0, 0, 0}
     };
@@ -445,6 +448,9 @@ int main(int argc, char *argv[]) {
             break;
         case OPT_COMPRESS_PIXEL:
             display_opts.compress_pixel_format = true;
+            break;
+        case OPT_VERBOSE:
+            verbose = true;
             break;
         case 'h':
         default:
@@ -710,6 +716,25 @@ int main(int argc, char *argv[]) {
         // But do it on stderr, to not send it to a potentially redirected fd.
         fprintf(stderr, "\033[0m\033[%dB\n", display_opts.height / 2);
         fflush(stderr);
+    }
+
+    if (verbose) {
+        float print_bytes = renderer->image_bytes_written();
+        const char *unit = "Bytes";
+        if (print_bytes > (10L << 30)) {
+            print_bytes /= (1 << 30);
+            unit = "GiB";
+        } else if (print_bytes > (10 << 20)) {
+            print_bytes /= (1 << 20);
+            unit = "MiB";
+        } else if (print_bytes > (10 << 10)) {
+            print_bytes /= (1 << 10);
+            unit = "KiB";
+        }
+        fprintf(stderr,
+                "%d file%s; %.1f %s written\n",
+                (int)filelist.size(), filelist.size() == 1 ? "" : "s",
+                print_bytes, unit);
     }
 
     // If we were super-fast decoding and showing images that didn't need
