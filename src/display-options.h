@@ -66,7 +66,7 @@ struct DisplayOptions {
     bool allow_frame_skipping = false;  // skip frame if CPU or terminal slow
 
     //-- Background options for transparent images --
-
+    bool local_alpha_handling = true;  // If we alpha blend locally
     // "bgcolor_getter" is a function that can be called to retrieve the
     // desired background color that transparent parts of images should be
     // alpha-blended with.

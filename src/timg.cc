@@ -513,6 +513,7 @@ int main(int argc, char *argv[]) {
     // PNG compression with alpha channels gives us compositing on client side
     if (is_pixel_direct_p(pixelation) && strcasecmp(bg_color, "none") == 0) {
         display_opts.compress_pixel_format = true;
+        display_opts.local_alpha_handling = false;
     }
 
     // If we're using block graphics, we might need to adapt the aspect ratio

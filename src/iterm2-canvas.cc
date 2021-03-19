@@ -50,11 +50,12 @@ static char* EncodeFramebufferPlain(char *pos, const Framebuffer &fb) {
 
 // Encode image as PNG and send over. This uses a lot more CPU here, but
 // can reduce transfer over the wire.
-static char* EncodeFramebufferCompressed(char *pos, const Framebuffer &fb,
-                                         char *png_buffer,
-                                         size_t png_buffer_size) {
-    const int png_size = timg::EncodePNG(fb, 1, ColorEncoding::kRGBA_32,
-                                         png_buffer, png_buffer_size);
+static char* EncodeFramebuffer(char *pos, const Framebuffer &fb,
+                               bool local_alpha,
+                               char *png_buffer, size_t png_buffer_size) {
+    const int png_size = timg::EncodePNG(
+        fb, 1, local_alpha ? ColorEncoding::kRGB_24 : ColorEncoding::kRGBA_32,
+        png_buffer, png_buffer_size);
     if (!png_size) return pos;  // Error. Ignore.
 
     pos += sprintf(pos, "\e]1337;File=width=%dpx;height=%dpx;inline=1:",
@@ -78,7 +79,8 @@ ssize_t ITerm2GraphicsCanvas::Send(int x, int dy, const Framebuffer &fb) {
     }
 
     if (options_.compress_pixel_format) {
-        pos = EncodeFramebufferCompressed(pos, fb, png_buf_, png_buf_size_);
+        pos = EncodeFramebuffer(pos, fb, options_.local_alpha_handling,
+                                png_buf_, png_buf_size_);
     } else {
         pos = EncodeFramebufferPlain(pos, fb);
     }
