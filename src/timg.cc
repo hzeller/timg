@@ -721,7 +721,7 @@ int main(int argc, char *argv[]) {
     if (verbose) {
         float print_bytes = renderer->image_bytes_written();
         const char *unit = "Bytes";
-        if (print_bytes > (10L << 30)) {
+        if (print_bytes > (10LL << 30)) {
             print_bytes /= (1 << 30);
             unit = "GiB";
         } else if (print_bytes > (10 << 20)) {

@@ -44,10 +44,10 @@ public:
     static constexpr Duration Millis(long ms) {
         return Duration(ms / 1000, (ms % 1000) * 1000000);
     }
-    static constexpr Duration Micros(long usec) {
+    static constexpr Duration Micros(int64_t usec) {
         return Duration(usec / 1000, (usec % 1000000) * 1000);
     }
-    static constexpr Duration Nanos(long nanos) {
+    static constexpr Duration Nanos(int64_t nanos) {
         return Duration(nanos / 1000000000, nanos % 1000000000);
     }
     static constexpr Duration InfiniteFuture() {
