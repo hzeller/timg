@@ -18,11 +18,16 @@
 #include "terminal-canvas.h"
 #include "timg-time.h"
 
-#include <algorithm>
-#include <string.h>
-#include <assert.h>
-#include <math.h>
 #include <Magick++.h>
+#include <assert.h>
+#include <fcntl.h>
+#include <math.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#include <algorithm>
 
 static constexpr bool kDebug = false;
 
@@ -107,9 +112,30 @@ static ExifImageOp GetExifOp(Magick::Image &img) {
     return {};
 }
 
+static bool LooksLikeApng(const std::string &filename) {
+    // Somewhat handwavy: the "acTL" chunk could of course be at other places as well,
+    // let's assume it is just after IHDR.
+    int fd = open(filename.c_str(), O_RDONLY);
+    if (fd < 0) return false;
+    char actl_sig[4] = {};
+    static constexpr int kPngHeaderLen = 8;
+    static constexpr int kPngIHDRLen = 8 + 13 + 4;
+    pread(fd, actl_sig, 4, kPngHeaderLen + kPngIHDRLen + 4);
+    close(fd);
+    return memcmp(actl_sig, "acTL", 4) == 0;
+}
+
 bool ImageLoader::LoadAndScale(const DisplayOptions &opts,
                                int frame_offset, int frame_count) {
     options_ = opts;
+
+    const char *const file = filename().c_str();
+    for (const char *ending : { ".png", ".apng" }) {
+        if (strcasecmp(file + strlen(file) - strlen(ending), ending) == 0 &&
+            LooksLikeApng(filename())) {
+            return false;   // ImageMagick does not deal with apng. Let Video deal with it
+        }
+    }
 
     std::vector<Magick::Image> frames;
     try {

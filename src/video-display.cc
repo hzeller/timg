@@ -248,8 +248,12 @@ void VideoLoader::SendFrames(Duration duration, int loops,
     // Unlike animated images, in which a not set value in loops means
     // 'infinite' repeat, it feels more sensible to show videos exactly once
     // then. A negative value otherwise is considered 'forever'
-    const bool loop_forever = (loops < 0) && (loops != timg::kNotInitialized);
-    if (loops == timg::kNotInitialized)
+    const bool animated_png = filename().size() > 3
+        && (strcasecmp(filename().c_str() + filename().size() - 3, "png") == 0);
+    const bool loop_forever = (loops < 0) &&
+        (loops != timg::kNotInitialized || animated_png);
+
+    if (loops == timg::kNotInitialized && !animated_png)
         loops = 1;
 
     AVPacket *packet = av_packet_alloc();
