@@ -16,7 +16,9 @@
 #include "iterm2-canvas.h"
 
 #include <assert.h>
+
 #include "timg-base64.h"
+#include "timg-png.h"
 
 #define SCREEN_CURSOR_UP_FORMAT    "\033[%dA"  // Move cursor up given lines.
 #define SCREEN_CURSOR_RIGHT_FORMAT "\033[%dC"  // Move cursor right given cols

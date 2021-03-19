@@ -144,9 +144,6 @@ Framebuffer::rgb_iterator Framebuffer::rgb_begin(size_t pixel_offset) const {
     return rgb_iterator(begin() + pixel_offset);
 }
 
-// Encode framebuffer as PNG.
-size_t EncodePNG(const Framebuffer &fb, char *buffer, size_t size);
-
 // Unpacked rgba_t into linear color space, useful to do any blending ops on.
 class LinearColor {
 public:
