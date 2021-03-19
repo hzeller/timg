@@ -21,8 +21,6 @@
 #include <string.h>
 #include <strings.h>
 
-#include <png.h>
-
 namespace timg {
 
 rgba_t rgba_t::ParseColor(const char *color) {
