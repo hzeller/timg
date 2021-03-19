@@ -48,6 +48,9 @@ public:
     // (x, dy) positioning.
     virtual WriteFramebufferFun render_cb(const char *title) = 0;
 
+    // How many bytes we've written total to the terminal.
+    uint64_t image_bytes_written() const { return image_bytes_written_; }
+
 protected:
     Renderer(timg::TerminalCanvas *canvas,
              const DisplayOptions &display_opts);
@@ -58,6 +61,7 @@ protected:
 
     timg::TerminalCanvas *const canvas_;
     const DisplayOptions &options_;
+    uint64_t image_bytes_written_ = 0;   // Stats.
 };
 }  // namespace timg
 #endif  // RENDERER_H_

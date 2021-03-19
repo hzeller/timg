@@ -44,7 +44,7 @@ public:
         // For single column mode, implementation is straightforward
         RenderTitle(title);
         return [this](int x, int dy, const Framebuffer &fb) {
-            canvas_->Send(x, dy, fb);
+            image_bytes_written_ += canvas_->Send(x, dy, fb);
         };
     }
 
@@ -115,7 +115,7 @@ public:
                 y_offset = 0;  // No move by Send() needed anymore.
             }
 
-            canvas_->Send(x + x_offset, y_offset, fb);
+            image_bytes_written_ += canvas_->Send(x + x_offset, y_offset, fb);
             last_fb_height_ = fb.height();
             if (last_fb_height_ > highest_fb_column_height_)
                 highest_fb_column_height_ = last_fb_height_;
