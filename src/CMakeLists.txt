@@ -25,9 +25,9 @@ target_link_libraries(timg
   PkgConfig::GRAPHICSMAGICKXX
   PkgConfig::EXIF
   PkgConfig::TURBOJPEG
-  PkgConfig::PNG
   PkgConfig::SWSCALE
   PkgConfig::AVUTIL
+  PkgConfig::ZLIB
   Threads::Threads)
 target_include_directories(timg PRIVATE ${CMAKE_BINARY_DIR}/src)
 

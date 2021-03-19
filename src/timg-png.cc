@@ -16,54 +16,142 @@
 #include "timg-png.h"
 
 #include <assert.h>
-#include <png.h>
+
+#include <arpa/inet.h>
 #include <string.h>
+#include <zlib.h>
 
 #include "framebuffer.h"
 
 namespace timg {
-// Our own IO-data to write to memory.
-struct PNGMemIO {
-    char *buffer;
-    const char *end;
+namespace {
+static constexpr uint8_t kPNGHeader[] = {
+    0x89, 0x50, 0x4E, 0x47, '\r', '\n', 0x1A, '\n'
 };
-static void Encode_png_write_fn(png_structp png, png_bytep data, size_t len) {
-    PNGMemIO *out_state = (PNGMemIO*)png_get_io_ptr(png);
-    memcpy(out_state->buffer, data, len);
-    out_state->buffer += len;
-    assert(out_state->buffer < out_state->end);
-}
 
-// Encode image as PNG and store in buffer. Returns bytes written.
-size_t EncodePNG(const Framebuffer &fb, char *const buffer, size_t size) {
-    static constexpr int compression_level = 1;
-    static constexpr int zlib_strategy = 3;  // Z_RLE.
-    png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING,
-                                                  nullptr, nullptr, nullptr);
-    if (!png_ptr) return 0;
-    png_infop info_ptr = png_create_info_struct(png_ptr);
-    if (!info_ptr) {
-        png_destroy_write_struct(&png_ptr, nullptr);
-        return 0;
+// Writing PNG-style blocks: [4 len][4 chunk]<data>[4 CRC]
+class BlockWriter {
+public:
+    BlockWriter(uint8_t *pos) : start_block_(pos), pos_(pos) { }
+
+    ~BlockWriter() { assert(finalized_);  }
+
+    // Finish last block, start new block.
+    void StartNextBlock(const char *chunk_type) {
+        if (!finalized_)
+            start_block_ = Finalize();
+        assert(strlen(chunk_type) == 4);
+        // We fix up the initial 4 bytes later once we know the length.
+        memcpy(pos_ + 4, chunk_type, 4);
+        pos_ += 8;
+        finalized_ = false;
     }
 
-    png_set_IHDR(png_ptr, info_ptr, fb.width(), fb.height(), 8,
-                 PNG_COLOR_TYPE_RGB_ALPHA,
-                 PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT,
-                 PNG_FILTER_TYPE_DEFAULT);
+    // Finish block
+    uint8_t *Finalize() {
+        assert(!finalized_);
+        const uint32_t data_len = pos_ - start_block_ - 8;
+        // We have access to the full buffer, so we can now run crc() over all
+        // quickly.
+        const uint32_t crc = crc32(0, start_block_ + 4, data_len + 4);
+        const uint32_t crc_bigint = htonl(crc);
+        memcpy(pos_, &crc_bigint, 4);
+        pos_ += 4;
 
-    png_set_filter(png_ptr, PNG_FILTER_TYPE_BASE, PNG_FILTER_SUB);
-    png_set_compression_level(png_ptr, compression_level);
-    png_set_compression_strategy(png_ptr, zlib_strategy);
+        // Length. At the very beginning of block.
+        const uint32_t bigint_len = htonl(data_len);
+        memcpy(start_block_, &bigint_len, 4);
 
-    PNGMemIO output = { buffer, buffer + size };
-    png_set_write_fn(png_ptr, &output, &Encode_png_write_fn, nullptr);
+        finalized_ = true;
+        return pos_;
+    }
 
-    png_set_rows(png_ptr, info_ptr, (png_bytepp) fb.row_data());
-    png_write_png(png_ptr, info_ptr, 0, nullptr);
-    png_destroy_write_struct(&png_ptr, &info_ptr);
+    void writeByte(uint8_t value) {
+        *pos_++ = value;
+    }
 
-    return output.buffer - buffer;
+    void writeInt(uint32_t value) {
+        value = htonl(value);
+        memcpy(pos_, &value, 4);
+        pos_ += 4;
+    }
+
+    // Get next position we write to.
+    uint8_t *writePos() { return pos_; }
+
+    // Tell how many bytes have been written.
+    void updateWritten(size_t written) { pos_ += written; }
+
+private:
+    bool finalized_ = true;
+    uint8_t *start_block_;  // Where our block started.
+    uint8_t *pos_;          // Current write position
+};
+}  // namespace
+
+
+size_t EncodePNG(const Framebuffer &fb, char *const buffer, size_t size) {
+    static constexpr int kCompressionLevel = 1;
+    static constexpr int kCompressionStrategy = Z_RLE;
+    static constexpr uint8_t kFilterType = 0x01;
+
+    const int width = fb.width();
+    const int height = fb.height();
+    uint8_t *const line_buffer = new uint8_t [ 1 + fb.width()*sizeof(rgba_t) ];
+    *line_buffer = kFilterType;
+
+    uint8_t *pos = (uint8_t*)buffer;
+    memcpy(pos, kPNGHeader, sizeof(kPNGHeader));
+    pos += sizeof(kPNGHeader);
+
+    BlockWriter block(pos);
+
+    // Image header
+    block.StartNextBlock("IHDR");
+    block.writeInt(width);   // width
+    block.writeInt(height);  // height
+    block.writeByte(8);      // bith depth
+    block.writeByte(6);      // RGBA
+    block.writeByte(0);      // compression type: deflate()
+    block.writeByte(0);      // filter method.
+    block.writeByte(0);      // interlace. None.
+
+    block.StartNextBlock("IDAT");
+    z_stream stream;
+    memset(&stream, 0x00, sizeof(stream));
+    deflateInit2(&stream, kCompressionLevel, Z_DEFLATED,
+                 15 /*window bits*/, 9 /* memlevel*/, kCompressionStrategy);
+
+    const int bytes_per_pixel = 4;
+    const int compress_avail = size - 13;  // IHDR size
+    stream.avail_out = compress_avail;
+    stream.next_out = block.writePos();
+    const rgba_t *current_line = fb.begin();
+
+    for (int y = 0; y < height; ++y, current_line += width) {
+        uint8_t *out = line_buffer + 1;  // kFilterType already there.
+        memcpy(out, current_line, 4);
+        out += bytes_per_pixel;
+        for (int i = 1; i < width; ++i) {
+            *out++ = current_line[i].r - current_line[i-1].r;
+            *out++ = current_line[i].g - current_line[i-1].g;
+            *out++ = current_line[i].b - current_line[i-1].b;
+            *out++ = current_line[i].a - current_line[i-1].a;
+        }
+
+        stream.avail_in = 1 + width * bytes_per_pixel;
+        stream.next_in = (uint8_t*)line_buffer;
+
+        deflate(&stream, (y == height - 1) ? Z_FINISH : Z_NO_FLUSH);
+    }
+
+    assert(stream.avail_in == 0);  // We expect that to be used up.
+    block.updateWritten(compress_avail - stream.avail_out);
+    deflateEnd(&stream);
+    delete [] line_buffer;
+
+    block.StartNextBlock("IEND");
+    return block.Finalize() - (uint8_t*)buffer;
 }
 
 }  // namespace timg

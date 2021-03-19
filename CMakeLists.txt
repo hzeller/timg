@@ -19,7 +19,7 @@ endif()
 
 pkg_check_modules(GRAPHICSMAGICKXX IMPORTED_TARGET REQUIRED GraphicsMagick++)
 pkg_check_modules(TURBOJPEG REQUIRED IMPORTED_TARGET libturbojpeg)
-pkg_check_modules(PNG REQUIRED IMPORTED_TARGET libpng)
+pkg_check_modules(ZLIB REQUIRED IMPORTED_TARGET zlib)
 pkg_check_modules(EXIF REQUIRED IMPORTED_TARGET libexif)
 pkg_check_modules(AVUTIL REQUIRED IMPORTED_TARGET libavutil)
 pkg_check_modules(SWSCALE IMPORTED_TARGET REQUIRED libswscale)
