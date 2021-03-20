@@ -735,6 +735,8 @@ int main(int argc, char *argv[]) {
                 "%d file%s; %.1f %s written\n",
                 (int)filelist.size(), filelist.size() == 1 ? "" : "s",
                 print_bytes, unit);
+        fprintf(stderr, "Terminal cells: %dx%d  cell-pixels: %dx%d\n",
+                term.cols, term.rows, term.font_width_px, term.font_height_px);
     }
 
     // If we were super-fast decoding and showing images that didn't need
