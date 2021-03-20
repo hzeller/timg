@@ -16,6 +16,8 @@
 #ifndef TIMG_TERMUTILS_H
 #define TIMG_TERMUTILS_H
 
+#include <string>
+
 namespace timg {
 
 // Determine size of terminal in pixels we can display.
@@ -44,6 +46,11 @@ bool GetBoolenEnv(const char *env_name, bool default_value = false);
 // Get float value from named environment variable.
 float GetFloatEnv(const char *env_var, float default_value);
 
+// Given number of bytes, return a human-readable version of that
+// (e.g. "13.2 MiB").
+// TODO: this is more a regular util function, not a termutil. Move in separate
+// header.
+std::string HumanReadableByteValue(int64_t byte_count);
 }  // namespace timg
 
 #endif  // TIMG_TERMUTILS_H

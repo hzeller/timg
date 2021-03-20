@@ -693,6 +693,7 @@ int main(int argc, char *argv[]) {
         loaded_sources.push_back(pool->ExecAsync(f));
     }
 
+    const Time start_show = Time::Now();
     // Showing them in order of files on the command line.
     bool is_first = true;
     for (auto &source_future : loaded_sources) {
@@ -708,6 +709,7 @@ int main(int argc, char *argv[]) {
         }
         is_first = false;
     }
+    const Time end_show = Time::Now();
 
     if (interrupt_received) {
         // Even though we completed the write, some terminals sometimes seem
@@ -719,24 +721,15 @@ int main(int argc, char *argv[]) {
     }
 
     if (verbose) {
-        float print_bytes = renderer->image_bytes_written();
-        const char *unit = "Bytes";
-        if (print_bytes > (10LL << 30)) {
-            print_bytes /= (1 << 30);
-            unit = "GiB";
-        } else if (print_bytes > (10 << 20)) {
-            print_bytes /= (1 << 20);
-            unit = "MiB";
-        } else if (print_bytes > (10 << 10)) {
-            print_bytes /= (1 << 10);
-            unit = "KiB";
-        }
-        fprintf(stderr,
-                "%d file%s; %.1f %s written\n",
-                (int)filelist.size(), filelist.size() == 1 ? "" : "s",
-                print_bytes, unit);
         fprintf(stderr, "Terminal cells: %dx%d  cell-pixels: %dx%d\n",
                 term.cols, term.rows, term.font_width_px, term.font_height_px);
+        const Duration d = end_show - start_show;
+        const uint64_t written_bytes = renderer->image_bytes_written();
+        fprintf(stderr,
+                "%d file%s; %s written (%s/s) \n",
+                (int)filelist.size(), filelist.size() == 1 ? "" : "s",
+                timg::HumanReadableByteValue(written_bytes).c_str(),
+                timg::HumanReadableByteValue(written_bytes / d).c_str());
     }
 
     // If we were super-fast decoding and showing images that didn't need

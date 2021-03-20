@@ -284,4 +284,22 @@ float GetFloatEnv(const char *env_var, float default_value) {
     return (*err == '\0' ? result : default_value);
 }
 
+std::string HumanReadableByteValue(int64_t byte_count) {
+    float print_bytes = byte_count;
+    const char *unit = "Bytes";
+    if (print_bytes > (10LL << 30)) {
+        print_bytes /= (1 << 30);
+        unit = "GiB";
+    } else if (print_bytes > (10 << 20)) {
+        print_bytes /= (1 << 20);
+        unit = "MiB";
+    } else if (print_bytes > (10 << 10)) {
+        print_bytes /= (1 << 10);
+        unit = "KiB";
+    }
+    char buf[32];
+    snprintf(buf, sizeof(buf), "%.1f %s", print_bytes, unit);
+    return buf;
+}
+
 }  // namespace timg

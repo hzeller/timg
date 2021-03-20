@@ -59,6 +59,10 @@ public:
         return { duration_.tv_sec, (suseconds_t)(duration_.tv_nsec / 1000)};
     }
 
+    int64_t nanoseconds() const {
+        return (int64_t)duration_.tv_sec * 1000000000 + duration_.tv_nsec;
+    }
+
     bool is_zero() const {
         return duration_.tv_sec <= 0 && duration_.tv_nsec == 0;
     }
@@ -67,6 +71,11 @@ private:
     constexpr Duration(long sec, long ns) : duration_({sec, ns}) {}
     struct timespec duration_;
 };
+
+// Calculate a value per second.
+inline float operator / (float value, Duration d) {
+    return 1e9 * value / d.nanoseconds();
+}
 
 class Time {
 public:
