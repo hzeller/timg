@@ -120,9 +120,9 @@ static bool LooksLikeApng(const std::string &filename) {
     char actl_sig[4] = {};
     static constexpr int kPngHeaderLen = 8;
     static constexpr int kPngIHDRLen = 8 + 13 + 4;
-    pread(fd, actl_sig, 4, kPngHeaderLen + kPngIHDRLen + 4);
+    const ssize_t len = pread(fd, actl_sig, 4, kPngHeaderLen + kPngIHDRLen + 4);
     close(fd);
-    return memcmp(actl_sig, "acTL", 4) == 0;
+    return len == 4 && memcmp(actl_sig, "acTL", 4) == 0;
 }
 
 bool ImageLoader::LoadAndScale(const DisplayOptions &opts,
