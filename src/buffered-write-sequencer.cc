@@ -24,10 +24,12 @@ static constexpr int kChunkSize = 1 << 16;
 static constexpr uint32_t kSentinel = 0x5e9719e1;
 
 namespace timg {
-BufferedWriteSequencer::BufferedWriteSequencer(int fd, bool allow_frame_skip,
-                                               int max_queu_len)
+BufferedWriteSequencer::BufferedWriteSequencer(
+    int fd, bool allow_frame_skip, int max_queu_len,
+    const volatile sig_atomic_t &interrupt_received)
     : fd_(fd), allow_frame_skipping_(allow_frame_skip),
       max_queue_len_(max_queu_len),
+      interrupt_received_(interrupt_received),
       work_executor_(new std::thread(&BufferedWriteSequencer::ProcessQueue,
                                      this)) {
 }
@@ -114,7 +116,7 @@ void BufferedWriteSequencer::Flush() {
     // Sending an empty dummy-write so that we know that this is the
     // last write-in-progress when queue is empty (as the queue is already
     // empty while the last write is still in progress)
-    WriteBuffer(RequestBuffer(0), 0, SeqType::Immediate, {});
+    WriteBuffer(RequestBuffer(0), 0, SeqType::ControlWrite, {});
     {
         std::unique_lock<std::mutex> l(work_lock_);
         work_sync_.wait(l, [this](){ return work_.empty(); });
@@ -155,6 +157,10 @@ void BufferedWriteSequencer::ProcessQueue() {
         work_sync_.notify_all();
 
         bool do_skip = false;
+        if (interrupt_received_ &&
+            work_item.sequence_type != SeqType::ControlWrite) {
+            continue;  // Finish quickly, discard any queued-up frames.
+        }
         switch (work_item.sequence_type) {
         case SeqType::StartOfAnimation:
             animation_start = Time::Now();
@@ -169,7 +175,8 @@ void BufferedWriteSequencer::ProcessQueue() {
                 finish_time.WaitUntil();
             }
             break;
-        case SeqType::Immediate:
+        case SeqType::FrameImmediate:
+        case SeqType::ControlWrite:
             break;
         }
         last_frame_end = work_item.end_of_frame;
@@ -179,10 +186,7 @@ void BufferedWriteSequencer::ProcessQueue() {
 
         ReturnMemblock(work_item.block);
 
-        const bool is_flush_dummy_write = work_item.size == 0 &&
-            work_item.sequence_type == SeqType::Immediate;
-
-        if (!is_flush_dummy_write) {  // Don't count these.
+        if (work_item.sequence_type != SeqType::ControlWrite) {
             std::lock_guard<std::mutex> l(stats_lock_);
             stats_bytes_total_ += work_item.size;
             ++stats_frames_total_;

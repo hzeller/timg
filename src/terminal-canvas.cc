@@ -46,7 +46,7 @@ TerminalCanvas::~TerminalCanvas() {
         // The final 'cursor on' might still be in the buffer.
         char *buf = write_sequencer_->RequestBuffer(prefix_send_.size());
         char *end = AppendPrefixToBuffer(buf);
-        write_sequencer_->WriteBuffer(buf, end - buf, SeqType::Immediate);
+        write_sequencer_->WriteBuffer(buf, end - buf, SeqType::ControlWrite);
     }
 }
 void TerminalCanvas::AddPrefixNextSend(const char *data, int len) {

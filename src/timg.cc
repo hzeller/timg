@@ -628,7 +628,8 @@ int main(int argc, char *argv[]) {
     static constexpr int kAsyncWriteQueueSize = 3;
     timg::BufferedWriteSequencer sequencer(output_fd,
                                            display_opts.allow_frame_skipping,
-                                           kAsyncWriteQueueSize);
+                                           kAsyncWriteQueueSize,
+                                           interrupt_received);
     std::unique_ptr<TerminalCanvas> canvas;
     switch (pixelation) {
     case Pixelation::kKittyGraphics:

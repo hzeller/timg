@@ -274,7 +274,7 @@ void ImageLoader::SendFrames(Duration duration, int loops,
             time_from_first_frame.Add(frame->delay());
             const int dx = IndentationIfCentered(frame);
             const int dy = is_animation_ && last_height > 0 ? -last_height : 0;
-            SeqType seq_type = SeqType::Immediate;
+            SeqType seq_type = SeqType::FrameImmediate;
             if (is_animation_) {
                 seq_type = is_first
                     ? SeqType::StartOfAnimation

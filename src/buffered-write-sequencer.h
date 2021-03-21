@@ -17,6 +17,7 @@
 
 #include <stddef.h>
 
+#include <signal.h>
 #include <condition_variable>
 #include <mutex>
 #include <queue>
@@ -47,7 +48,8 @@ namespace timg {
 // synchronous behaviour. In the next, the writing will be made asynchronous
 // with a queue and threaded writing)
 enum class SeqType {
-    Immediate,         // Don't delay when buffer is written.
+    ControlWrite,      // Control information to be written. Do delay, no skip.
+    FrameImmediate,    // Don't delay when frame is written.
     StartOfAnimation,  // Remember start time. Possibly delay.
     AnimationFrame,    // Write buffer, delay until alloted frame time is up.
 };
@@ -56,7 +58,8 @@ public:
     // Create a BufferedWriteSequencer that writes to the given
     // filedescriptor.
     BufferedWriteSequencer(int fd, bool allow_frame_skipping,
-                           int max_queue_len);
+                           int max_queue_len,
+                           const volatile sig_atomic_t &interrupt_received);
     ~BufferedWriteSequencer();
 
     // Request a buffer that provides at least the requested size.
@@ -109,6 +112,7 @@ private:
     const int fd_;
     const bool allow_frame_skipping_;
     const size_t max_queue_len_;
+    const volatile sig_atomic_t &interrupt_received_;
 
     struct WorkItem {
         MemBlock *block;
