@@ -43,8 +43,9 @@ public:
     WriteFramebufferFun render_cb(const char *title) final {
         // For single column mode, implementation is straightforward
         RenderTitle(title);
-        return [this](int x, int dy, const Framebuffer &fb) {
-            canvas_->Send(x, dy, fb);
+        return [this](int x, int dy, const Framebuffer &fb,
+                      SeqType seq_type, Duration end_of_frame) {
+            canvas_->Send(x, dy, fb, seq_type, end_of_frame);
         };
     }
 
@@ -91,7 +92,8 @@ public:
 
         PrepareTitle(title);
         first_render_call_ = true;
-        return [this](int x, int dy, const Framebuffer &fb) {
+        return [this](int x, int dy, const Framebuffer &fb,
+                      SeqType seq_type, Duration end_of_frame) {
             const int x_offset = current_column_ * column_width_;
             int y_offset;
             if (first_render_call_) {
@@ -117,7 +119,7 @@ public:
                 y_offset = 0;  // No move by Send() needed anymore.
             }
 
-            canvas_->Send(x + x_offset, y_offset, fb);
+            canvas_->Send(x + x_offset, y_offset, fb, seq_type, end_of_frame);
             last_fb_height_ = fb.height();
             if (last_fb_height_ > highest_fb_column_height_)
                 highest_fb_column_height_ = last_fb_height_;

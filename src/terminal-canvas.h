@@ -36,7 +36,8 @@ public:
 
     // Send frame to terminal. Move to xposition (relative to the left
     // of the screen, and delta y (relative to the current position) first.
-    virtual void Send(int x, int dy, const Framebuffer &framebuffer) = 0;
+    virtual void Send(int x, int dy, const Framebuffer &framebuffer,
+                      SeqType sequence_type, Duration end_of_frame) = 0;
 
     // The following methods add content that is emitted before the next Send()
 

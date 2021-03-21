@@ -29,9 +29,10 @@ namespace timg {
 // sending it to the screen, depending on the grid configuration.
 class Renderer {
 public:
-    // A function a framebuffer and its offset
-    using WriteFramebufferFun = std::function<void(int x, int dy,
-                                                   const Framebuffer &fb)>;
+    // A function to write a framebuffer and its offset with timing
+    using WriteFramebufferFun =
+        std::function<void(int x, int dy, const Framebuffer &fb,
+                           SeqType seq_type, Duration end_of_frame)>;
 
     // Create a renderer that writes to the terminal canvas.
     // The single column vs. multi column are different implementations.

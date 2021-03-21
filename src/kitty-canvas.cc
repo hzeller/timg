@@ -44,7 +44,8 @@ KittyGraphicsCanvas::KittyGraphicsCanvas(BufferedWriteSequencer *ws,
 // For now, just a=T direct placement, and not using andy ID. Which
 // means, we probably cycle through a lot of memory in the Graphics adapter
 // when showing videos :)
-void KittyGraphicsCanvas::Send(int x, int dy, const Framebuffer &fb) {
+void KittyGraphicsCanvas::Send(int x, int dy, const Framebuffer &fb,
+                               SeqType seq_type, Duration end_of_frame) {
     char *const buffer = RequestBuffer(fb.width(), fb.height());
     char *pos = buffer;
 
@@ -77,7 +78,7 @@ void KittyGraphicsCanvas::Send(int x, int dy, const Framebuffer &fb) {
 
     *pos++ = '\n';  // Need one final cursor movement.
 
-    write_sequencer_->WriteBuffer(buffer, pos - buffer, SeqType::Immediate);
+    write_sequencer_->WriteBuffer(buffer, pos - buffer, seq_type, end_of_frame);
 }
 
 KittyGraphicsCanvas::~KittyGraphicsCanvas() {

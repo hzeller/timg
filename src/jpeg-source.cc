@@ -206,7 +206,7 @@ int JPEGSource::IndentationIfCentered(timg::Framebuffer &image) const {
 void JPEGSource::SendFrames(Duration duration, int loops,
                             const volatile sig_atomic_t &interrupt_received,
                             const Renderer::WriteFramebufferFun &sink) {
-    sink(IndentationIfCentered(*image_), 0, *image_);
+    sink(IndentationIfCentered(*image_), 0, *image_, SeqType::Immediate, {});
 }
 
 }  // namespace timg

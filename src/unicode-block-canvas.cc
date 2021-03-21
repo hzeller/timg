@@ -278,7 +278,8 @@ char *UnicodeBlockCanvas::AppendDoubleRow(char *pos, int indent, int width,
 }
 
 void UnicodeBlockCanvas::Send(int x, int dy,
-                              const Framebuffer &framebuffer) {
+                              const Framebuffer &framebuffer,
+                              SeqType seq_type, Duration end_of_frame) {
     const int width = framebuffer.width();
     const int height = framebuffer.height();
     char *const start_buffer = RequestBuffers(width, height);
@@ -331,7 +332,7 @@ void UnicodeBlockCanvas::Send(int x, int dy,
     last_x_indent_ = x;
     if (before_image_emission == pos) {
         // Don't even emit cursor up/dn jump, but make sure to return buffer.
-        write_sequencer_->WriteBuffer(start_buffer, 0, SeqType::Immediate);
+        write_sequencer_->WriteBuffer(start_buffer, 0, seq_type, end_of_frame);
         return;
     }
 
@@ -339,7 +340,7 @@ void UnicodeBlockCanvas::Send(int x, int dy,
         pos += sprintf(pos, SCREEN_CURSOR_DN_FORMAT, accumulated_y_skip);
     }
     write_sequencer_->WriteBuffer(start_buffer, pos - start_buffer,
-                                  SeqType::Immediate);
+                                  seq_type, end_of_frame);
 }
 
 char *UnicodeBlockCanvas::RequestBuffers(int width, int height) {

@@ -35,7 +35,8 @@ public:
                        bool use_quarter, bool use_upper_half_block);
     ~UnicodeBlockCanvas() override;
 
-    void Send(int x, int dy, const Framebuffer &framebuffer) override;
+    void Send(int x, int dy, const Framebuffer &framebuffer,
+              SeqType seq_type, Duration end_of_frame) override;
 
 private:
     struct GlyphPick;

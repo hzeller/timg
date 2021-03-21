@@ -258,13 +258,12 @@ void VideoLoader::SendFrames(Duration duration, int loops,
 
     AVPacket *packet = av_packet_alloc();
     bool is_first = true;
-    const Time end_time = Time::Now() + duration;
+    timg::Duration time_from_first_frame;
     AVFrame *decode_frame = av_frame_alloc();  // Decode video into this
-    timg::Time end_next_frame;
     for (int k = 0;
          (loop_forever || k < loops)
              && !interrupt_received
-             && Time::Now() < end_time;
+             && time_from_first_frame < duration;
          ++k) {
         if (k > 0) {
             // Rewind unless we're just starting.
@@ -275,7 +274,7 @@ void VideoLoader::SendFrames(Duration duration, int loops,
         int remaining_frames = frame_count_;
         int skip_offset = frame_offset_;
 
-        while (!interrupt_received && Time::Now() < end_time
+        while (!interrupt_received && time_from_first_frame < duration
                && av_read_frame(format_context_, packet) >= 0
                && (!frame_limit || remaining_frames > 0)) {
             if (packet->stream_index != video_stream_index_) {
@@ -283,10 +282,6 @@ void VideoLoader::SendFrames(Duration duration, int loops,
                 continue;
             }
 
-            // Determine absolute end of this frame now so that we don't
-            // include decoding overhead and can skip if we fall behind.
-            if (!skip_offset)
-                end_next_frame.Add(frame_duration_);
 
             if (DecodePacket(packet, decode_frame)) {
                 if (skip_offset > 0) {
@@ -297,22 +292,25 @@ void VideoLoader::SendFrames(Duration duration, int loops,
                     continue;
                 }
 
-                if (!options_.allow_frame_skipping ||
-                    Time::Now() < end_next_frame) {
-                    sws_scale(sws_context_,
-                              decode_frame->data, decode_frame->linesize,
-                              0, codec_context_->height,
-                              terminal_fb_->row_data(),
-                              terminal_fb_->stride());
-                    AlphaBlendFramebuffer();
-                    const int dy = is_first ? 0 : -terminal_fb_->height();
-                    sink(center_indentation_, dy, *terminal_fb_);
-                    is_first = false;
-                }
+                time_from_first_frame.Add(frame_duration_);
+                // TODO: when frame skipping enabled, avoid this step if we're
+                // falling behind.
+                sws_scale(sws_context_,
+                          decode_frame->data, decode_frame->linesize,
+                          0, codec_context_->height,
+                          terminal_fb_->row_data(),
+                          terminal_fb_->stride());
+                AlphaBlendFramebuffer();
+                const int dy = is_first ? 0 : -terminal_fb_->height();
+                sink(center_indentation_, dy, *terminal_fb_,
+                     is_first
+                     ? SeqType::StartOfAnimation
+                     : SeqType::AnimationFrame,
+                     time_from_first_frame);
+                is_first = false;
                 if (frame_limit) --remaining_frames;
             }
             av_packet_unref(packet);  // was allocated by av_read_frame
-            end_next_frame.WaitUntil();
         }
     }
 

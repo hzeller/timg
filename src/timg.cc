@@ -36,10 +36,10 @@
 #  include "video-display.h"
 #endif
 
-
 #include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
+#include <inttypes.h>
 #include <math.h>
 #include <signal.h>
 #include <stdio.h>
@@ -625,7 +625,8 @@ int main(int argc, char *argv[]) {
 
     display_opts.bg_pattern_color = rgba_t::ParseColor(bg_pattern_color);
 
-    timg::BufferedWriteSequencer sequencer(output_fd);
+    timg::BufferedWriteSequencer sequencer(output_fd,
+                                           display_opts.allow_frame_skipping);
     std::unique_ptr<TerminalCanvas> canvas;
     switch (pixelation) {
     case Pixelation::kKittyGraphics:
@@ -726,12 +727,22 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Terminal cells: %dx%d  cell-pixels: %dx%d\n",
                 term.cols, term.rows, term.font_width_px, term.font_height_px);
         const Duration d = end_show - start_show;
-        const uint64_t written_bytes = sequencer.total_bytes_written();
+        const uint64_t written_bytes =
+            sequencer.bytes_total() - sequencer.bytes_skipped();
         fprintf(stderr,
-                "%d file%s; %s written (%s/s) \n",
+                "%d file%s; %s written (%s/s) "
+                "%" PRId64 " frames",
                 (int)filelist.size(), filelist.size() == 1 ? "" : "s",
                 timg::HumanReadableByteValue(written_bytes).c_str(),
-                timg::HumanReadableByteValue(written_bytes / d).c_str());
+                timg::HumanReadableByteValue(written_bytes / d).c_str(),
+                sequencer.frames_total());
+        if (display_opts.allow_frame_skipping && sequencer.frames_total() > 0) {
+            fprintf(stderr, " (%" PRId64 " skipped, %.1f%%)\n",
+                    sequencer.frames_skipped(),
+                    100.0 * sequencer.frames_skipped()
+                    /sequencer.frames_total());
+        }
+        fprintf(stderr, "\n");
     }
 
     // If we were super-fast decoding and showing images that didn't need

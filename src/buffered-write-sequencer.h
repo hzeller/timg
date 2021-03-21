@@ -50,7 +50,7 @@ class BufferedWriteSequencer {
 public:
     // Create a BufferedWriteSequencer that writes to the given
     // filedescriptor.
-    BufferedWriteSequencer(int fd);
+    BufferedWriteSequencer(int fd, bool allow_frame_skipping);
 
     // Request a buffer that provides at least the requested size.
     // This buffer is to be filled with whatever should be written, then,
@@ -87,15 +87,23 @@ public:
     // Flush all pending writes.
     void Flush() {}
 
-    // Stats: total bytes written.
-    int64_t total_bytes_written() const;
+    // -- Stats
+    int64_t bytes_total() const;
+    int64_t bytes_skipped() const;
+    int64_t frames_total() const;
+    int64_t frames_skipped() const;
 
 private:
     struct MemBlock;
     const int fd_;
-    int64_t total_bytes_written_ = 0;
+    const bool allow_frame_skipping_;
+    int64_t stats_bytes_total_ = 0;
+    int64_t stats_bytes_skipped_ = 0;
+    int64_t stats_frames_total_ = 0;
+    int64_t stats_frames_skipped_ = 0;
     MemBlock *current_block_ = nullptr;
     timg::Time animation_start_;
+    timg::Duration last_frame_end_;
 };
 }  // namespace timg
 #endif  // BUFFERED_WRITE_SEQUENCER_H_

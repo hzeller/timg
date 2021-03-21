@@ -29,7 +29,8 @@ ITerm2GraphicsCanvas::ITerm2GraphicsCanvas(BufferedWriteSequencer *ws,
     : TerminalCanvas(ws), options_(opts) {
 }
 
-void ITerm2GraphicsCanvas::Send(int x, int dy, const Framebuffer &fb) {
+void ITerm2GraphicsCanvas::Send(int x, int dy, const Framebuffer &fb,
+                                SeqType seq_type, Duration end_of_frame) {
     char *const buffer = RequestBuffer(fb.width(), fb.height());
     char *pos = buffer;
 
@@ -54,7 +55,7 @@ void ITerm2GraphicsCanvas::Send(int x, int dy, const Framebuffer &fb) {
     *pos++ = '\007';
     *pos++ = '\n';  // Need one final cursor movement.
 
-    write_sequencer_->WriteBuffer(buffer, pos - buffer, SeqType::Immediate);
+    write_sequencer_->WriteBuffer(buffer, pos - buffer, seq_type, end_of_frame);
 }
 
 ITerm2GraphicsCanvas::~ITerm2GraphicsCanvas() {

@@ -24,7 +24,8 @@ static constexpr int kChunkSize = 1 << 16;
 static constexpr uint32_t kSentinel = 0x5e9719e1;
 
 namespace timg {
-BufferedWriteSequencer::BufferedWriteSequencer(int fd) : fd_(fd) {}
+BufferedWriteSequencer::BufferedWriteSequencer(int fd, bool allow_frame_skip)
+    : fd_(fd), allow_frame_skipping_(allow_frame_skip) {}
 
 struct BufferedWriteSequencer::MemBlock {
     size_t size;
@@ -44,8 +45,20 @@ char *BufferedWriteSequencer::RequestBuffer(size_t size) {
     return current_block_->data;
 }
 
-int64_t BufferedWriteSequencer::total_bytes_written() const {
-    return total_bytes_written_;
+int64_t BufferedWriteSequencer::bytes_total() const {
+    return stats_bytes_total_;
+}
+
+int64_t BufferedWriteSequencer::bytes_skipped() const {
+    return stats_bytes_skipped_;
+}
+
+int64_t BufferedWriteSequencer::frames_total() const {
+    return stats_frames_total_;
+}
+
+int64_t BufferedWriteSequencer::frames_skipped() const {
+    return stats_frames_skipped_;
 }
 
 static ssize_t ReliableWrite(int fd, const char *buffer, const size_t size) {
@@ -69,14 +82,31 @@ void BufferedWriteSequencer::WriteBuffer(char *buffer, size_t size,
     assert(block->size >= size);           // No buffer overrun
     assert(block == current_block_);       // Currently the only block.
 
-    if (sequence_type == SeqType::StartOfAnimation) {
+    bool do_skip = false;
+    switch (sequence_type) {
+    case SeqType::StartOfAnimation:
         animation_start_ = Time::Now();
+        break;
+    case SeqType::AnimationFrame:
+        if (!last_frame_end_.is_zero()) {
+            const Time finish_time = animation_start_ + last_frame_end_;
+            // Only consider skipping if not Immediate or first in frame.
+            do_skip = allow_frame_skipping_ && finish_time < Time::Now();
+            finish_time.WaitUntil();
+        }
+        break;
+    case SeqType::Immediate:
+        break;
     }
-    ReliableWrite(fd_, buffer, size);
-    total_bytes_written_ += size;
-    if (sequence_type == SeqType::StartOfAnimation ||
-        sequence_type == SeqType::AnimationFrame) {
-        (animation_start_ + end_of_frame).WaitUntil();
+    last_frame_end_ = end_of_frame;
+
+    stats_bytes_total_ += size;
+    ++stats_frames_total_;
+    if (!do_skip) {
+        ReliableWrite(fd_, buffer, size);
+    } else {
+        stats_bytes_skipped_ += size;
+        ++stats_frames_skipped_;
     }
 }
 

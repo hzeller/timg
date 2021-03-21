@@ -27,7 +27,8 @@ public:
                         const DisplayOptions &opts);
     ~KittyGraphicsCanvas() override;
 
-    void Send(int x, int dy, const Framebuffer &framebuffer) override;
+    void Send(int x, int dy, const Framebuffer &framebuffer,
+              SeqType sequence_type, Duration end_of_frame) override;
 
 private:
     const DisplayOptions &options_;

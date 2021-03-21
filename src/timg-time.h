@@ -41,6 +41,17 @@ public:
                 duration_.tv_nsec == other.duration_.tv_nsec);
     }
 
+    bool operator <(const Duration &other) const {
+        if (duration_.tv_sec > other.duration_.tv_sec) return false;
+        if (duration_.tv_sec < other.duration_.tv_sec) return true;
+        return duration_.tv_nsec < other.duration_.tv_nsec;
+    }
+    bool operator >(const Duration &other) const {
+        if (duration_.tv_sec > other.duration_.tv_sec) return true;
+        if (duration_.tv_sec < other.duration_.tv_sec) return false;
+        return duration_.tv_nsec > other.duration_.tv_nsec;
+    }
+
     static constexpr Duration Millis(long ms) {
         return Duration(ms / 1000, (ms % 1000) * 1000000);
     }
@@ -65,6 +76,15 @@ public:
 
     bool is_zero() const {
         return duration_.tv_sec <= 0 && duration_.tv_nsec == 0;
+    }
+
+    void Add(Duration d) {
+        duration_.tv_sec += d.duration_.tv_sec;
+        duration_.tv_nsec += d.duration_.tv_nsec;
+        while (duration_.tv_nsec > 1000000000) {
+            duration_.tv_nsec -= 1000000000;
+            duration_.tv_sec += 1;
+        }
     }
 
 private:

@@ -254,7 +254,6 @@ void ImageLoader::SendFrames(Duration duration, int loops,
         return;
     }
 
-    const Time end_time = Time::Now() + duration;
     int last_height = -1;  // First image emit will not have a height.
     if (frames_.size() == 1 || !is_animation_)
         loops = 1;   // If there is no animation, nothing to repeat.
@@ -263,29 +262,29 @@ void ImageLoader::SendFrames(Duration duration, int loops,
     // (note, kNotInitialized is actually negative, but here for clarity
     const bool loop_forever = (loops < 0) || (loops == timg::kNotInitialized);
 
-    Time frame_start;
-    Duration frame_delay;  // Default zero, so no delay before the first frame
+    timg::Duration time_from_first_frame;
+    bool is_first = true;
     for (int k = 0;
          (loop_forever || k < loops)
              && !interrupt_received
-             && frame_start < end_time;
+             && time_from_first_frame < duration;
          ++k) {
         for (int f = 0; f < max_frames_ && !interrupt_received; ++f) {
             const auto &frame = frames_[f];
-            // Waiting until we show the next frame.
-            // We remembered the previous frame delay and await that at the
-            // _beginning_ of the loop so that if the looping condition is
-            // finished (e.g last frame), we don't have an empty wait at the end
-            frame_start = (frame_delay.is_zero()
-                           ? Time::Now()
-                           : frame_start + frame_delay);
-            if (frame_start >= end_time) break;  // No point to wait.
-            if (!frame_delay.is_zero()) frame_start.WaitUntil();
+            time_from_first_frame.Add(frame->delay());
             const int dx = IndentationIfCentered(frame);
             const int dy = is_animation_ && last_height > 0 ? -last_height : 0;
-            sink(dx, dy, frame->framebuffer());
+            SeqType seq_type = SeqType::Immediate;
+            if (is_animation_) {
+                seq_type = is_first
+                    ? SeqType::StartOfAnimation
+                    : SeqType::AnimationFrame;
+            }
+            sink(dx, dy, frame->framebuffer(), seq_type,
+                 std::min(time_from_first_frame, duration));
             last_height = frame->framebuffer().height();
-            frame_delay = frame->delay();
+            if (time_from_first_frame > duration) break;
+            is_first = false;
         }
     }
 }
@@ -334,15 +333,14 @@ void ImageLoader::Scroll(Duration duration, int loops,
     bool is_first = true;
 
     timg::Framebuffer display_fb(display_w, display_h);
-    const Time end_time = Time::Now() + duration;
+    timg::Duration time_from_first_frame;
     for (int k = 0;
          (loops < 0 || k < loops)
              && !interrupt_received
-             && Time::Now() < end_time;
+             && time_from_first_frame < duration;
          ++k) {
         for (int64_t cycle_pos = 0; cycle_pos <= cycle_steps; ++cycle_pos) {
-            const Time frame_start = Time::Now();
-            if (interrupt_received || frame_start >= end_time)
+            if (interrupt_received || time_from_first_frame > duration)
                 break;
             const int64_t x_cycle_pos = dx*cycle_pos;
             const int64_t y_cycle_pos = dy*cycle_pos;
@@ -353,12 +351,13 @@ void ImageLoader::Scroll(Duration duration, int loops,
                     display_fb.SetPixel(x, y, img.at(x_src, y_src));
                 }
             }
-            write_fb(0, is_first ? 0 : -display_fb.height(), display_fb);
+            time_from_first_frame.Add(scroll_delay);
+            write_fb(0, is_first ? 0 : -display_fb.height(), display_fb,
+                     is_first
+                     ? SeqType::StartOfAnimation
+                     : SeqType::AnimationFrame,
+                     time_from_first_frame);
             is_first = false;
-            if (!scroll_delay.is_zero()) {
-                const Time frame_finish = frame_start + scroll_delay;
-                frame_finish.WaitUntil();
-            }
         }
     }
 }
