@@ -24,8 +24,23 @@ static constexpr int kChunkSize = 1 << 16;
 static constexpr uint32_t kSentinel = 0x5e9719e1;
 
 namespace timg {
-BufferedWriteSequencer::BufferedWriteSequencer(int fd, bool allow_frame_skip)
-    : fd_(fd), allow_frame_skipping_(allow_frame_skip) {}
+BufferedWriteSequencer::BufferedWriteSequencer(int fd, bool allow_frame_skip,
+                                               int max_queu_len)
+    : fd_(fd), allow_frame_skipping_(allow_frame_skip),
+      max_queue_len_(max_queu_len),
+      work_executor_(new std::thread(&BufferedWriteSequencer::ProcessQueue,
+                                     this)) {
+}
+
+BufferedWriteSequencer::~BufferedWriteSequencer() {
+    Flush();
+    {
+        std::lock_guard<std::mutex> l(work_lock_);
+        exiting_ = true;
+    }
+    work_sync_.notify_all();
+    work_executor_->join();
+}
 
 struct BufferedWriteSequencer::MemBlock {
     size_t size;
@@ -34,34 +49,57 @@ struct BufferedWriteSequencer::MemBlock {
 };
 
 char *BufferedWriteSequencer::RequestBuffer(size_t size) {
-    if (!current_block_ || current_block_->size < size) {
-        free(current_block_);
-        size_t new_size = sizeof(MemBlock) + size + kChunkSize - 1;
-        new_size -= new_size % kChunkSize;    // Nice multiple of kChunkSize
-        current_block_ = (MemBlock*) malloc(new_size);
-        current_block_->size = new_size - sizeof(MemBlock);
-        current_block_->sentinel = kSentinel;
+    {
+        std::unique_lock<std::mutex> l(mempool_lock_);
+        while (!mempool_.empty()) {
+            MemBlock *const block = mempool_.front();
+            mempool_.pop();
+            if (block->size < size) {  // Don't bother with too small blocks.
+                free(block);
+                continue;
+            }
+            return block->data;
+        }
     }
-    return current_block_->data;
+
+    // Nothing appropriate found. Create a new block. When it comes back, it
+    // will be added to our pool for re-use.
+    size_t new_size = sizeof(MemBlock) + size + kChunkSize - 1;
+    new_size -= new_size % kChunkSize;    // Nice multiple of kChunkSize
+    MemBlock *block = (MemBlock*) malloc(new_size);
+    block->size = new_size - sizeof(MemBlock);
+    block->sentinel = kSentinel;
+
+    return block->data;
+}
+
+void BufferedWriteSequencer::ReturnMemblock(MemBlock *b) {
+    std::unique_lock<std::mutex> l(mempool_lock_);
+    mempool_.push(b);
 }
 
 int64_t BufferedWriteSequencer::bytes_total() const {
+    std::lock_guard<std::mutex> l(stats_lock_);
     return stats_bytes_total_;
 }
 
 int64_t BufferedWriteSequencer::bytes_skipped() const {
+    std::lock_guard<std::mutex> l(stats_lock_);
     return stats_bytes_skipped_;
 }
 
 int64_t BufferedWriteSequencer::frames_total() const {
+    std::lock_guard<std::mutex> l(stats_lock_);
     return stats_frames_total_;
 }
 
 int64_t BufferedWriteSequencer::frames_skipped() const {
+    std::lock_guard<std::mutex> l(stats_lock_);
     return stats_frames_skipped_;
 }
 
 static ssize_t ReliableWrite(int fd, const char *buffer, const size_t size) {
+    if (size == 0) return 0;
     int written = 0;
     size_t remaining = size;
     while (remaining && (written = write(fd, buffer, remaining)) > 0) {
@@ -72,41 +110,87 @@ static ssize_t ReliableWrite(int fd, const char *buffer, const size_t size) {
     return size;
 }
 
+void BufferedWriteSequencer::Flush() {
+    // Sending an empty dummy-write so that we know that this is the
+    // last write-in-progress when queue is empty (as the queue is already
+    // empty while the last write is still in progress)
+    WriteBuffer(RequestBuffer(0), 0, SeqType::Immediate, {});
+    {
+        std::unique_lock<std::mutex> l(work_lock_);
+        work_sync_.wait(l, [this](){ return work_.empty(); });
+    }
+}
+
 void BufferedWriteSequencer::WriteBuffer(char *buffer, size_t size,
                                          SeqType sequence_type,
                                          Duration end_of_frame) {
-    // Currently not doing anything special with the block, as in this stage,
-    // this is the only available block.
+    // Recover the block from the raw data (our metadata starts a bit
+    // before that)
     MemBlock *block = (MemBlock*) (buffer - offsetof(MemBlock, data));
     assert(block->sentinel == kSentinel);  // Did we allocate it ?
     assert(block->size >= size);           // No buffer overrun
-    assert(block == current_block_);       // Currently the only block.
 
-    bool do_skip = false;
-    switch (sequence_type) {
-    case SeqType::StartOfAnimation:
-        animation_start_ = Time::Now();
-        break;
-    case SeqType::AnimationFrame:
-        if (!last_frame_end_.is_zero()) {
-            const Time finish_time = animation_start_ + last_frame_end_;
-            // Only consider skipping if not Immediate or first in frame.
-            do_skip = allow_frame_skipping_ && finish_time < Time::Now();
-            finish_time.WaitUntil();
-        }
-        break;
-    case SeqType::Immediate:
-        break;
+    {
+        std::unique_lock<std::mutex> l(work_lock_);
+        work_sync_.wait(l, [this](){ return work_.size() < max_queue_len_; });
+        work_.push({block, size, sequence_type, end_of_frame});
     }
-    last_frame_end_ = end_of_frame;
+    work_sync_.notify_all();
+}
 
-    stats_bytes_total_ += size;
-    ++stats_frames_total_;
-    if (!do_skip) {
-        ReliableWrite(fd_, buffer, size);
-    } else {
-        stats_bytes_skipped_ += size;
-        ++stats_frames_skipped_;
+void BufferedWriteSequencer::ProcessQueue() {
+    timg::Time animation_start;
+    timg::Duration last_frame_end;
+
+    for (;;) {
+        WorkItem work_item;
+        {
+            std::unique_lock<std::mutex> l(work_lock_);
+            if (exiting_ && work_.empty()) return;
+            work_sync_.wait(l, [this](){ return !work_.empty() || exiting_; });
+            if (work_.empty()) continue;
+            work_item = work_.front();
+            work_.pop();
+        }
+        work_sync_.notify_all();
+
+        bool do_skip = false;
+        switch (work_item.sequence_type) {
+        case SeqType::StartOfAnimation:
+            animation_start = Time::Now();
+            break;
+        case SeqType::AnimationFrame:
+            if (!last_frame_end.is_zero()) {
+                const Time finish_time = animation_start + last_frame_end;
+                // Only consider skipping if not Immediate or first in frame.
+                static constexpr Duration kAllowedSkew = Duration::Millis(150);
+                do_skip = (allow_frame_skipping_ &&
+                           finish_time + kAllowedSkew < Time::Now());
+                finish_time.WaitUntil();
+            }
+            break;
+        case SeqType::Immediate:
+            break;
+        }
+        last_frame_end = work_item.end_of_frame;
+
+        if (!do_skip)
+            ReliableWrite(fd_, work_item.block->data, work_item.size);
+
+        ReturnMemblock(work_item.block);
+
+        const bool is_flush_dummy_write = work_item.size == 0 &&
+            work_item.sequence_type == SeqType::Immediate;
+
+        if (!is_flush_dummy_write) {  // Don't count these.
+            std::lock_guard<std::mutex> l(stats_lock_);
+            stats_bytes_total_ += work_item.size;
+            ++stats_frames_total_;
+            if (do_skip) {
+                stats_bytes_skipped_ += work_item.size;
+                ++stats_frames_skipped_;
+            }
+        }
     }
 }
 

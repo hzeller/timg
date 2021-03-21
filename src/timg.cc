@@ -625,8 +625,10 @@ int main(int argc, char *argv[]) {
 
     display_opts.bg_pattern_color = rgba_t::ParseColor(bg_pattern_color);
 
+    static constexpr int kAsyncWriteQueueSize = 3;
     timg::BufferedWriteSequencer sequencer(output_fd,
-                                           display_opts.allow_frame_skipping);
+                                           display_opts.allow_frame_skipping,
+                                           kAsyncWriteQueueSize);
     std::unique_ptr<TerminalCanvas> canvas;
     switch (pixelation) {
     case Pixelation::kKittyGraphics:
@@ -711,6 +713,8 @@ int main(int argc, char *argv[]) {
         }
         is_first = false;
     }
+    renderer.reset(nullptr);   // TODO: make scoped.
+    canvas.reset(nullptr);
     sequencer.Flush();
     const Time end_show = Time::Now();
 
@@ -719,7 +723,7 @@ int main(int argc, char *argv[]) {
         // to get messed up, maybe interrupted escape sequence ?
         // Make sure to move to the very bottom and also reset attributes.
         // But do it on stderr, to not send it to a potentially redirected fd.
-        fprintf(stderr, "\033[0m\033[%dB\n", display_opts.height / 2);
+        fprintf(stderr, "\033[0m\033[%dB\n", term.rows);
         fflush(stderr);
     }
 

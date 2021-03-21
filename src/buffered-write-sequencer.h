@@ -17,6 +17,11 @@
 
 #include <stddef.h>
 
+#include <condition_variable>
+#include <mutex>
+#include <queue>
+#include <thread>
+
 #include "timg-time.h"
 
 namespace timg {
@@ -50,7 +55,9 @@ class BufferedWriteSequencer {
 public:
     // Create a BufferedWriteSequencer that writes to the given
     // filedescriptor.
-    BufferedWriteSequencer(int fd, bool allow_frame_skipping);
+    BufferedWriteSequencer(int fd, bool allow_frame_skipping,
+                           int max_queue_len);
+    ~BufferedWriteSequencer();
 
     // Request a buffer that provides at least the requested size.
     // This buffer is to be filled with whatever should be written, then,
@@ -85,7 +92,7 @@ public:
                      Duration end_of_frame = {});
 
     // Flush all pending writes.
-    void Flush() {}
+    void Flush();
 
     // -- Stats
     int64_t bytes_total() const;
@@ -95,15 +102,36 @@ public:
 
 private:
     struct MemBlock;
+
+    void ReturnMemblock(MemBlock *b);
+    void ProcessQueue();  // Runs in thread.
+
     const int fd_;
     const bool allow_frame_skipping_;
+    const size_t max_queue_len_;
+
+    struct WorkItem {
+        MemBlock *block;
+        size_t size;
+        SeqType sequence_type;
+        Duration end_of_frame;
+    };
+    std::mutex work_lock_;
+    std::queue<WorkItem> work_;
+    bool exiting_ = false;
+    std::condition_variable work_sync_;
+    std::thread *work_executor_;
+
+    // A stash of re-usable memory blocks
+    std::mutex mempool_lock_;
+    std::queue<MemBlock*> mempool_;
+
+    // Statistics.
+    mutable std::mutex stats_lock_;
     int64_t stats_bytes_total_ = 0;
     int64_t stats_bytes_skipped_ = 0;
     int64_t stats_frames_total_ = 0;
     int64_t stats_frames_skipped_ = 0;
-    MemBlock *current_block_ = nullptr;
-    timg::Time animation_start_;
-    timg::Duration last_frame_end_;
 };
 }  // namespace timg
 #endif  // BUFFERED_WRITE_SEQUENCER_H_
