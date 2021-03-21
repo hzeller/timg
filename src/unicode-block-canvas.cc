@@ -73,56 +73,15 @@ static constexpr const char *kBlockGlyphs[9] = {
     /*[kUpperBlock] = */      "▀",  // U+2580 Upper half block
 };
 
-char *UnicodeBlockCanvas::EnsureBuffers(int width, int height) {
-    // Pixels will be variable size depending on if we need to change colors
-    // between two adjacent pixels. This is the maximum size they can be.
-    static const int max_pixel_size = strlen("\033[")
-        + PIXEL_SET_COLOR_LEN + ESCAPE_COLOR_MAX_LEN
-        + 1 /* ; */
-        + PIXEL_SET_COLOR_LEN + ESCAPE_COLOR_MAX_LEN
-        + 1 /* m */
-        + PIXEL_BLOCK_CHARACTER_LEN;
-    // Few extra space for number printed in the format.
-    static const int opt_cursor_up = strlen(SCREEN_CURSOR_UP_FORMAT) + 3;
-    static const int opt_cursor_right = strlen(SCREEN_CURSOR_RIGHT_FORMAT) + 3;
-    const int vertical_characters = (height+1) / 2;   // two pixels, one glyph
-    const size_t new_content_size = opt_cursor_up     // Jump up
-        + vertical_characters
-        * (opt_cursor_right            // Horizontal jump
-           + width * max_pixel_size    // pixels in one row
-           + SCREEN_END_OF_LINE_LEN);  // Finishing a line.
-
-    if (new_content_size > content_buffer_size_) {
-        content_buffer_ = (char*)realloc(content_buffer_, new_content_size);
-        content_buffer_size_ = new_content_size;
-    }
-
-    // Depending on even/odd situation, we might need one extra row.
-    const size_t new_backing = width * (height+1) * sizeof(rgba_t);
-    if (new_backing > backing_buffer_size_) {
-        backing_buffer_ =(rgba_t*)realloc(backing_buffer_, new_backing);
-        backing_buffer_size_ = new_backing;
-    }
-
-    const size_t new_empty = width * sizeof(rgba_t);
-    if (new_empty > empty_line_size_) {
-        empty_line_ = (rgba_t*)realloc(empty_line_, new_empty);
-        empty_line_size_ = new_empty;
-        memset(empty_line_, 0x00, empty_line_size_);
-    }
-    return content_buffer_;
-}
-
-UnicodeBlockCanvas::UnicodeBlockCanvas(int fd,
+UnicodeBlockCanvas::UnicodeBlockCanvas(BufferedWriteSequencer *ws,
                                        bool use_quarter,
                                        bool use_upper_half_block)
-    : TerminalCanvas(fd),
+    : TerminalCanvas(ws),
       use_quarter_blocks_(use_quarter),
       use_upper_half_block_(use_upper_half_block) {
 }
 
 UnicodeBlockCanvas::~UnicodeBlockCanvas() {
-    free(content_buffer_);
     free(backing_buffer_);
     free(empty_line_);
 }
@@ -318,16 +277,17 @@ char *UnicodeBlockCanvas::AppendDoubleRow(char *pos, int indent, int width,
     return pos;
 }
 
-ssize_t UnicodeBlockCanvas::Send(int x, int dy,
-                                 const Framebuffer &framebuffer) {
+void UnicodeBlockCanvas::Send(int x, int dy,
+                              const Framebuffer &framebuffer) {
     const int width = framebuffer.width();
     const int height = framebuffer.height();
-    char *const start_buffer = EnsureBuffers(width, height);
+    char *const start_buffer = RequestBuffers(width, height);
     char *pos = start_buffer;
 
-    if (dy < 0) {
-        pos += sprintf(pos, SCREEN_CURSOR_UP_FORMAT, (abs(dy) + 1) / 2);
-    }
+    if (dy < 0) MoveCursorDY((dy - 1) / 2);
+
+    pos = AppendPrefixToBuffer(pos);
+
     if (use_quarter_blocks_) x /= 2;  // That is in character cell units.
 
     const char *before_image_emission = pos;
@@ -369,13 +329,52 @@ ssize_t UnicodeBlockCanvas::Send(int x, int dy,
     }
     last_framebuffer_height_ = height;
     last_x_indent_ = x;
-    if (before_image_emission == pos)
-        return 0;   // Don't even emit cursor up/dn jump.
+    if (before_image_emission == pos) {
+        // Don't even emit cursor up/dn jump, but make sure to return buffer.
+        write_sequencer_->WriteBuffer(start_buffer, 0, SeqType::Immediate);
+        return;
+    }
 
     if (accumulated_y_skip) {
         pos += sprintf(pos, SCREEN_CURSOR_DN_FORMAT, accumulated_y_skip);
     }
-    return WriteBuffer(start_buffer, pos - start_buffer);
+    write_sequencer_->WriteBuffer(start_buffer, pos - start_buffer,
+                                  SeqType::Immediate);
+}
+
+char *UnicodeBlockCanvas::RequestBuffers(int width, int height) {
+    // Pixels will be variable size depending on if we need to change colors
+    // between two adjacent pixels. This is the maximum size they can be.
+    static const int max_pixel_size = strlen("\033[")
+        + PIXEL_SET_COLOR_LEN + ESCAPE_COLOR_MAX_LEN
+        + 1 /* ; */
+        + PIXEL_SET_COLOR_LEN + ESCAPE_COLOR_MAX_LEN
+        + 1 /* m */
+        + PIXEL_BLOCK_CHARACTER_LEN;
+    // Few extra space for number printed in the format.
+    static const int opt_cursor_up = strlen(SCREEN_CURSOR_UP_FORMAT) + 3;
+    static const int opt_cursor_right = strlen(SCREEN_CURSOR_RIGHT_FORMAT) + 3;
+    const int vertical_characters = (height+1) / 2;   // two pixels, one glyph
+    const size_t content_size = opt_cursor_up     // Jump up
+        + vertical_characters
+        * (opt_cursor_right            // Horizontal jump
+           + width * max_pixel_size    // pixels in one row
+           + SCREEN_END_OF_LINE_LEN);  // Finishing a line.
+
+    // Depending on even/odd situation, we might need one extra row.
+    const size_t new_backing = width * (height+1) * sizeof(rgba_t);
+    if (new_backing > backing_buffer_size_) {
+        backing_buffer_ =(rgba_t*)realloc(backing_buffer_, new_backing);
+        backing_buffer_size_ = new_backing;
+    }
+
+    const size_t new_empty = width * sizeof(rgba_t);
+    if (new_empty > empty_line_size_) {
+        empty_line_ = (rgba_t*)realloc(empty_line_, new_empty);
+        empty_line_size_ = new_empty;
+        memset(empty_line_, 0x00, empty_line_size_);
+    }
+    return write_sequencer_->RequestBuffer(content_size);
 }
 
 // Converting the colors requires fast uint8 -> ASCII decimal digits with

@@ -29,7 +29,7 @@
 #include "timg-time.h"
 #include "timg-version.h"
 #include "unicode-block-canvas.h"
-
+#include "buffered-write-sequencer.h"
 // To display version number
 #include "image-display.h"
 #ifdef WITH_TIMG_VIDEO
@@ -625,19 +625,20 @@ int main(int argc, char *argv[]) {
 
     display_opts.bg_pattern_color = rgba_t::ParseColor(bg_pattern_color);
 
+    timg::BufferedWriteSequencer sequencer(output_fd);
     std::unique_ptr<TerminalCanvas> canvas;
     switch (pixelation) {
     case Pixelation::kKittyGraphics:
-        canvas.reset(new KittyGraphicsCanvas(output_fd, display_opts));
+        canvas.reset(new KittyGraphicsCanvas(&sequencer, display_opts));
         break;
     case Pixelation::kiTerm2Graphics:
-        canvas.reset(new ITerm2GraphicsCanvas(output_fd, display_opts));
+        canvas.reset(new ITerm2GraphicsCanvas(&sequencer, display_opts));
         break;
     case Pixelation::kHalfBlock:
     case Pixelation::kQuarterBlock:
     case Pixelation::kNotChosen:  // Should not happen.
         canvas.reset(new UnicodeBlockCanvas(
-                         output_fd, pixelation == Pixelation::kQuarterBlock,
+                         &sequencer, pixelation == Pixelation::kQuarterBlock,
                          terminal_use_upper_block));
     }
 
@@ -709,6 +710,7 @@ int main(int argc, char *argv[]) {
         }
         is_first = false;
     }
+    sequencer.Flush();
     const Time end_show = Time::Now();
 
     if (interrupt_received) {
@@ -724,7 +726,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Terminal cells: %dx%d  cell-pixels: %dx%d\n",
                 term.cols, term.rows, term.font_width_px, term.font_height_px);
         const Duration d = end_show - start_show;
-        const uint64_t written_bytes = renderer->image_bytes_written();
+        const uint64_t written_bytes = sequencer.total_bytes_written();
         fprintf(stderr,
                 "%d file%s; %s written (%s/s) \n",
                 (int)filelist.size(), filelist.size() == 1 ? "" : "s",

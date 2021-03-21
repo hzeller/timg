@@ -31,10 +31,11 @@ public:
     // If "use_quarter" is set, use quarter blocks instead of half-blocks.
     // if "use_upper_half_block" is set, uses the upper instead of the
     // lower block (only for use_quarter == false).
-    UnicodeBlockCanvas(int fd, bool use_quarter, bool use_upper_half_block);
+    UnicodeBlockCanvas(BufferedWriteSequencer *ws,
+                       bool use_quarter, bool use_upper_half_block);
     ~UnicodeBlockCanvas() override;
 
-    ssize_t Send(int x, int dy, const Framebuffer &framebuffer) override;
+    void Send(int x, int dy, const Framebuffer &framebuffer) override;
 
 private:
     struct GlyphPick;
@@ -43,8 +44,9 @@ private:
 
     // Ensure that all buffers needed for emitting the framebuffer have
     // enough space.
-    // Return a buffer large enough to hold the whole ANSI-color encoded text.
-    char *EnsureBuffers(int width, int height);
+    // Return a buffer large enough to hold the whole ANSI-color encoded text
+    // to be used with the write sequencer.
+    char *RequestBuffers(int width, int height);
 
     template <int N>
     char *AppendDoubleRow(char *pos, int indent, int width,
@@ -55,9 +57,6 @@ private:
     // Find best glyph for two rows of color.
     template <int N>
     GlyphPick FindBestGlyph(const rgba_t *top, const rgba_t *bottom) const;
-
-    char *content_buffer_ = nullptr;  // Buffer containing content to write out
-    size_t content_buffer_size_ = 0;
 
     // Backing buffer stores a flattened view of last frame, storing top and
     // bottom pixel linearly.

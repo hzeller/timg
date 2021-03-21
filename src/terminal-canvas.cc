@@ -38,49 +38,60 @@
 
 namespace timg {
 
-TerminalCanvas::TerminalCanvas(int fd) : fd_(fd) {}
+TerminalCanvas::TerminalCanvas(BufferedWriteSequencer *write_sequencer)
+    : write_sequencer_(write_sequencer) {}
 
-ssize_t TerminalCanvas::MoveCursorDY(int rows) {
-    if (rows == 0) return 0;
+TerminalCanvas::~TerminalCanvas() {
+    if (!prefix_send_.empty()) {
+        // The final 'cursor on' might still be in the buffer.
+        char *buf = write_sequencer_->RequestBuffer(prefix_send_.size());
+        char *end = AppendPrefixToBuffer(buf);
+        write_sequencer_->WriteBuffer(buf, end - buf, SeqType::Immediate);
+    }
+}
+void TerminalCanvas::AddPrefixNextSend(const char *data, int len) {
+    if (!data || len <= 0) return;
+    prefix_send_.append(data, len);
+}
+
+char *TerminalCanvas::AppendPrefixToBuffer(char *buffer) {
+    if (prefix_send_.empty()) return buffer;
+    const size_t len = prefix_send_.length();
+    memcpy(buffer, prefix_send_.data(), len);
+    prefix_send_.clear();
+    return buffer + len;
+}
+
+void TerminalCanvas::MoveCursorDY(int rows) {
+    if (rows == 0) return;
     char buf[32];
     const size_t len = sprintf(buf, rows < 0
                                ? SCREEN_CURSOR_UP_FORMAT
                                : SCREEN_CURSOR_DN_FORMAT,
                                abs(rows));
-    return WriteBuffer(buf, len);
+    AddPrefixNextSend(buf, len);
 }
 
-ssize_t TerminalCanvas::MoveCursorDX(int cols) {
-    if (cols == 0) return 0;
+void TerminalCanvas::MoveCursorDX(int cols) {
+    if (cols == 0) return;
     char buf[32];
     const size_t len = sprintf(buf, cols < 0
                                ? SCREEN_CURSOR_LEFT_FORMAT
                                : SCREEN_CURSOR_RIGHT_FORMAT,
                                abs(cols));
-    return WriteBuffer(buf, len);
+    AddPrefixNextSend(buf, len);
 }
 
-ssize_t TerminalCanvas::ClearScreen() {
-    return WriteBuffer(SCREEN_CLEAR, strlen(SCREEN_CLEAR));
+void TerminalCanvas::ClearScreen() {
+    AddPrefixNextSend(SCREEN_CLEAR, sizeof(SCREEN_CLEAR));
 }
 
-ssize_t TerminalCanvas::CursorOff() {
-    return WriteBuffer(CURSOR_OFF, strlen(CURSOR_OFF));
+void TerminalCanvas::CursorOff() {
+    AddPrefixNextSend(CURSOR_OFF, sizeof(CURSOR_OFF));
 }
 
-ssize_t TerminalCanvas::CursorOn() {
-    return WriteBuffer(CURSOR_ON, strlen(CURSOR_ON));
-}
-
-ssize_t TerminalCanvas::WriteBuffer(const char *buffer, const size_t size) {
-    int written = 0;
-    size_t remaining = size;
-    while (remaining && (written = write(fd_, buffer, remaining)) > 0) {
-        remaining -= written;
-        buffer += written;
-    }
-    if (written < 0) return -1;
-    return size;
+void TerminalCanvas::CursorOn() {
+    AddPrefixNextSend(CURSOR_ON, sizeof(CURSOR_ON));
 }
 
 }  // namespace timg

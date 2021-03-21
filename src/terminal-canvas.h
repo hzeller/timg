@@ -17,9 +17,12 @@
 #define TERMINAL_CANVAS_H_
 
 #include "framebuffer.h"
+#include "buffered-write-sequencer.h"
 
 #include <stddef.h>
 #include <sys/types.h>
+
+#include <string>
 
 namespace timg {
 
@@ -27,30 +30,32 @@ namespace timg {
 class TerminalCanvas {
 public:
     // Create a terminal canvas, sending to given file-descriptor.
-    TerminalCanvas(int fd);
+    TerminalCanvas(BufferedWriteSequencer *write_sequencer);
     TerminalCanvas(const TerminalCanvas &) = delete;
-    virtual ~TerminalCanvas() {}
+    virtual ~TerminalCanvas();
 
     // Send frame to terminal. Move to xposition (relative to the left
     // of the screen, and delta y (relative to the current position) first.
-    // Returns number of bytes written.
-    virtual ssize_t Send(int x, int dy, const Framebuffer &framebuffer) = 0;
+    virtual void Send(int x, int dy, const Framebuffer &framebuffer) = 0;
 
-    ssize_t ClearScreen();
-    ssize_t CursorOff();
-    ssize_t CursorOn();
+    // The following methods add content that is emitted before the next Send()
 
-    ssize_t MoveCursorDY(int rows);  // negative: up^, positive: downV
-    ssize_t MoveCursorDX(int cols);  // negative: <-left, positive: right->
+    void AddPrefixNextSend(const char *data, int len);
 
-    // Write buffer to the file descriptor this canvas is configured to.
-    // Public, so can be used by other components that might need to write
-    // text between framebuffer writes. Returns number of bytes written, which
-    // should be the same as len.
-    ssize_t WriteBuffer(const char *buffer, size_t len);
+    void ClearScreen();
+    void CursorOff();
+    void CursorOn();
+
+    void MoveCursorDY(int rows);  // -: up^, +: downV
+    void MoveCursorDX(int cols);  // -: <-left, +: right->
+
+protected:
+    char *AppendPrefixToBuffer(char *buffer);
+
+    BufferedWriteSequencer *const write_sequencer_;  // not owned
 
 private:
-    const int fd_;
+    std::string prefix_send_;
 };
 }  // namespace timg
 

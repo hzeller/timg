@@ -44,7 +44,7 @@ public:
         // For single column mode, implementation is straightforward
         RenderTitle(title);
         return [this](int x, int dy, const Framebuffer &fb) {
-            image_bytes_written_ += canvas_->Send(x, dy, fb);
+            canvas_->Send(x, dy, fb);
         };
     }
 
@@ -53,7 +53,7 @@ private:
         if (!title || !options_.show_filename) return;
         const std::string tout = TrimTitle(
             title, options_.width / options_.cell_x_px);
-        canvas_->WriteBuffer(tout.c_str(), tout.length());
+        canvas_->AddPrefixNextSend(tout.data(), tout.size());
     }
 };
 
@@ -72,7 +72,9 @@ public:
     ~MultiColumnRenderer() final {
         if (current_column_ != 0) {
             const int down = highest_fb_column_height_ - last_fb_height_;
-            if (down > 0) canvas_->MoveCursorDY(down / options_.cell_y_px);
+            if (down > 0) {
+                canvas_->MoveCursorDY(down / options_.cell_y_px);
+            }
         }
     }
 
@@ -111,11 +113,11 @@ public:
                     canvas_->MoveCursorDY(-y_move - kSpaceForTitle);
                 }
                 canvas_->MoveCursorDX(x_offset / options_.cell_x_px);
-                canvas_->WriteBuffer(title_.c_str(), title_.length());
+                canvas_->AddPrefixNextSend(title_.c_str(), title_.length());
                 y_offset = 0;  // No move by Send() needed anymore.
             }
 
-            image_bytes_written_ += canvas_->Send(x + x_offset, y_offset, fb);
+            canvas_->Send(x + x_offset, y_offset, fb);
             last_fb_height_ = fb.height();
             if (last_fb_height_ > highest_fb_column_height_)
                 highest_fb_column_height_ = last_fb_height_;

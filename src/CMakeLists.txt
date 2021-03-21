@@ -4,6 +4,7 @@ add_executable(timg)
 target_sources(timg PRIVATE
   timg.cc
 
+  buffered-write-sequencer.h buffered-write-sequencer.cc
   display-options.h
   framebuffer.h     framebuffer.cc
   image-display.h   image-display.cc

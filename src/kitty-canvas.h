@@ -23,18 +23,16 @@ namespace timg {
 // Implements https://sw.kovidgoyal.net/kitty/graphics-protocol.html
 class KittyGraphicsCanvas final : public TerminalCanvas {
 public:
-    KittyGraphicsCanvas(int fd, const DisplayOptions &opts);
+    KittyGraphicsCanvas(BufferedWriteSequencer *ws,
+                        const DisplayOptions &opts);
     ~KittyGraphicsCanvas() override;
 
-    ssize_t Send(int x, int dy, const Framebuffer &framebuffer) override;
+    void Send(int x, int dy, const Framebuffer &framebuffer) override;
 
 private:
     const DisplayOptions &options_;
 
-    char *EnsureBuffer(int width, int height);
-
-    char *content_buffer_ = nullptr;
-    size_t content_buffer_size_ = 0;
+    char *RequestBuffer(int width, int height);
 
     char *png_buf_ = nullptr;   // Scratch buffer to encode PNG into
     size_t png_buf_size_ = 0;

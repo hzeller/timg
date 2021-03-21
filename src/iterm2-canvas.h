@@ -23,18 +23,16 @@ namespace timg {
 // Implements https://iterm2.com/documentation-images.html
 class ITerm2GraphicsCanvas final : public TerminalCanvas {
 public:
-    ITerm2GraphicsCanvas(int fd, const DisplayOptions &opts);
+    ITerm2GraphicsCanvas(BufferedWriteSequencer *ws,
+                         const DisplayOptions &opts);
     ~ITerm2GraphicsCanvas() override;
 
-    ssize_t Send(int x, int dy, const Framebuffer &framebuffer) override;
+    void Send(int x, int dy, const Framebuffer &framebuffer) override;
 
 private:
     const DisplayOptions &options_;
 
-    char *EnsureBuffer(int width, int height);
-
-    char *content_buffer_ = nullptr;
-    size_t content_buffer_size_ = 0;
+    char *RequestBuffer(int width, int height);
 
     char *png_buf_ = nullptr;   // Scratch buffer to encode PNG into
     size_t png_buf_size_ = 0;
