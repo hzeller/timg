@@ -5,7 +5,7 @@ timg - Terminal Image and Video Viewer
 [![Ubuntu Build](../../workflows/Ubuntu%20Build/badge.svg)](../../actions?query=workflow%3A"Ubuntu+Build")
 [![macOS Build](../../workflows/macOS%20Build/badge.svg)](../../actions?query=workflow%3A"macOS+Build")
 
-### http://timg.sh/
+### https://timg.sh/
 
 A user-friendly viewer that uses 24-Bit color capabilities and unicode
 character blocks to display images, animations and videos in the terminal.
