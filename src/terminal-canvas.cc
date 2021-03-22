@@ -83,15 +83,15 @@ void TerminalCanvas::MoveCursorDX(int cols) {
 }
 
 void TerminalCanvas::ClearScreen() {
-    AddPrefixNextSend(SCREEN_CLEAR, sizeof(SCREEN_CLEAR));
+    AddPrefixNextSend(SCREEN_CLEAR, strlen(SCREEN_CLEAR));
 }
 
 void TerminalCanvas::CursorOff() {
-    AddPrefixNextSend(CURSOR_OFF, sizeof(CURSOR_OFF));
+    AddPrefixNextSend(CURSOR_OFF, strlen(CURSOR_OFF));
 }
 
 void TerminalCanvas::CursorOn() {
-    AddPrefixNextSend(CURSOR_ON, sizeof(CURSOR_ON));
+    AddPrefixNextSend(CURSOR_ON, strlen(CURSOR_ON));
 }
 
 }  // namespace timg
