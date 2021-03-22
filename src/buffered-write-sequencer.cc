@@ -24,6 +24,12 @@ static constexpr int kChunkSize = 1 << 16;
 static constexpr uint32_t kSentinel = 0x5e9719e1;
 
 namespace timg {
+struct BufferedWriteSequencer::MemBlock {
+    size_t size;
+    uint32_t sentinel;
+    char data[];
+};
+
 BufferedWriteSequencer::BufferedWriteSequencer(
     int fd, bool allow_frame_skip, int max_queu_len,
     const volatile sig_atomic_t &interrupt_received)
@@ -42,13 +48,11 @@ BufferedWriteSequencer::~BufferedWriteSequencer() {
     }
     work_sync_.notify_all();
     work_executor_->join();
+    while (!mempool_.empty()) {
+        free(mempool_.front());
+        mempool_.pop();
+    }
 }
-
-struct BufferedWriteSequencer::MemBlock {
-    size_t size;
-    uint32_t sentinel;
-    char data[];
-};
 
 char *BufferedWriteSequencer::RequestBuffer(size_t size) {
     {
@@ -159,6 +163,7 @@ void BufferedWriteSequencer::ProcessQueue() {
         bool do_skip = false;
         if (interrupt_received_ &&
             work_item.sequence_type != SeqType::ControlWrite) {
+            free(work_item.block);  // Exiting. Don't need memory block anymore.
             continue;  // Finish quickly, discard any queued-up frames.
         }
         switch (work_item.sequence_type) {
