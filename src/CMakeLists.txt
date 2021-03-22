@@ -58,3 +58,14 @@ endif()
 install(TARGETS timg
   RUNTIME DESTINATION bin
 )
+
+# Local debian package creation until available natively in Debian.
+# Use
+#   cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ../
+#   cpack
+SET(CPACK_GENERATOR "DEB")
+SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "henner.zeller+unsupported-timg-deb@gmail.com")
+SET(CPACK_DEBIAN_PACKAGE_DESCRIPTION "A terminal image and video viewer.")
+SET(CPACK_DEBIAN_PACKAGE_HOMEPAGE "https://timg.sh/")
+SET(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+INCLUDE(CPack)
