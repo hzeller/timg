@@ -3,7 +3,7 @@ timg - Terminal Image and Video Viewer
 
 [![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://github.com/hzeller/timg/blob/main/LICENSE) &nbsp;
 [![Ubuntu Build](../../workflows/Ubuntu%20Build/badge.svg)](../../actions?query=workflow%3A"Ubuntu+Build")
-[![macOS Build](../../workflows/macOS%20Build/badge.svg)](../../actions?query=workflow%3A"macOS+Build")
+[![macOS Brew Build HEAD](../../workflows/macOS%20Brew%20Build/badge.svg)](../../actions?query=workflow%3A"macOS+Brew+Build")
 
 ### https://timg.sh/
 
@@ -407,7 +407,7 @@ there, please let me know.
 
 For Mac users, at least the combination of macOS 11.2 and iTerm2 3.4.3 works.
 
-### Build and Install
+### Linux - Build and Install 
 
 #### Get repo
 
@@ -429,21 +429,6 @@ sudo apt install libavdevice-dev # If you want to read from video devices such a
 sudo apt install pandoc  # If you want to recreate the man page
 ```
 
-#### Get dependencies on macOS
-
-```bash
-# Homebrew needs to be available to install required dependencies
-brew install cmake git GraphicsMagick webp jpeg-turbo libexif  # needed libs
-
-# Work around glitch in pkg-config and jpeg-turbo.
-brew unlink jpeg && brew link --force jpeg-turbo
-
-# If you want to include video decoding, install these additional libraries
-brew install ffmpeg
-
-brew install pandoc  # If you want to recreate the man page
-```
-
 #### Compile timg
 
 ```bash
@@ -462,6 +447,19 @@ the binary and [manpage](man/timg.1.md) on your system, type in the build direct
 
 ```bash
 sudo make install
+```
+
+### macOS - Build and Install
+
+#### Install last release
+```bash
+brew install timg
+```
+
+#### Build and install from HEAD
+```bash
+brew install --only-dependencies --HEAD timg
+brew install --build-from-source --HEAD timg
 ```
 
 [24-bit-term]: https://gist.github.com/XVilka/8346728
