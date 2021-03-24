@@ -13,5 +13,5 @@ jobs:
       - name: Run everything
         run: |
           brew install --only-dependencies --HEAD timg
-          brew install --build-bottle --HEAD timg
+          brew install --build-from-source --HEAD timg
           brew test timg
