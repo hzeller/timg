@@ -1,5 +1,5 @@
 
-name: macOS Brew Build
+name: macOS Brew Building HEAD
 on:
   push:
     branches:
