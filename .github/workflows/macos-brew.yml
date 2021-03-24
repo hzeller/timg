@@ -1,0 +1,17 @@
+
+name: macOS Brew Build
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  install_dependencies_and_build:
+    name: Build and test formula
+    runs-on: macos-latest
+    steps:
+      - name: Run everything
+        run: |
+          brew install --only-dependencies --HEAD timg
+          brew install --build-bottle --HEAD timg
+          brew test timg
