@@ -3,7 +3,9 @@ timg - Terminal Image and Video Viewer
 
 [![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://github.com/hzeller/timg/blob/main/LICENSE) &nbsp;
 [![Ubuntu Build](../../workflows/Ubuntu%20Build/badge.svg)](../../actions?query=workflow%3A"Ubuntu+Build")
-[![macOS Brew Build HEAD](../../workflows/macOS%20Brew%20Build/badge.svg)](../../actions?query=workflow%3A"macOS+Brew+Build")
+[![macOS Build](../../workflows/macOS%20Build/badge.svg)](../../actions?query=workflow%3A"macOS+Build")
+[![macOS Brew Building HEAD](../../workflows/macOS%20Brew%20Building%20HEAD/badge.svg)](../../actions?query=workflow%3A"macOS+Brew+Building+HEAD")
+
 
 ### https://timg.sh/
 
@@ -451,12 +453,12 @@ sudo make install
 
 ### macOS - Build and Install
 
-#### Install last release
+#### Install latest release
 ```bash
 brew install timg
 ```
 
-#### Build and install from HEAD
+#### Build and install HEAD
 ```bash
 brew install --only-dependencies --HEAD timg
 brew install --build-from-source --HEAD timg
