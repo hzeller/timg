@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - brew-ci
 
 jobs:
   install_dependencies_and_build:
