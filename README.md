@@ -409,13 +409,14 @@ there, please let me know.
 
 For Mac users, at least the combination of macOS 11.2 and iTerm2 3.4.3 works.
 
-### Linux - Build and Install 
+### Install pre-built package
 
-#### Get repo
-
+#### macOS
 ```bash
-git clone https://github.com/hzeller/timg.git
+brew install timg
 ```
+
+### Build from source
 
 #### Get dependencies on Debian/Ubuntu
 
@@ -431,9 +432,25 @@ sudo apt install libavdevice-dev # If you want to read from video devices such a
 sudo apt install pandoc  # If you want to recreate the man page
 ```
 
-#### Compile timg
+#### Get dependencies on macOS
 
 ```bash
+# Homebrew needs to be available to install required dependencies
+brew install cmake git GraphicsMagick webp jpeg-turbo libexif  # needed libs
+
+# Work around glitch in pkg-config and jpeg-turbo.
+brew unlink jpeg && brew link --force jpeg-turbo
+
+# If you want to include video decoding, install these additional libraries
+brew install ffmpeg
+
+brew install pandoc  # If you want to recreate the man page
+```
+
+#### Get repo and compile timg
+
+```bash
+git clone https://github.com/hzeller/timg.git  # Get repo
 cd timg  # Enter the checked out repository directory.
 mkdir build  # Generate a dedicated build directory.
 cd build
@@ -449,19 +466,6 @@ the binary and [manpage](man/timg.1.md) on your system, type in the build direct
 
 ```bash
 sudo make install
-```
-
-### macOS - Build and Install
-
-#### Install latest release
-```bash
-brew install timg
-```
-
-#### Build and install HEAD
-```bash
-brew install --only-dependencies --HEAD timg
-brew install --build-from-source --HEAD timg
 ```
 
 [24-bit-term]: https://gist.github.com/XVilka/8346728
