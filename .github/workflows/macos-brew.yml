@@ -13,6 +13,7 @@ jobs:
     steps:
       - name: Run everything
         run: |
+          brew update
           brew install --only-dependencies --HEAD timg
           brew install --build-from-source --HEAD timg
           brew test timg
