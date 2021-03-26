@@ -736,8 +736,11 @@ int main(int argc, char *argv[]) {
     }
 
     static constexpr int kAsyncWriteQueueSize = 3;
+    // Since Unicode blocks emit differences, we can't skip frames in output.
+    const bool buffer_allow_skipping = (display_opts.allow_frame_skipping &&
+                                        is_pixel_direct_p(pixelation));
     timg::BufferedWriteSequencer sequencer(output_fd,
-                                           display_opts.allow_frame_skipping,
+                                           buffer_allow_skipping,
                                            kAsyncWriteQueueSize,
                                            interrupt_received);
     const Time start_show = Time::Now();
@@ -769,6 +772,10 @@ int main(int argc, char *argv[]) {
                 timg::HumanReadableByteValue(written_bytes).c_str(),
                 timg::HumanReadableByteValue(written_bytes / d).c_str(),
                 sequencer.frames_total());
+        // Only show FPS if we have one video or animation
+        if (filelist.size() == 1 && sequencer.frames_total() > 100) {
+            fprintf(stderr, "; %.1ffps", sequencer.frames_total()/d);
+        }
         if (display_opts.allow_frame_skipping && sequencer.frames_total() > 0) {
             fprintf(stderr, " (%" PRId64 " skipped, %.1f%%)\n",
                     sequencer.frames_skipped(),
