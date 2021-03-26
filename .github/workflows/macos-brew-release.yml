@@ -1,0 +1,14 @@
+name: macOS Brew Building HEAD
+on:
+  release:
+    types: [published]
+    branches: [main,brew-update-on-release]
+
+jobs:
+  install_dependencies_and_build:
+    name: Print the environment 
+    runs-on: macos-latest
+    steps:
+      - name: Run everything
+        run: |
+             env
