@@ -103,6 +103,7 @@ Options:
         -E             : Don't hide the cursor while showing images.
         --threads=<n>  : Run image decoding in parallel with n threads
                          (Default 2, half #cores on this machine)
+        --color8       : Choose 8 bit color mode for -ph or -pq
         --version      : Print version and exit.
         -h, --help     : Print this help and exit.
 
@@ -307,8 +308,9 @@ The `-p` command line flag allows to choose between `-p half`, `-p quarter`,
 also possible to just shorten to `-ph` and `-pq`. Default is `-pq`
 (see [above](#pixelation) how this looks like).
 
-Terminals that don't support Unicode or 24 bit color are not supported; they
-will probably not show a very pleasent output.
+Terminals that don't support Unicode or 24 bit color will probably not show
+a very pleasent output. For terminals that only do 8 bit color, use the
+`--color8` command line option.
 
 #### Some terminals support direct image output
 

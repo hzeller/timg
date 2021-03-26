@@ -198,6 +198,10 @@ these file decoders (GraphicsMagick or libav respectively).
 :    Run image decoding in parallel with n threads. By default, half the
      reported CPU-cores are used.
 
+**-\-color8**
+:   Use 8 bit color mode for terminals that don't support 24 bit color
+    (only shows 6x6x6 = 216 distinct colors instead of 256x256x256 = 16777216).
+
 **-\-version**
 :    Print version and exit.
 

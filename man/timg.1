@@ -170,7 +170,7 @@ allow some time to show the image of course, so good in combination with
 .RE
 .TP
 \f[B]-U\f[R], \f[B]--upscale=[i]\f[R]
-Allo Upscaling.
+Allow Upscaling.
 If an image is smaller than the terminal size, scale it up to fit the
 terminal.
 .RS
@@ -232,6 +232,11 @@ Don\[cq]t hide the cursor while showing images.
 \f[B]--threads\f[R]=<\f[I]n\f[R]>
 Run image decoding in parallel with n threads.
 By default, half the reported CPU-cores are used.
+.TP
+\f[B]--color8\f[R]
+Use 8 bit color mode for terminals that don\[cq]t support 24 bit color
+(only shows 6x6x6 = 216 distinct colors instead of 256x256x256 =
+16777216).
 .TP
 \f[B]--version\f[R]
 Print version and exit.

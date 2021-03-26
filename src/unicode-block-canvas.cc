@@ -28,9 +28,16 @@
 
 #define PIXEL_BLOCK_CHARACTER_LEN strlen("\u2584")  // blocks are 3 bytes UTF8
 
-#define PIXEL_SET_FG_COLOR     "38;2;"
-#define PIXEL_SET_BG_COLOR     "48;2;"
-#define PIXEL_SET_COLOR_LEN     strlen(PIXEL_SET_FG_COLOR)
+// 24 bit color setting
+#define PIXEL_SET_FG_COLOR24     "38;2;"
+#define PIXEL_SET_BG_COLOR24     "48;2;"
+
+// 8 bit color setting
+#define PIXEL_SET_FG_COLOR8     "38;5;"
+#define PIXEL_SET_BG_COLOR8     "48;5;"
+
+
+#define PIXEL_SET_COLOR_LEN     strlen(PIXEL_SET_FG_COLOR24)  // all the same
 
 // Maximum length of the color value sequence
 #define ESCAPE_COLOR_MAX_LEN    strlen("rrr;ggg;bbb")
@@ -75,10 +82,12 @@ static constexpr const char *kBlockGlyphs[9] = {
 
 UnicodeBlockCanvas::UnicodeBlockCanvas(BufferedWriteSequencer *ws,
                                        bool use_quarter,
-                                       bool use_upper_half_block)
+                                       bool use_upper_half_block,
+                                       bool use_256_color)
     : TerminalCanvas(ws),
       use_quarter_blocks_(use_quarter),
-      use_upper_half_block_(use_upper_half_block) {
+      use_upper_half_block_(use_upper_half_block),
+      use_256_color_(use_256_color) {
 }
 
 UnicodeBlockCanvas::~UnicodeBlockCanvas() {
@@ -87,7 +96,17 @@ UnicodeBlockCanvas::~UnicodeBlockCanvas() {
 }
 
 static char *int_append_with_semicolon(char *buf, uint8_t val);
-static char *WriteAnsiColor(char *buf, rgba_t color) {
+template <int colorbits> static inline const char *AnsiSetFG() {
+    return colorbits == 8 ? PIXEL_SET_FG_COLOR8 : PIXEL_SET_FG_COLOR24;
+}
+template <int colorbits> static inline const char *AnsiSetBG() {
+    return colorbits == 8 ? PIXEL_SET_BG_COLOR8 : PIXEL_SET_BG_COLOR24;
+}
+template <int colorbits> static char *AnsiWriteColor(char *buf, rgba_t color) {
+    static_assert(colorbits == 8 || colorbits == 24, "unsupported color bits");
+    if (colorbits == 8)
+        return int_append_with_semicolon(buf, color.As256TermColor());
+
     buf = int_append_with_semicolon(buf, color.r);
     buf = int_append_with_semicolon(buf, color.g);
     return int_append_with_semicolon(buf, color.b);
@@ -194,7 +213,7 @@ UnicodeBlockCanvas::GlyphPick UnicodeBlockCanvas::FindBestGlyph(
 }
 
 // Append two rows of pixels at once.
-template <int N>   // Advancing these number of x-pixels per char
+template <int N, int colorbits>   // Advancing N x-pixels per char
 char *UnicodeBlockCanvas::AppendDoubleRow(char *pos, int indent, int width,
                                       const rgba_t *tline,
                                       const rgba_t *bline,
@@ -237,8 +256,8 @@ char *UnicodeBlockCanvas::AppendDoubleRow(char *pos, int indent, int width,
             (last_fg_unknown || pick.fg != last_foreground)) {
             // Appending prefix. At this point, it can only be kStartEscape
             pos = str_append(pos, kStartEscape, strlen(kStartEscape));
-            pos = str_append(pos, PIXEL_SET_FG_COLOR, PIXEL_SET_COLOR_LEN);
-            pos = WriteAnsiColor(pos, pick.fg);
+            pos = str_append(pos, AnsiSetFG<colorbits>(), PIXEL_SET_COLOR_LEN);
+            pos = AnsiWriteColor<colorbits>(pos, pick.fg);
             color_emitted = true;
             last_foreground = pick.fg;
             last_fg_unknown = false;
@@ -253,8 +272,9 @@ char *UnicodeBlockCanvas::AppendDoubleRow(char *pos, int indent, int width,
                 // This is best effort and only happens with -b none
                 pos = str_append(pos, "49;", 3);  // Reset background color
             } else {
-                pos = str_append(pos, PIXEL_SET_BG_COLOR, PIXEL_SET_COLOR_LEN);
-                pos = WriteAnsiColor(pos, pick.bg);
+                pos = str_append(pos, AnsiSetBG<colorbits>(),
+                                 PIXEL_SET_COLOR_LEN);
+                pos = AnsiWriteColor<colorbits>(pos, pick.bg);
             }
             color_emitted = true;
             last_bg_unknown = false;
@@ -299,7 +319,7 @@ void UnicodeBlockCanvas::Send(int x, int dy,
     const char *before_image_emission = pos;
 
     const rgba_t *const pixels = framebuffer.begin();
-    const rgba_t *top_line, *bottom_line;
+    const rgba_t *top_row, *bottom_row;
 
     // If we just got requested to move back where we started the last image,
     // we just need to emit pixels that changed.
@@ -319,18 +339,28 @@ void UnicodeBlockCanvas::Send(int x, int dy,
     const bool top_optional_blank = !use_upper_half_block_;
     const int row_offset = (needs_empty_line && top_optional_blank) ? -1 : 0;
 
-    int accumulated_y_skip = 0;
+    int y_skip = 0;
     for (int y = 0; y < height; y+=2) {
         const int row = y + row_offset;
-        top_line = row < 0 ? empty_line_ : &pixels[width*row];
-        bottom_line = (row+1) >= height ? empty_line_ : &pixels[width*(row+1)];
+        top_row = row < 0 ? empty_line_ : &pixels[width*row];
+        bottom_row = (row+1) >= height ? empty_line_ : &pixels[width*(row+1)];
 
-        if (use_quarter_blocks_) {
-            pos = AppendDoubleRow<2>(pos, x, width, top_line, bottom_line,
-                                     emit_difference, &accumulated_y_skip);
+        if (use_256_color_) {
+            if (use_quarter_blocks_) {
+                pos = AppendDoubleRow<2, 8>(pos, x, width, top_row, bottom_row,
+                                            emit_difference, &y_skip);
+            } else {
+                pos = AppendDoubleRow<1, 8>(pos, x, width, top_row, bottom_row,
+                                            emit_difference, &y_skip);
+            }
         } else {
-            pos = AppendDoubleRow<1>(pos, x, width, top_line, bottom_line,
-                                     emit_difference, &accumulated_y_skip);
+            if (use_quarter_blocks_) {
+                pos = AppendDoubleRow<2, 24>(pos, x, width, top_row, bottom_row,
+                                             emit_difference, &y_skip);
+            } else {
+                pos = AppendDoubleRow<1, 24>(pos, x, width, top_row, bottom_row,
+                                             emit_difference, &y_skip);
+            }
         }
     }
     last_framebuffer_height_ = height;
@@ -341,8 +371,8 @@ void UnicodeBlockCanvas::Send(int x, int dy,
         return;
     }
 
-    if (accumulated_y_skip) {
-        pos += sprintf(pos, SCREEN_CURSOR_DN_FORMAT, accumulated_y_skip);
+    if (y_skip) {
+        pos += sprintf(pos, SCREEN_CURSOR_DN_FORMAT, y_skip);
     }
     write_sequencer_->WriteBuffer(start_buffer, pos - start_buffer,
                                   seq_type, end_of_frame);

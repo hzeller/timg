@@ -31,8 +31,10 @@ public:
     // If "use_quarter" is set, use quarter blocks instead of half-blocks.
     // if "use_upper_half_block" is set, uses the upper instead of the
     // lower block (only for use_quarter == false).
+    // "use_256_color" is for terminals that can't do 24 bit colors.
     UnicodeBlockCanvas(BufferedWriteSequencer *ws,
-                       bool use_quarter, bool use_upper_half_block);
+                       bool use_quarter, bool use_upper_half_block,
+                       bool use_256_color);
     ~UnicodeBlockCanvas() override;
 
     void Send(int x, int dy, const Framebuffer &framebuffer,
@@ -42,6 +44,7 @@ private:
     struct GlyphPick;
     const bool use_quarter_blocks_;
     const bool use_upper_half_block_;
+    const bool use_256_color_;
 
     // Ensure that all buffers needed for emitting the framebuffer have
     // enough space.
@@ -49,7 +52,7 @@ private:
     // to be used with the write sequencer.
     char *RequestBuffers(int width, int height);
 
-    template <int N>
+    template <int N, int colorbits>
     char *AppendDoubleRow(char *pos, int indent, int width,
                           const rgba_t *top_line,
                           const rgba_t *bottom_line,

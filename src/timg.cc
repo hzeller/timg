@@ -100,10 +100,18 @@ enum class ClearScreen {
 namespace timg {
 // Options configuring how images/videos are arranged and presented.
 struct PresentationOptions {
-    Duration duration_per_image = Duration::InfiniteFuture();
-    int loops = timg::kNotInitialized;  // If animation: loop count through all
+    // Rendering
+    Pixelation pixelation = Pixelation::kNotChosen;
+    bool terminal_use_upper_block = false;
+    bool use_256_color = false;   // For terminals that don't do 24 bit color
+
+    // Arrangement
     int grid_cols = 1;                  // Grid arrangement
     int grid_rows = 1;
+
+    // Per image
+    Duration duration_per_image = Duration::InfiniteFuture();
+    int loops = timg::kNotInitialized;  // If animation: loop count through all
     bool hide_cursor = true;            // Hide cursor while emitting image
     ClearScreen clear_screen = ClearScreen::kNot; // Clear between images ?
     Duration duration_between_images;   // How long to wait between images
@@ -172,6 +180,7 @@ static int usage(const char *progname, ExitCode exit_code,
             "\t-E             : Don't hide the cursor while showing images.\n"
             "\t--threads=<n>  : Run image decoding in parallel with n threads\n"
             "\t                 (Default %d, half #cores on this machine)\n"
+            "\t--color8       : Choose 8 bit color mode for -ph or -pq\n"
             "\t--version      : Print version and exit.\n"
             "\t-h, --help     : Print this help and exit.\n"
 
@@ -215,10 +224,9 @@ bool AppendToFileList(const std::string &filelist_file,
 static void PresentImages(LoadedImageSources &loaded_sources,
                           const timg::DisplayOptions &display_opts,
                           const timg::PresentationOptions &present,
-                          Pixelation pixelation, bool terminal_use_upper_block,
                           timg::BufferedWriteSequencer *sequencer) {
     std::unique_ptr<TerminalCanvas> canvas;
-    switch (pixelation) {
+    switch (present.pixelation) {
     case Pixelation::kKittyGraphics:
         canvas.reset(new KittyGraphicsCanvas(sequencer, display_opts));
         break;
@@ -229,8 +237,10 @@ static void PresentImages(LoadedImageSources &loaded_sources,
     case Pixelation::kQuarterBlock:
     case Pixelation::kNotChosen:  // Should not happen.
         canvas.reset(new UnicodeBlockCanvas(
-                         sequencer, pixelation == Pixelation::kQuarterBlock,
-                         terminal_use_upper_block));
+                         sequencer,
+                         present.pixelation == Pixelation::kQuarterBlock,
+                         present.terminal_use_upper_block,
+                         present.use_256_color));
     }
 
     auto renderer = timg::Renderer::Create(
@@ -286,11 +296,11 @@ int main(int argc, char *argv[]) {
 
     bool verbose = false;
     const timg::TermSizeResult term = timg::DetermineTermSize();
-    const bool terminal_use_upper_block =
-        timg::GetBoolenEnv("TIMG_USE_UPPER_BLOCK");
 
     timg::DisplayOptions display_opts;
-    timg::PresentationOptions presentation;
+    timg::PresentationOptions present;
+    present.terminal_use_upper_block =
+        timg::GetBoolenEnv("TIMG_USE_UPPER_BLOCK");
 
     const char *bg_color = "auto";
     const char *bg_pattern_color = nullptr;
@@ -306,7 +316,6 @@ int main(int argc, char *argv[]) {
     int thread_count = kDefaultThreadCount;
     int geometry_width = (term.cols - 2);
     int geometry_height = (term.rows - 2);
-    Pixelation pixelation = Pixelation::kNotChosen;
 
     // Convenience predicate: pixelation sending high-res images, no blocks.
     const auto is_pixel_direct_p = [](Pixelation p) {
@@ -315,6 +324,7 @@ int main(int argc, char *argv[]) {
 
     enum LongOptionIds {
         OPT_CLEAR_SCREEN = 1000,
+        OPT_COLOR_256,
         OPT_COMPRESS_PIXEL,
         OPT_FRAME_COUNT,
         OPT_FRAME_OFFSET,
@@ -332,6 +342,7 @@ int main(int argc, char *argv[]) {
         { "auto-crop",   optional_argument, NULL, 'T' },
         { "center",      no_argument,       NULL, 'C' },
         { "clear",       optional_argument, NULL, OPT_CLEAR_SCREEN },
+        { "color8",      no_argument,       NULL, OPT_COLOR_256 },
         { "compress",    no_argument,       NULL, OPT_COMPRESS_PIXEL },
         { "delta-move",  required_argument, NULL, 'd' },
         { "experimental-frame-offset",required_argument, NULL, OPT_FRAME_OFFSET },
@@ -373,26 +384,26 @@ int main(int argc, char *argv[]) {
             }
             break;
         case 'w':
-            presentation.duration_between_images
+            present.duration_between_images
                 = Duration::Millis(roundf(atof(optarg) * 1000.0f));
             break;
         case 't':
-            presentation.duration_per_image
+            present.duration_per_image
                 = Duration::Millis(roundf(atof(optarg) * 1000.0f));
-            if (presentation.duration_per_image.is_zero()) {
+            if (present.duration_per_image.is_zero()) {
                 fprintf(stderr, "Note, -t<zero-duration> will effectively "
                         "skip animations/movies\n");
             }
             break;
         case 'c':  // Legacy option, now long opt. Keep for now.
             // No parameter --loop essentially defaults to loop forever.
-            presentation.loops = optarg ? atoi(optarg) : -1;
+            present.loops = optarg ? atoi(optarg) : -1;
             break;
         case OPT_CLEAR_SCREEN:
             if (optarg) {
                 const int optlen = strlen(optarg);
                 if (optlen <= 5 && strncasecmp(optarg, "every", optlen) == 0)
-                    presentation.clear_screen = ClearScreen::kBeforeEachImage;
+                    present.clear_screen = ClearScreen::kBeforeEachImage;
                 else {
                     fprintf(stderr, "Paramter for --clear can be 'every', "
                             "got %s\n", optarg);
@@ -400,7 +411,7 @@ int main(int argc, char *argv[]) {
                                  geometry_width, geometry_height);
                 }
             } else {
-                presentation.clear_screen = ClearScreen::kBeforeFirstImage;
+                present.clear_screen = ClearScreen::kBeforeFirstImage;
             }
             break;
         case OPT_FRAME_OFFSET:
@@ -456,13 +467,13 @@ int main(int argc, char *argv[]) {
             break;
         case OPT_GRID:
             switch (sscanf(optarg, "%dx%d",
-                           &presentation.grid_cols, &presentation.grid_rows)) {
+                           &present.grid_cols, &present.grid_rows)) {
             case 0:
                 fprintf(stderr, "Invalid grid spec '%s'", optarg);
                 return usage(argv[0], ExitCode::kParameterError,
                              geometry_width, geometry_height);
             case 1:
-                presentation.grid_rows = presentation.grid_cols;
+                present.grid_rows = present.grid_cols;
                 break;
             }
             break;
@@ -496,7 +507,7 @@ int main(int argc, char *argv[]) {
             display_opts.show_filename = !display_opts.show_filename;
             break;
         case 'E':
-            presentation.hide_cursor = false;
+            present.hide_cursor = false;
             break;
         case 'W':
             display_opts.fill_width = true;
@@ -528,15 +539,18 @@ int main(int argc, char *argv[]) {
             }
             break;
         case 'p':
-            switch (optarg[0]) {  // Just looking at first character sufficient
-            case 'h': case 'H': pixelation = Pixelation::kHalfBlock; break;
-            case 'q': case 'Q': pixelation = Pixelation::kQuarterBlock; break;
-            case 'k': case 'K': pixelation = Pixelation::kKittyGraphics; break;
-            case 'i': case 'I': pixelation = Pixelation::kiTerm2Graphics; break;
+            switch (tolower(optarg[0])) {
+            case 'h': present.pixelation = Pixelation::kHalfBlock;      break;
+            case 'q': present.pixelation = Pixelation::kQuarterBlock;   break;
+            case 'k': present.pixelation = Pixelation::kKittyGraphics;  break;
+            case 'i': present.pixelation = Pixelation::kiTerm2Graphics; break;
             }
             break;
         case OPT_COMPRESS_PIXEL:
             display_opts.compress_pixel_format = true;
+            break;
+        case OPT_COLOR_256:
+            present.use_256_color = true;
             break;
         case OPT_VERBOSE:
             verbose = true;
@@ -565,7 +579,7 @@ int main(int argc, char *argv[]) {
     }
 
     if ((term.font_width_px < 0 || term.font_height_px < 0) &&
-        is_pixel_direct_p(pixelation)) {
+        is_pixel_direct_p(present.pixelation)) {
         // Best effort mode if someone requests graphics protocol, but
         // we don't know cell size in pixels.
         //
@@ -586,27 +600,28 @@ int main(int argc, char *argv[]) {
         display_opts.compress_pixel_format = true;
         // Because we don't know how much to move up and right. Also, hterm
         // does not seem to place an image in X-direction in the first place.
-        presentation.grid_cols = 1;
+        present.grid_cols = 1;
     }
 
     // Determine best default to pixelate images.
-    if (pixelation == Pixelation::kNotChosen) {
-        pixelation = Pixelation::kQuarterBlock;  // Good default.
+    if (present.pixelation == Pixelation::kNotChosen) {
+        present.pixelation = Pixelation::kQuarterBlock;  // Good default.
         // Konsole has the bad behaviour that it does not absorb the kitty
         // graphics query but spills it on the screen. "Luckily", Konsole has
         // another bug not returning the window pixel size, so we can use that
         // to avoid the query :)
         if (term.font_width_px > 0 && term.font_height_px > 0) {
             if (timg::QueryHasITerm2Graphics())
-                pixelation = Pixelation::kiTerm2Graphics;
+                present.pixelation = Pixelation::kiTerm2Graphics;
             else if (timg::QueryHasKittyGraphics())
-                pixelation = Pixelation::kKittyGraphics;
+                present.pixelation = Pixelation::kKittyGraphics;
         }
     }
 
     // If 'none' is chosen for background color, then using the
     // PNG compression with alpha channels gives us compositing on client side
-    if (is_pixel_direct_p(pixelation) && strcasecmp(bg_color, "none") == 0) {
+    if (is_pixel_direct_p(present.pixelation) &&
+        strcasecmp(bg_color, "none") == 0) {
         display_opts.compress_pixel_format = true;
         display_opts.local_alpha_handling = false;
     }
@@ -614,13 +629,13 @@ int main(int argc, char *argv[]) {
     // If we're using block graphics, we might need to adapt the aspect ratio
     // slightly depending if the font-cell has a 1:2 ratio.
     // Terminals using direct pixels don't need this.
-    const float stretch_correct = is_pixel_direct_p(pixelation)
+    const float stretch_correct = is_pixel_direct_p(present.pixelation)
         ? 1.0f
         : 0.5f * term.font_height_px / term.font_width_px;
     display_opts.width_stretch = timg::GetFloatEnv("TIMG_FONT_WIDTH_CORRECT",
                                                    stretch_correct);
 
-    switch (pixelation) {
+    switch (present.pixelation) {
     case Pixelation::kHalfBlock:
         display_opts.cell_x_px = 1;
         display_opts.cell_y_px = 2;
@@ -659,10 +674,10 @@ int main(int argc, char *argv[]) {
         display_opts.scroll_animation = false;
     }
 
-    if (presentation.clear_screen == ClearScreen::kBeforeEachImage &&
-        (presentation.grid_cols != 1 || presentation.grid_rows != 1)) {
+    if (present.clear_screen == ClearScreen::kBeforeEachImage &&
+        (present.grid_cols != 1 || present.grid_rows != 1)) {
         // Clear every only makes sense with no grid.
-        presentation.clear_screen = ClearScreen::kBeforeFirstImage;
+        present.clear_screen = ClearScreen::kBeforeFirstImage;
     }
 
     // If we scroll in one direction (so have 'infinite' space) we want fill
@@ -674,19 +689,19 @@ int main(int argc, char *argv[]) {
 
     // Showing exactly one frame implies animation behaves as static image
     if (max_frames == 1) {
-        presentation.loops = 1;
+        present.loops = 1;
     }
 
     // If nothing is set to limit animations but we have multiple images,
     // set some sensible limit.
-    if (filelist.size() > 1 && presentation.loops == timg::kNotInitialized
-        && presentation.duration_between_images == Duration::InfiniteFuture()) {
-        presentation.loops = 1;  // Don't get stuck on the first endless-loop
+    if (filelist.size() > 1 && present.loops == timg::kNotInitialized
+        && present.duration_between_images == Duration::InfiniteFuture()) {
+        present.loops = 1;  // Don't get stuck on the first endless-loop
     }
 
     if (display_opts.show_filename) {
         // Leave space for text.
-        display_opts.height -= display_opts.cell_y_px * presentation.grid_rows;
+        display_opts.height -= display_opts.cell_y_px * present.grid_rows;
     }
 
     // Asynconrous image loading (filelist.size()) and terminal query (+1)
@@ -715,8 +730,8 @@ int main(int argc, char *argv[]) {
     display_opts.bg_pattern_color = rgba_t::ParseColor(bg_pattern_color);
 
     // In a grid, we have less space per picture.
-    display_opts.width /= presentation.grid_cols;
-    display_opts.height /= presentation.grid_rows;
+    display_opts.width /= present.grid_cols;
+    display_opts.height /= present.grid_rows;
 
     ExitCode exit_code = ExitCode::kSuccess;
 
@@ -741,15 +756,13 @@ int main(int argc, char *argv[]) {
     static constexpr int kAsyncWriteQueueSize = 3;
     // Since Unicode blocks emit differences, we can't skip frames in output.
     const bool buffer_allow_skipping = (display_opts.allow_frame_skipping &&
-                                        is_pixel_direct_p(pixelation));
+                                        is_pixel_direct_p(present.pixelation));
     timg::BufferedWriteSequencer sequencer(output_fd,
                                            buffer_allow_skipping,
                                            kAsyncWriteQueueSize,
                                            interrupt_received);
     const Time start_show = Time::Now();
-    PresentImages(loaded_sources, display_opts, presentation,
-                  pixelation, terminal_use_upper_block,
-                  &sequencer);
+    PresentImages(loaded_sources, display_opts, present, &sequencer);
     sequencer.Flush();
     const Time end_show = Time::Now();
 
