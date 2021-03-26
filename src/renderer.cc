@@ -67,7 +67,7 @@ public:
                         const DisplayOptions &display_opts,
                         int cols, int rows)
         : Renderer(canvas, display_opts),
-          columns_(cols), column_width_(display_opts.width / cols) {
+          columns_(cols), column_width_(display_opts.width) {
     }
 
     ~MultiColumnRenderer() final {
