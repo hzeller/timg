@@ -286,10 +286,11 @@ the output is not as expected.
 #### Half block and quarter block rendering
 
 The half block pixelation (`-p half`) uses the the unicode
-characters [▄](U+2584 - 'Lower Half Block')
-or [▀](U+2580 - 'Upper Half Block') (depending on the
+character [▄](U+2584 - 'Lower Half Block')
+_or_ [▀](U+2580 - 'Upper Half Block') (depending on the
 [`TIMG_USE_UPPER_BLOCK`](#half-block-choice-of-rendering-block)
-environment variable).
+environment variable). If the top and bottom color is the same, a simple
+space with background color is used.
 
 The quarter block pixelation (`-p quarter`) uses eight different blocks.
 
