@@ -90,8 +90,9 @@ Options:
                               Default: exif.
         --clear        : Clear screen first. Optional argument 'every' will clean
                          before every image (useful with -w)
-        -U             : Toggle Upscale. If an image is smaller (e.g. an icon) than the
-                         available frame, enlarge it to fit.
+        -U, --upscale[=i]: Allow Upscaling. If an image is smaller than the available
+                         frame (e.g. an icon), enlarge it to fit. Optional
+                         parameter 'i' only enlarges in sharp integer increments.
         -V             : Directly use Video subsystem. Don't probe image decoding first.
                          (useful, if you stream video from stdin).
         -I             : Only  use Image subsystem. Don't attempt video decoding.

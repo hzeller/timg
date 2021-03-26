@@ -47,6 +47,7 @@ struct DisplayOptions {
     float width_stretch = 1.0;  // To correct font squareness aspect ratio
 
     bool upscale = false;       // enlarging image only if this is true
+    bool upscale_integer = false; // Upscale only in integer increments.
     bool fill_width = false;    // Fill screen width, allow overflow height.
     bool fill_height = false;   // Fill screen height, allow overflow width.
     bool antialias = true;      // Try a pleasing antialiasing while scaling.

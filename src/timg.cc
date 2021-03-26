@@ -157,8 +157,9 @@ static int usage(const char *progname, ExitCode exit_code,
             "\t                      Default: exif.\n"
             "\t--clear        : Clear screen first. Optional argument 'every' will clean\n"
             "\t                 before every image (useful with -w)\n"
-            "\t-U             : Toggle Upscale. If an image is smaller (e.g. an icon) than the \n"
-            "\t                 available frame, enlarge it to fit.\n"
+            "\t-U, --upscale[=i]: Allow Upscaling. If an image is smaller than the available\n"
+            "\t                 frame (e.g. an icon), enlarge it to fit. Optional\n"
+            "\t                 parameter 'i' only enlarges in sharp integer increments.\n"
 #ifdef WITH_TIMG_VIDEO
             "\t-V             : Directly use Video subsystem. Don't probe image decoding first.\n"
             "\t                 (useful, if you stream video from stdin).\n"
@@ -345,6 +346,7 @@ int main(int argc, char *argv[]) {
         { "scroll",      optional_argument, NULL, 's' },
         { "threads",     required_argument, NULL, OPT_THREADS },
         { "title",       no_argument,       NULL, 'F' },
+        { "upscale",     optional_argument, NULL, 'U' },
         { "verbose",     no_argument,       NULL, OPT_VERBOSE },
         { "version",     no_argument,       NULL, OPT_VERSION },
         { 0, 0, 0, 0}
@@ -482,6 +484,7 @@ int main(int argc, char *argv[]) {
             break;
         case 'U':
             display_opts.upscale = !display_opts.upscale;
+            display_opts.upscale_integer = (optarg && optarg[0] == 'i');
             break;
         case 'T':
             display_opts.auto_crop = true;

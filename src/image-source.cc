@@ -123,6 +123,19 @@ bool ImageSource::CalcScaleToFitDisplay(int img_width, int img_height,
     if (*target_width <= 0)  *target_width = 1;
     if (*target_height <= 0) *target_height = 1;
 
+    if (options.upscale_integer &&
+        *target_width > img_width && *target_height > img_height) {
+        // Correct for aspect ratio mismatch of quarter rendering.
+        const float aspect_correct = options.cell_x_px == 2 ? 2 : 1;
+        const float wf = 1.0f* *target_width / aspect_correct / img_width;
+        const float hf = 1.0f* *target_height / img_height;
+        const float smaller_factor = wf < hf ? wf : hf;
+        if (smaller_factor > 1.0f) {
+            *target_width = aspect_correct * floor(smaller_factor) * img_width;
+            *target_height = floor(smaller_factor) * img_height;
+        }
+    }
+
     return *target_width != img_width || *target_height != img_height;
 }
 
