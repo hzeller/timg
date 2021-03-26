@@ -134,9 +134,11 @@ timg --grid=3 -t5 *.gif            # Load gifs one by one in grid. Play each for
 # Putting it all together; making an alias to list images; let's call it ils = 'image ls'
 # This prints images two per row with a filename title. Only showing one frame
 # so for animated gifs only the first frame is shown statically.
-alias ils='timg --grid=2 --center --title --frames=1 '
+# With hi-res iTerm or Kitty terminals, consider more columns, e.g --grid=4x1
+# Put this line in your ~/.bashrc
+alias ils='timg --grid=2x1 --upscale=i --center --title --frames=1 '
 
-# ... using this alias
+# ... using this alias on images outputs a useful column view
 ils *.jpg *.gif
 
 # Read the list of images to load from a file. One filename per line.
