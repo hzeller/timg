@@ -143,8 +143,8 @@ these file decoders (GraphicsMagick or libav respectively).
     **-\-grid** used and if you allow some time to show the image of course,
     so good in combination with **-w**.
 
-**-U**
-:    Toggle Upscale. If an image is smaller than the terminal size, scale
+**-U**, **-\-upscale=[i]**
+:   Allow Upscaling. If an image is smaller than the terminal size, scale
     it up to fit the terminal.
 
     By default, larger images are only scaled down and images smaller than the
@@ -152,6 +152,10 @@ these file decoders (GraphicsMagick or libav respectively).
     helps assess small deliberately pixelated images such as icons in their
     intended appearance). This option scales up smaller images to fit available
     space.
+
+    The long option allows for an optional parameter **-\-upscale=i**
+    that forces the upscaling to be in integer increments to keep the 'blocky'
+    appearance of an upscaled image without bilinear scale 'fuzzing'.
 
 **-V**
 :    This is a video, directly read the content as video and don't attempt to

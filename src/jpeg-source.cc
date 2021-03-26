@@ -152,6 +152,14 @@ bool JPEGSource::LoadAndScale(const DisplayOptions &opts, int, int) {
                           opts, abs(exif_op.angle) == 90,
                           &target_width, &target_height);
 
+    // Output is larger and we request integer upscaling. That looks fuzzy
+    // with our bilinear upscaling, so bail here and let generic graphicsmagick
+    // image loader take care of it: that does crisp integer upscaling.
+    if (opts.upscale_integer &&
+        (target_width / width || target_height / height)) {
+        return false;
+    }
+
     // Find the scaling factor that creates the smallest image that is
     // larger than our target size.
     int factors_size;

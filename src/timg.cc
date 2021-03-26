@@ -83,6 +83,36 @@ enum class ExitCode {
     // Keep in sync with error codes mentioned in manpage
 };
 
+enum class Pixelation {
+    kNotChosen,
+    kHalfBlock,
+    kQuarterBlock,
+    kKittyGraphics,
+    kiTerm2Graphics,
+};
+
+enum class ClearScreen {
+    kNot,
+    kBeforeFirstImage,
+    kBeforeEachImage,
+};
+
+namespace timg {
+// Options configuring how images/videos are arranged and presented.
+struct PresentationOptions {
+    Duration duration_per_image = Duration::InfiniteFuture();
+    int loops = timg::kNotInitialized;  // If animation: loop count through all
+    int grid_cols = 1;                  // Grid arrangement
+    int grid_rows = 1;
+    bool hide_cursor = true;            // Hide cursor while emitting image
+    ClearScreen clear_screen = ClearScreen::kNot; // Clear between images ?
+    Duration duration_between_images;   // How long to wait between images
+};
+}  // namespace timg
+
+// Image sources; as future as they are being filled while we start presenting
+typedef std::vector<std::future<timg::ImageSource*>> LoadedImageSources;
+
 // Modern processors with some sort of hyperthreading don't seem to scale
 // much beyond their physical core count when doing image processing.
 // So just keep thread count at half what we get reported.
@@ -127,8 +157,9 @@ static int usage(const char *progname, ExitCode exit_code,
             "\t                      Default: exif.\n"
             "\t--clear        : Clear screen first. Optional argument 'every' will clean\n"
             "\t                 before every image (useful with -w)\n"
-            "\t-U             : Toggle Upscale. If an image is smaller (e.g. an icon) than the \n"
-            "\t                 available frame, enlarge it to fit.\n"
+            "\t-U, --upscale[=i]: Allow Upscaling. If an image is smaller than the available\n"
+            "\t                 frame (e.g. an icon), enlarge it to fit. Optional\n"
+            "\t                 parameter 'i' only enlarges in sharp integer increments.\n"
 #ifdef WITH_TIMG_VIDEO
             "\t-V             : Directly use Video subsystem. Don't probe image decoding first.\n"
             "\t                 (useful, if you stream video from stdin).\n"
@@ -181,6 +212,75 @@ bool AppendToFileList(const std::string &filelist_file,
     return true;
 }
 
+static void PresentImages(LoadedImageSources &loaded_sources,
+                          const timg::DisplayOptions &display_opts,
+                          const timg::PresentationOptions &present,
+                          Pixelation pixelation, bool terminal_use_upper_block,
+                          timg::BufferedWriteSequencer *sequencer) {
+    std::unique_ptr<TerminalCanvas> canvas;
+    switch (pixelation) {
+    case Pixelation::kKittyGraphics:
+        canvas.reset(new KittyGraphicsCanvas(sequencer, display_opts));
+        break;
+    case Pixelation::kiTerm2Graphics:
+        canvas.reset(new ITerm2GraphicsCanvas(sequencer, display_opts));
+        break;
+    case Pixelation::kHalfBlock:
+    case Pixelation::kQuarterBlock:
+    case Pixelation::kNotChosen:  // Should not happen.
+        canvas.reset(new UnicodeBlockCanvas(
+                         sequencer, pixelation == Pixelation::kQuarterBlock,
+                         terminal_use_upper_block));
+    }
+
+    auto renderer = timg::Renderer::Create(
+        canvas.get(), display_opts,
+        present.grid_cols, present.grid_rows);
+
+
+    // Things to do before and after we show an image. Our goal is to keep
+    // the terminal always in a good state (cursor on!) while also reacting
+    // to Ctrl-C or terminations.
+    // While showing an image we switch off the cursor but also arm the
+    // signal handler to intercept and have a chance to bring terminal output
+    // to a controlled stop.
+    // Between showing images we _do_ want the default signal handler to be
+    // active so that we can interrupt picture loading (because the internals
+    // of the image loading libraries don' know about "interrupt_received".
+    auto before_image_show = [present, &canvas](bool first) {
+        signal(SIGTERM, InterruptHandler);
+        signal(SIGINT, InterruptHandler);
+        if (present.hide_cursor) canvas->CursorOff();
+        if ((present.clear_screen == ClearScreen::kBeforeFirstImage && first) ||
+            (present.clear_screen == ClearScreen::kBeforeEachImage)) {
+            canvas->ClearScreen();
+        }
+    };
+
+    auto after_image_show = [present, &canvas]() {
+        if (present.hide_cursor) canvas->CursorOn();
+        signal(SIGTERM, SIG_DFL);
+        signal(SIGINT, SIG_DFL);
+    };
+
+    // Showing them in order of files on the command line.
+    bool is_first = true;
+    for (auto &source_future : loaded_sources) {
+        if (interrupt_received) break;
+        std::unique_ptr<timg::ImageSource> source(source_future.get());
+        if (!source) continue;
+        before_image_show(is_first);
+        source->SendFrames(present.duration_per_image,
+                           present.loops, interrupt_received,
+                           renderer->render_cb(source->filename().c_str()));
+        after_image_show();
+        if (!present.duration_between_images.is_zero()) {
+            (Time::Now() + present.duration_between_images).WaitUntil();
+        }
+        is_first = false;
+    }
+}
+
 int main(int argc, char *argv[]) {
     Magick::InitializeMagick(*argv);
 
@@ -190,6 +290,8 @@ int main(int argc, char *argv[]) {
         timg::GetBoolenEnv("TIMG_USE_UPPER_BLOCK");
 
     timg::DisplayOptions display_opts;
+    timg::PresentationOptions presentation;
+
     const char *bg_color = "auto";
     const char *bg_pattern_color = nullptr;
     display_opts.allow_frame_skipping =
@@ -197,31 +299,14 @@ int main(int argc, char *argv[]) {
 
     int output_fd = STDOUT_FILENO;
     std::vector<std::string> filelist;  // from -f<filelist> and command line
-    bool hide_cursor = true;
-    Duration duration = Duration::InfiniteFuture();
-    Duration between_images_duration = Duration::Millis(0);
     int frame_offset = 0;
     int max_frames = timg::kNotInitialized;
-    int loops  = timg::kNotInitialized;
-    int grid_rows = 1;
-    int grid_cols = 1;
-    enum class ClearScreen {
-        kNot,
-        kBeforeFirstImage,
-        kBeforeEachImage,
-    } clear_screen = ClearScreen::kNot;
     bool do_img_loading = true;
     bool do_vid_loading = true;
     int thread_count = kDefaultThreadCount;
     int geometry_width = (term.cols - 2);
     int geometry_height = (term.rows - 2);
-    enum class Pixelation {
-        kNotChosen,
-        kHalfBlock,
-        kQuarterBlock,
-        kKittyGraphics,
-        kiTerm2Graphics,
-    } pixelation = Pixelation::kNotChosen;
+    Pixelation pixelation = Pixelation::kNotChosen;
 
     // Convenience predicate: pixelation sending high-res images, no blocks.
     const auto is_pixel_direct_p = [](Pixelation p) {
@@ -261,6 +346,7 @@ int main(int argc, char *argv[]) {
         { "scroll",      optional_argument, NULL, 's' },
         { "threads",     required_argument, NULL, OPT_THREADS },
         { "title",       no_argument,       NULL, 'F' },
+        { "upscale",     optional_argument, NULL, 'U' },
         { "verbose",     no_argument,       NULL, OPT_VERBOSE },
         { "version",     no_argument,       NULL, OPT_VERSION },
         { 0, 0, 0, 0}
@@ -287,25 +373,26 @@ int main(int argc, char *argv[]) {
             }
             break;
         case 'w':
-            between_images_duration
+            presentation.duration_between_images
                 = Duration::Millis(roundf(atof(optarg) * 1000.0f));
             break;
         case 't':
-            duration = Duration::Millis(roundf(atof(optarg) * 1000.0f));
-            if (duration.is_zero()) {
+            presentation.duration_per_image
+                = Duration::Millis(roundf(atof(optarg) * 1000.0f));
+            if (presentation.duration_per_image.is_zero()) {
                 fprintf(stderr, "Note, -t<zero-duration> will effectively "
                         "skip animations/movies\n");
             }
             break;
         case 'c':  // Legacy option, now long opt. Keep for now.
             // No parameter --loop essentially defaults to loop forever.
-            loops = optarg ? atoi(optarg) : -1;
+            presentation.loops = optarg ? atoi(optarg) : -1;
             break;
         case OPT_CLEAR_SCREEN:
             if (optarg) {
                 const int optlen = strlen(optarg);
                 if (optlen <= 5 && strncasecmp(optarg, "every", optlen) == 0)
-                    clear_screen = ClearScreen::kBeforeEachImage;
+                    presentation.clear_screen = ClearScreen::kBeforeEachImage;
                 else {
                     fprintf(stderr, "Paramter for --clear can be 'every', "
                             "got %s\n", optarg);
@@ -313,7 +400,7 @@ int main(int argc, char *argv[]) {
                                  geometry_width, geometry_height);
                 }
             } else {
-                clear_screen = ClearScreen::kBeforeFirstImage;
+                presentation.clear_screen = ClearScreen::kBeforeFirstImage;
             }
             break;
         case OPT_FRAME_OFFSET:
@@ -368,13 +455,14 @@ int main(int argc, char *argv[]) {
             }
             break;
         case OPT_GRID:
-            switch (sscanf(optarg, "%dx%d", &grid_cols, &grid_rows)) {
+            switch (sscanf(optarg, "%dx%d",
+                           &presentation.grid_cols, &presentation.grid_rows)) {
             case 0:
                 fprintf(stderr, "Invalid grid spec '%s'", optarg);
                 return usage(argv[0], ExitCode::kParameterError,
                              geometry_width, geometry_height);
             case 1:
-                grid_rows = grid_cols;
+                presentation.grid_rows = presentation.grid_cols;
                 break;
             }
             break;
@@ -396,6 +484,7 @@ int main(int argc, char *argv[]) {
             break;
         case 'U':
             display_opts.upscale = !display_opts.upscale;
+            display_opts.upscale_integer = (optarg && optarg[0] == 'i');
             break;
         case 'T':
             display_opts.auto_crop = true;
@@ -407,14 +496,14 @@ int main(int argc, char *argv[]) {
             display_opts.show_filename = !display_opts.show_filename;
             break;
         case 'E':
-            hide_cursor = false;
+            presentation.hide_cursor = false;
             break;
         case 'W':
             display_opts.fill_width = true;
             break;
         case OPT_VERSION:
             fprintf(stderr, "timg " TIMG_VERSION
-                    " <http://timg.sh/>\n"
+                    " <https://timg.sh/>\n"
                     "Copyright (c) 2016..2021 Henner Zeller. "
                     "This program is free software; license GPL 2.0.\n\n");
             fprintf(stderr, "Image decoding %s\n",
@@ -497,7 +586,7 @@ int main(int argc, char *argv[]) {
         display_opts.compress_pixel_format = true;
         // Because we don't know how much to move up and right. Also, hterm
         // does not seem to place an image in X-direction in the first place.
-        grid_cols = 1;
+        presentation.grid_cols = 1;
     }
 
     // Determine best default to pixelate images.
@@ -570,10 +659,10 @@ int main(int argc, char *argv[]) {
         display_opts.scroll_animation = false;
     }
 
-    if (clear_screen == ClearScreen::kBeforeEachImage &&
-        (grid_cols != 1 || grid_rows != 1)) {
+    if (presentation.clear_screen == ClearScreen::kBeforeEachImage &&
+        (presentation.grid_cols != 1 || presentation.grid_rows != 1)) {
         // Clear every only makes sense with no grid.
-        clear_screen = ClearScreen::kBeforeFirstImage;
+        presentation.clear_screen = ClearScreen::kBeforeFirstImage;
     }
 
     // If we scroll in one direction (so have 'infinite' space) we want fill
@@ -585,19 +674,19 @@ int main(int argc, char *argv[]) {
 
     // Showing exactly one frame implies animation behaves as static image
     if (max_frames == 1) {
-        loops = 1;
+        presentation.loops = 1;
     }
 
     // If nothing is set to limit animations but we have multiple images,
     // set some sensible limit.
-    if (filelist.size() > 1 && loops == timg::kNotInitialized
-        && duration == Duration::InfiniteFuture()) {
-        loops = 1;  // Don't want to get stuck on the first endless-loop anim.
+    if (filelist.size() > 1 && presentation.loops == timg::kNotInitialized
+        && presentation.duration_between_images == Duration::InfiniteFuture()) {
+        presentation.loops = 1;  // Don't get stuck on the first endless-loop
     }
 
     if (display_opts.show_filename) {
         // Leave space for text.
-        display_opts.height -= display_opts.cell_y_px*grid_rows;
+        display_opts.height -= display_opts.cell_y_px * presentation.grid_rows;
     }
 
     // Asynconrous image loading (filelist.size()) and terminal query (+1)
@@ -625,63 +714,14 @@ int main(int argc, char *argv[]) {
 
     display_opts.bg_pattern_color = rgba_t::ParseColor(bg_pattern_color);
 
-    static constexpr int kAsyncWriteQueueSize = 3;
-    timg::BufferedWriteSequencer sequencer(output_fd,
-                                           display_opts.allow_frame_skipping,
-                                           kAsyncWriteQueueSize,
-                                           interrupt_received);
-    std::unique_ptr<TerminalCanvas> canvas;
-    switch (pixelation) {
-    case Pixelation::kKittyGraphics:
-        canvas.reset(new KittyGraphicsCanvas(&sequencer, display_opts));
-        break;
-    case Pixelation::kiTerm2Graphics:
-        canvas.reset(new ITerm2GraphicsCanvas(&sequencer, display_opts));
-        break;
-    case Pixelation::kHalfBlock:
-    case Pixelation::kQuarterBlock:
-    case Pixelation::kNotChosen:  // Should not happen.
-        canvas.reset(new UnicodeBlockCanvas(
-                         &sequencer, pixelation == Pixelation::kQuarterBlock,
-                         terminal_use_upper_block));
-    }
-
-    auto renderer = timg::Renderer::Create(canvas.get(), display_opts,
-                                           grid_cols, grid_rows);
-
-    // The image sources might need to write to a smaller area if grid.
-    display_opts.width /= grid_cols;
-    display_opts.height /= grid_rows;
-
-    // Things to do before and after we show an image. Our goal is to keep
-    // the terminal always in a good state (cursor on!) while also reacting
-    // to Ctrl-C or terminations.
-    // While showing an image we switch off the cursor but also arm the
-    // signal handler to intercept and have a chance to bring terminal output
-    // to a controlled stop.
-    // Between showing images we _do_ want the default signal handler to be
-    // active so that we can interrupt picture loading (because the internals
-    // of the image loading libraries don' know about "interrupt_received".
-    auto before_image_show = [hide_cursor, &canvas, clear_screen](bool first) {
-        signal(SIGTERM, InterruptHandler);
-        signal(SIGINT, InterruptHandler);
-        if (hide_cursor) canvas->CursorOff();
-        if ((clear_screen == ClearScreen::kBeforeFirstImage && first) ||
-            (clear_screen == ClearScreen::kBeforeEachImage)) {
-            canvas->ClearScreen();
-        }
-    };
-
-    auto after_image_show = [hide_cursor, &canvas]() {
-        if (hide_cursor) canvas->CursorOn();
-        signal(SIGTERM, SIG_DFL);
-        signal(SIGINT, SIG_DFL);
-    };
+    // In a grid, we have less space per picture.
+    display_opts.width /= presentation.grid_cols;
+    display_opts.height /= presentation.grid_rows;
 
     ExitCode exit_code = ExitCode::kSuccess;
 
     // Async image loading, preparing them in a thread pool
-    std::vector<std::future<timg::ImageSource*>> loaded_sources;
+    LoadedImageSources loaded_sources;
     for (const std::string &filename : filelist) {
         if (interrupt_received) break;
         std::function<timg::ImageSource*()> f =
@@ -698,24 +738,18 @@ int main(int argc, char *argv[]) {
         loaded_sources.push_back(pool->ExecAsync(f));
     }
 
+    static constexpr int kAsyncWriteQueueSize = 3;
+    // Since Unicode blocks emit differences, we can't skip frames in output.
+    const bool buffer_allow_skipping = (display_opts.allow_frame_skipping &&
+                                        is_pixel_direct_p(pixelation));
+    timg::BufferedWriteSequencer sequencer(output_fd,
+                                           buffer_allow_skipping,
+                                           kAsyncWriteQueueSize,
+                                           interrupt_received);
     const Time start_show = Time::Now();
-    // Showing them in order of files on the command line.
-    bool is_first = true;
-    for (auto &source_future : loaded_sources) {
-        if (interrupt_received) break;
-        std::unique_ptr<timg::ImageSource> source(source_future.get());
-        if (!source) continue;
-        before_image_show(is_first);
-        source->SendFrames(duration, loops, interrupt_received,
-                           renderer->render_cb(source->filename().c_str()));
-        after_image_show();
-        if (!between_images_duration.is_zero()) {
-            (Time::Now() + between_images_duration).WaitUntil();
-        }
-        is_first = false;
-    }
-    renderer.reset(nullptr);   // TODO: make scoped.
-    canvas.reset(nullptr);
+    PresentImages(loaded_sources, display_opts, presentation,
+                  pixelation, terminal_use_upper_block,
+                  &sequencer);
     sequencer.Flush();
     const Time end_show = Time::Now();
 
@@ -741,6 +775,10 @@ int main(int argc, char *argv[]) {
                 timg::HumanReadableByteValue(written_bytes).c_str(),
                 timg::HumanReadableByteValue(written_bytes / d).c_str(),
                 sequencer.frames_total());
+        // Only show FPS if we have one video or animation
+        if (filelist.size() == 1 && sequencer.frames_total() > 100) {
+            fprintf(stderr, "; %.1ffps", sequencer.frames_total()/d);
+        }
         if (display_opts.allow_frame_skipping && sequencer.frames_total() > 0) {
             fprintf(stderr, " (%" PRId64 " skipped, %.1f%%)\n",
                     sequencer.frames_skipped(),

@@ -130,7 +130,6 @@ private:
     };
     std::mutex work_lock_;
     std::queue<WorkItem> work_;
-    bool exiting_ = false;
     std::condition_variable work_sync_;
     std::thread *work_executor_;
 

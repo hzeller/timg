@@ -4,6 +4,8 @@ timg - Terminal Image and Video Viewer
 [![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://github.com/hzeller/timg/blob/main/LICENSE) &nbsp;
 [![Ubuntu Build](../../workflows/Ubuntu%20Build/badge.svg)](../../actions?query=workflow%3A"Ubuntu+Build")
 [![macOS Build](../../workflows/macOS%20Build/badge.svg)](../../actions?query=workflow%3A"macOS+Build")
+[![macOS Brew Building HEAD](../../workflows/macOS%20Brew%20Building%20HEAD/badge.svg)](../../actions?query=workflow%3A"macOS+Brew+Building+HEAD")
+
 
 ### https://timg.sh/
 
@@ -88,8 +90,9 @@ Options:
                               Default: exif.
         --clear        : Clear screen first. Optional argument 'every' will clean
                          before every image (useful with -w)
-        -U             : Toggle Upscale. If an image is smaller (e.g. an icon) than the
-                         available frame, enlarge it to fit.
+        -U, --upscale[=i]: Allow Upscaling. If an image is smaller than the available
+                         frame (e.g. an icon), enlarge it to fit. Optional
+                         parameter 'i' only enlarges in sharp integer increments.
         -V             : Directly use Video subsystem. Don't probe image decoding first.
                          (useful, if you stream video from stdin).
         -I             : Only  use Image subsystem. Don't attempt video decoding.
@@ -407,13 +410,14 @@ there, please let me know.
 
 For Mac users, at least the combination of macOS 11.2 and iTerm2 3.4.3 works.
 
-### Build and Install
+### Install pre-built package
 
-#### Get repo
-
+#### macOS
 ```bash
-git clone https://github.com/hzeller/timg.git
+brew install timg
 ```
+
+### Build from source
 
 #### Get dependencies on Debian/Ubuntu
 
@@ -444,9 +448,10 @@ brew install ffmpeg
 brew install pandoc  # If you want to recreate the man page
 ```
 
-#### Compile timg
+#### Get repo and compile timg
 
 ```bash
+git clone https://github.com/hzeller/timg.git  # Get repo
 cd timg  # Enter the checked out repository directory.
 mkdir build  # Generate a dedicated build directory.
 cd build

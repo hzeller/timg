@@ -25,7 +25,7 @@ static constexpr uint32_t kSentinel = 0x5e9719e1;
 
 namespace timg {
 struct BufferedWriteSequencer::MemBlock {
-    size_t size;
+    size_t available_size;
     uint32_t sentinel;
     char data[];
 };
@@ -44,7 +44,7 @@ BufferedWriteSequencer::~BufferedWriteSequencer() {
     Flush();
     {
         std::lock_guard<std::mutex> l(work_lock_);
-        exiting_ = true;
+        work_.push({nullptr, 0, SeqType::ControlWrite, {}});  // Exit condition
     }
     work_sync_.notify_all();
     work_executor_->join();
@@ -56,11 +56,11 @@ BufferedWriteSequencer::~BufferedWriteSequencer() {
 
 char *BufferedWriteSequencer::RequestBuffer(size_t size) {
     {
-        std::unique_lock<std::mutex> l(mempool_lock_);
+        std::lock_guard<std::mutex> l(mempool_lock_);
         while (!mempool_.empty()) {
             MemBlock *const block = mempool_.front();
             mempool_.pop();
-            if (block->size < size) {  // Don't bother with too small blocks.
+            if (block->available_size < size) {  // Eliminate too small blocks.
                 free(block);
                 continue;
             }
@@ -70,10 +70,10 @@ char *BufferedWriteSequencer::RequestBuffer(size_t size) {
 
     // Nothing appropriate found. Create a new block. When it comes back, it
     // will be added to our pool for re-use.
-    size_t new_size = sizeof(MemBlock) + size + kChunkSize - 1;
-    new_size -= new_size % kChunkSize;    // round up to multiple of kChunkSize
-    MemBlock *block = (MemBlock*) malloc(new_size);
-    block->size = new_size - sizeof(MemBlock);
+    size_t alloc_size = sizeof(MemBlock) + size + kChunkSize - 1;
+    alloc_size -= alloc_size % kChunkSize;  // ceil() to multiple of kChunkSize
+    MemBlock *block = (MemBlock*) malloc(alloc_size);
+    block->available_size = alloc_size - sizeof(MemBlock);
     block->sentinel = kSentinel;
 
     return block->data;
@@ -94,10 +94,12 @@ static ssize_t ReliableWrite(int fd, const char *buffer, const size_t size) {
 void BufferedWriteSequencer::WriteBuffer(char *buffer, size_t size,
                                          SeqType sequence_type,
                                          Duration end_of_frame) {
+    assert(buffer != nullptr);
+
     // Recover block from the raw data (our metadata starts a bit before that)
     MemBlock *block = (MemBlock*) (buffer - offsetof(MemBlock, data));
-    assert(block->sentinel == kSentinel);  // Is that a block we allocated ?
-    assert(block->size >= size);           // No buffer overrun
+    assert(block->sentinel == kSentinel);   // Is that a block we allocated ?
+    assert(block->available_size >= size);  // No buffer overrun
 
     {
         std::unique_lock<std::mutex> l(work_lock_);
@@ -115,20 +117,21 @@ void BufferedWriteSequencer::ProcessQueue() {
         WorkItem work_item;
         {
             std::unique_lock<std::mutex> l(work_lock_);
-            if (exiting_ && work_.empty()) return;
-            work_sync_.wait(l, [this](){ return !work_.empty() || exiting_; });
-            if (work_.empty()) continue;
+            work_sync_.wait(l, [this](){ return !work_.empty(); });
             work_item = work_.front();
             work_.pop();
         }
         work_sync_.notify_all();
 
-        bool do_skip = false;
+        if (work_item.block == nullptr) return;   // Exit condition.
+
         if (interrupt_received_ &&
             work_item.sequence_type != SeqType::ControlWrite) {
-            free(work_item.block);  // Exiting. Won't need memory block anymore.
+            free(work_item.block);  // Wrapping up. Won't need block anymore.
             continue;  // Finish quickly, discard any queued-up frames.
         }
+
+        bool do_skip = false;
         switch (work_item.sequence_type) {
         case SeqType::StartOfAnimation:
             animation_start = Time::Now();
@@ -170,7 +173,7 @@ void BufferedWriteSequencer::ProcessQueue() {
 void BufferedWriteSequencer::Flush() {
     // Sending an empty dummy-write so that we know that this is the
     // last write-in-progress when queue is empty (as the queue is already
-    // empty while the last write is still in progress)
+    // empty while the call to write() is still in progress)
     WriteBuffer(RequestBuffer(0), 0, SeqType::ControlWrite, {});
     {
         std::unique_lock<std::mutex> l(work_lock_);
@@ -179,7 +182,7 @@ void BufferedWriteSequencer::Flush() {
 }
 
 void BufferedWriteSequencer::ReturnMemblock(MemBlock *b) {
-    std::unique_lock<std::mutex> l(mempool_lock_);
+    std::lock_guard<std::mutex> l(mempool_lock_);
     mempool_.push(b);
 }
 

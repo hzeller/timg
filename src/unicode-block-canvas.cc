@@ -202,7 +202,9 @@ char *UnicodeBlockCanvas::AppendDoubleRow(char *pos, int indent, int width,
                                       int *y_skip) {
     static constexpr char kStartEscape[] = "\033[";
     GlyphPick last = {};
-    bool last_color_unknown = true;
+    rgba_t last_foreground = {};
+    bool last_fg_unknown = true;
+    bool last_bg_unknown = true;
     int x_skip = indent;
     const char *start = pos;
     for (int x=0; x < width; x+=N, prev_content_it_+=2*N, tline+=N, bline+=N) {
@@ -230,17 +232,20 @@ char *UnicodeBlockCanvas::AppendDoubleRow(char *pos, int indent, int width,
 
         bool color_emitted = false;
 
-        // Foreground
-        if (last_color_unknown || pick.fg != last.fg) {
+        // Foreground. Only consider if we're not having background.
+        if (pick.block != kBackground &&
+            (last_fg_unknown || pick.fg != last_foreground)) {
             // Appending prefix. At this point, it can only be kStartEscape
             pos = str_append(pos, kStartEscape, strlen(kStartEscape));
             pos = str_append(pos, PIXEL_SET_FG_COLOR, PIXEL_SET_COLOR_LEN);
             pos = WriteAnsiColor(pos, pick.fg);
             color_emitted = true;
+            last_foreground = pick.fg;
+            last_fg_unknown = false;
         }
 
         // Background
-        if (last_color_unknown || pick.bg != last.bg) {
+        if (last_bg_unknown || pick.bg != last.bg) {
             if (!color_emitted) {
                 pos = str_append(pos, kStartEscape, strlen(kStartEscape));
             }
@@ -252,6 +257,7 @@ char *UnicodeBlockCanvas::AppendDoubleRow(char *pos, int indent, int width,
                 pos = WriteAnsiColor(pos, pick.bg);
             }
             color_emitted = true;
+            last_bg_unknown = false;
         }
 
         if (color_emitted) {
@@ -264,7 +270,6 @@ char *UnicodeBlockCanvas::AppendDoubleRow(char *pos, int indent, int width,
                              PIXEL_BLOCK_CHARACTER_LEN);
         }
         last = pick;
-        last_color_unknown = false;
         StoreBacking<N>(prev_content_it_, tline, bline);
     }
 

@@ -169,8 +169,8 @@ allow some time to show the image of course, so good in combination with
 \f[B]-w\f[R].
 .RE
 .TP
-\f[B]-U\f[R]
-Toggle Upscale.
+\f[B]-U\f[R], \f[B]--upscale=[i]\f[R]
+Allo Upscaling.
 If an image is smaller than the terminal size, scale it up to fit the
 terminal.
 .RS
@@ -180,6 +180,11 @@ the available pixels in the terminal are left at the original size (this
 helps assess small deliberately pixelated images such as icons in their
 intended appearance).
 This option scales up smaller images to fit available space.
+.PP
+The long option allows for an optional parameter \f[B]--upscale=i\f[R]
+that forces the upscaling to be in integer increments to keep the
+`blocky' appearance of an upscaled image without bilinear scale
+`fuzzing'.
 .RE
 .TP
 \f[B]-V\f[R]
