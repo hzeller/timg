@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 
-project(timg VERSION 1.2.1 LANGUAGES CXX)
+project(timg VERSION 1.3.0 LANGUAGES CXX)
 
 option(WITH_VIDEO_DECODING "Enables video decoding feature" ON)
 option(WITH_VIDEO_DEVICE "Enables reading videos from devices e.g. v4l2" ON)
