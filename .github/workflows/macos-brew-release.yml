@@ -2,7 +2,7 @@ name: macOS Brew Generate bump-formula-pr
 on:
   release:
     types: [published]
-    branches: [main,brew-update-on-release]
+    branches: [main]
 
 jobs:
   install_dependencies_and_build:
