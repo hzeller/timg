@@ -316,6 +316,7 @@ int main(int argc, char *argv[]) {
     int thread_count = kDefaultThreadCount;
     int geometry_width = (term.cols - 2);
     int geometry_height = (term.rows - 2);
+    bool debug_no_frame_delay = false;
 
     // Convenience predicate: pixelation sending high-res images, no blocks.
     const auto is_pixel_direct_p = [](Pixelation p) {
@@ -326,6 +327,7 @@ int main(int argc, char *argv[]) {
         OPT_CLEAR_SCREEN = 1000,
         OPT_COLOR_256,
         OPT_COMPRESS_PIXEL,
+        OPT_DEBUG_NO_FRAME_DELAY,
         OPT_FRAME_COUNT,
         OPT_FRAME_OFFSET,
         OPT_GRID,
@@ -345,6 +347,7 @@ int main(int argc, char *argv[]) {
         { "color8",      no_argument,       NULL, OPT_COLOR_256 },
         { "compress",    no_argument,       NULL, OPT_COMPRESS_PIXEL },
         { "delta-move",  required_argument, NULL, 'd' },
+        { "debug-no-frame-delay", no_argument, NULL, OPT_DEBUG_NO_FRAME_DELAY },
         { "experimental-frame-offset",required_argument, NULL, OPT_FRAME_OFFSET },
         { "fit-width",   no_argument,       NULL, 'W' },
         { "frames",      required_argument, NULL, OPT_FRAME_COUNT },
@@ -555,6 +558,9 @@ int main(int argc, char *argv[]) {
         case OPT_VERBOSE:
             verbose = true;
             break;
+        case OPT_DEBUG_NO_FRAME_DELAY:
+            debug_no_frame_delay = true;
+            break;
         case 'h':
         default:
             return usage(argv[0], (opt == 'h'
@@ -760,6 +766,7 @@ int main(int argc, char *argv[]) {
     timg::BufferedWriteSequencer sequencer(output_fd,
                                            buffer_allow_skipping,
                                            kAsyncWriteQueueSize,
+                                           debug_no_frame_delay,
                                            interrupt_received);
     const Time start_show = Time::Now();
     PresentImages(loaded_sources, display_opts, present, &sequencer);

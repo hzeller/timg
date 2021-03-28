@@ -50,12 +50,14 @@ public:
     // filedescriptor "fd". The "allow_frame_skipping" tells the sequencer
     // if it is ok to skip frames that can't be shown in time anymore.
     // The "max_queue_len" determines the number of the queued-up requests.
+    // If "debug_no_frame_delay" is set, frames are written as fast as possible
+    // without time between frames.
     //
     // Writes that are still pending when the "interrupt_received" flag
     // is set externally (e.g. through a signal handler) are discarded to
     // finish quickly (except ControlWrite calls).
     BufferedWriteSequencer(int fd, bool allow_frame_skipping,
-                           int max_queue_len,
+                           int max_queue_len, bool debug_no_frame_delay,
                            const volatile sig_atomic_t &interrupt_received);
     ~BufferedWriteSequencer();
 
@@ -119,6 +121,7 @@ private:
     const int fd_;
     const bool allow_frame_skipping_;
     const size_t max_queue_len_;
+    const bool debug_no_frame_delay_;
     const volatile sig_atomic_t &interrupt_received_;
 
     // Work queue
