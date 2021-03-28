@@ -259,9 +259,16 @@ void VideoLoader::SendFrames(Duration duration, int loops,
     AVPacket *packet = av_packet_alloc();
     bool is_first = true;
     timg::Duration time_from_first_frame;
+
+    // We made guesses above if something is potentially an animation, but
+    // we don't know until we observe how many frames there are - we don't
+    // know beforehand.
+    // So we will only loop iff we do not observe exactly one frame.
+    int observed_frame_count = 0;
+
     AVFrame *decode_frame = av_frame_alloc();  // Decode video into this
     for (int k = 0;
-         (loop_forever || k < loops)
+         ((loop_forever || k < loops) && observed_frame_count != 1)
              && !interrupt_received
              && time_from_first_frame < duration;
          ++k) {
@@ -271,6 +278,7 @@ void VideoLoader::SendFrames(Duration duration, int loops,
                           AVSEEK_FLAG_ANY);
             avcodec_flush_buffers(codec_context_);
         }
+        observed_frame_count = 0;
         int remaining_frames = frame_count_;
         int skip_offset = frame_offset_;
 
@@ -309,6 +317,7 @@ void VideoLoader::SendFrames(Duration duration, int loops,
                      time_from_first_frame);
                 is_first = false;
                 if (frame_limit) --remaining_frames;
+                ++observed_frame_count;
             }
             av_packet_unref(packet);  // was allocated by av_read_frame
         }
