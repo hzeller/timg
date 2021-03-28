@@ -67,35 +67,35 @@ grid uses `--grid=2` and is pixelated with `-pq`).
 ```
 usage: timg [options] <image/video> [<image/video>...]
 Options:
-        -g<w>x<h>      : Output geometry in character cells. Default from terminal 160x50.
-        -p<pixelation> : Pixelation: 'h'=half blocks    'q'=quarter blocks
-                                     'k'=kitty graphics 'i' = iTerm2 graphics
-                         Default: Auto-detect Kitty, iTerm2 or WezTerm otherwise 'quarter'
-        --compress     : Only for -pk or -pi: PNG-compress image data before sending to
-                         terminal. More CPU use for timg, but less bandwidth needed.
+        -g<w>x<h>      : Output geometry in character cells. Terminal is 160x50
+        -p<pixelation> : Pixelation: 'h' = half blocks    'q' = quarter blocks
+                                     'k' = kitty graphics 'i' = iTerm2 graphics
+                         Default: Auto-detect graphics, otherwise 'quarter'.
+        --compress     : Only for -pk or -pi: Compress image data. More
+                         CPU use for timg, but less bandwidth needed.
         -C, --center   : Center image horizontally.
-        -W, --fit-width: Scale to fit width of available space, even if it exceeds
-                         height. (default: scale to fit inside available rectangle)
+        -W, --fit-width: Scale to fit width of available space, even if it
+                         exceeds height.
         --grid=<cols>[x<rows>] : Arrange images in a grid (contact sheet).
-        -w<seconds>    : If multiple images given: Wait time between (default: 0.0).
-        -a             : Switch off anti aliasing (default: on)
-        -b<str>        : Background color to use behind transparent images.
-                         format 'yellow', '#rrggbb' or 'auto' or 'none' (default 'auto').
-        -B<str>        : Checkerboard pattern color to use on transparent (default '').
-        --pattern-size=<n> : Integer factor scale of the checkerboard pattern
+        -w<seconds>    : Wait time between images (default: 0.0).
+        -a             : Switch off anti aliasing (default: on).
+        -b<str>        : Background color to use behind alpha channel. Format
+                         'yellow', '#rrggbb', 'auto' or 'none' (default 'auto').
+        -B<str>        : Checkerboard pattern color to use on alpha.
+        --pattern-size=<n> : Integer factor scale of the checkerboard pattern.
         --auto-crop[=<pre-crop>] : Crop away all same-color pixels around image.
                          The optional pre-crop is the width of border to
                          remove beforehand to get rid of an uneven border.
-        --rotate=<exif|off> : Rotate according to included exif orientation or off.
-                              Default: exif.
-        --clear        : Clear screen first. Optional argument 'every' will clean
-                         before every image (useful with -w)
-        -U, --upscale[=i]: Allow Upscaling. If an image is smaller than the available
-                         frame (e.g. an icon), enlarge it to fit. Optional
-                         parameter 'i' only enlarges in sharp integer increments.
-        -V             : Directly use Video subsystem. Don't probe image decoding first.
-                         (useful, if you stream video from stdin).
-        -I             : Only  use Image subsystem. Don't attempt video decoding.
+        --rotate=<exif|off> : Rotate according to included exif orientation.
+                              or 'off'. Default: exif.
+        --clear        : Clear screen first. Optional argument 'every' will
+                         clear before every image (useful with -w)
+        -U, --upscale[=i]: Allow Upscaling. If an image is smaller than the
+                         available frame (e.g. an icon), enlarge it to fit.
+                         Optional parameter 'i' only enlarges in integer steps.
+        -V             : Directly use Video subsystem. Don't probe image
+                         decoding first (useful, if you stream video from stdin)
+        -I             : Only  use Image subsystem. Don't attempt video decoding
         -F, --title    : Print filename as title above each image.
         -f<filelist>   : Read newline-separated list of image files to show.
                          (Can be provided multiple times.)
@@ -109,15 +109,15 @@ Options:
 
   Scrolling
         --scroll=[<ms>]       : Scroll horizontally (optionally: delay ms (60)).
-        --delta-move=<dx:dy>  : delta x and delta y when scrolling (default: 1:0).
+        --delta-move=<dx:dy>  : delta x and delta y when scrolling (default:1:0)
 
   For Animations, Scrolling, or Video
   These options influence how long/often and what is shown.
-        --loops=<num> : Number of runs through a full cycle. Use -1 to mean 'forever'.
+        --loops=<num> : Number of runs through a full cycle. -1 means 'forever'.
                         If not set, videos loop once, animated images forever
-                        unless there is more than one file to show (then: just once)
+                        unless there is more than one file to show.
         --frames=<num>: Only show first num frames (if looping, loop only these)
-        -t<seconds>   : Stop after this time, no matter what --loops or --frames say.
+        -t<seconds>   : Stop after this time, independent of --loops or --frames
 ```
 
 ### Examples
