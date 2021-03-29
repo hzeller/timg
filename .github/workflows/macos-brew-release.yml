@@ -19,6 +19,7 @@ jobs:
              git config --global user.email "${GITHUB_EMAIL}"
              git config --global user.name "${GITHUB_REPOSITORY_OWNER}"
              brew update
+             brew upgrade
              URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/archive/${GITHUB_REF}.tar.gz"
              echo ${URL}
              curl "${URL}" -o download.tar.gz
