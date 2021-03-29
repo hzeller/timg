@@ -1,5 +1,7 @@
 name: macOS Brew Generate bump-formula-pr
 on:
+  push:
+    branches: [brew-update-on-release]
   release:
     types: [published]
     branches: [main]
@@ -18,6 +20,7 @@ jobs:
              git config --global user.name "${GITHUB_REPOSITORY_OWNER}"
              brew update
              URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/archive/${GITHUB_REF}.tar.gz"
+             echo ${URL}
              curl "${URL}" -o download.tar.gz
              CHECKSUM=$(shasum -a256 download.tar.gz | cut -c1-64)
              brew bump-formula-pr --dry-run --no-browse --strict --online --url "${URL}" --sha256 "${CHECKSUM}"  timg
