@@ -701,7 +701,7 @@ int main(int argc, char *argv[]) {
     // If nothing is set to limit animations but we have multiple images,
     // set some sensible limit.
     if (filelist.size() > 1 && present.loops == timg::kNotInitialized
-        && present.duration_between_images == Duration::InfiniteFuture()) {
+        && present.duration_per_image == Duration::InfiniteFuture()) {
         present.loops = 1;  // Don't get stuck on the first endless-loop
     }
 
