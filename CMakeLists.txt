@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 
-project(timg VERSION 1.3.2 LANGUAGES CXX)
+project(timg VERSION 1.4.0 LANGUAGES CXX)
 
 option(WITH_VIDEO_DECODING "Enables video decoding feature" ON)
 option(WITH_OPENSLIDE_SUPPORT "Enables support to OpenSlide formats" ON)
