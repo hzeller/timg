@@ -32,9 +32,13 @@
 #include "buffered-write-sequencer.h"
 // To display version number
 #include "image-display.h"
+#ifdef WITH_OPENSLIDE_SUPPORT
+#  include "openslide-source.h"
+#endif
 #ifdef WITH_TIMG_VIDEO
 #  include "video-display.h"
 #endif
+
 
 #include <errno.h>
 #include <fcntl.h>
@@ -522,6 +526,10 @@ int main(int argc, char *argv[]) {
                     "This program is free software; license GPL 2.0.\n\n");
             fprintf(stderr, "Image decoding %s\n",
                     timg::ImageLoader::VersionInfo());
+#ifdef WITH_OPENSLIDE_SUPPORT
+            fprintf(stderr, "Openslide %s\n",
+                    timg::OpenSlideSource::VersionInfo());
+#endif
 #ifdef WITH_TIMG_VIDEO
             fprintf(stderr, "Video decoding %s\n",
                     timg::VideoLoader::VersionInfo());
