@@ -435,6 +435,8 @@ sudo apt install libavcodec-dev libavformat-dev
 
 sudo apt install libavdevice-dev # If you want to read from video devices such as v4l2
 
+sudo apt install libopenslide-dev # If you want to add OpenSlide images support
+
 sudo apt install pandoc  # If you want to recreate the man page
 ```
 
@@ -450,6 +452,9 @@ brew unlink jpeg && brew link --force jpeg-turbo
 # If you want to include video decoding, install these additional libraries
 brew install ffmpeg
 
+# If you want to add OpenSlide images support
+brew install openslide
+
 brew install pandoc  # If you want to recreate the man page
 ```
 
@@ -461,7 +466,8 @@ cd timg  # Enter the checked out repository directory.
 mkdir build  # Generate a dedicated build directory.
 cd build
 # WITH_VIDEO_DECODING enables video; WITH_VIDEO_DEVICE reading from webcam
-cmake ../ -DWITH_VIDEO_DECODING=On -DWITH_VIDEO_DEVICE=On
+# WITH_OPENSLIDE_SUPPORT enables support to OpenSlide images
+cmake ../ -DWITH_VIDEO_DECODING=On -DWITH_VIDEO_DEVICE=On -DWITH_OPENSLIDE_SUPPORT=On
 make
 ```
 
