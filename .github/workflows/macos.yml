@@ -12,6 +12,7 @@ jobs:
     steps:
       - name: Install dependencies
         run: |
+          brew update
           brew install GraphicsMagick webp cmake
           brew install ffmpeg jpeg-turbo libexif libpng
           brew install openslide
