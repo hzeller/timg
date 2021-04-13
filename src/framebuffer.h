@@ -34,6 +34,19 @@ struct rgba_t {
     }
     inline bool operator!=(const rgba_t &o) const { return !(*this == o); }
 
+    // Rough mapping to the 256 color modes, a 6x6x6 cube.
+    inline uint8_t As256TermColor() const {
+        auto v2cube = [](uint8_t v) {  // middle of cut-off points for cube.
+            return v < 0x5f/2 ? 0
+                : v < (0x5f + 0x87)/2 ? 1
+                : v < (0x87 + 0xaf)/2 ? 2
+                : v < (0xaf + 0xd7)/2 ? 3
+                : v < (0xd7 + 0xff)/2 ? 4
+                : 5;
+        };
+        return 16 + 36 * v2cube(r) + 6 * v2cube(g) + v2cube(b);
+    }
+
     // Parse a color given as string. Supported are numeric formats are
     // "#rrggbb" and "rgb(r, g, b)", and also common textual X11/HTML names
     // such as 'red' or 'MediumAquaMarine'.

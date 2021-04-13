@@ -52,7 +52,6 @@ public:
                     const Renderer::WriteFramebufferFun &sink) final;
 
 private:
-    bool DecodePacket(AVPacket *packet, AVFrame *output_frame);
     void AlphaBlendFramebuffer();
 
     DisplayOptions options_;

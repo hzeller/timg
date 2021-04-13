@@ -67,35 +67,35 @@ grid uses `--grid=2` and is pixelated with `-pq`).
 ```
 usage: timg [options] <image/video> [<image/video>...]
 Options:
-        -g<w>x<h>      : Output geometry in character cells. Default from terminal 160x50.
-        -p<pixelation> : Pixelation: 'h'=half blocks    'q'=quarter blocks
-                                     'k'=kitty graphics 'i' = iTerm2 graphics
-                         Default: Auto-detect Kitty, iTerm2 or WezTerm otherwise 'quarter'
-        --compress     : Only for -pk or -pi: PNG-compress image data before sending to
-                         terminal. More CPU use for timg, but less bandwidth needed.
+        -g<w>x<h>      : Output geometry in character cells. Terminal is 160x50
+        -p<pixelation> : Pixelation: 'h' = half blocks    'q' = quarter blocks
+                                     'k' = kitty graphics 'i' = iTerm2 graphics
+                         Default: Auto-detect graphics, otherwise 'quarter'.
+        --compress     : Only for -pk or -pi: Compress image data. More
+                         CPU use for timg, but less bandwidth needed.
         -C, --center   : Center image horizontally.
-        -W, --fit-width: Scale to fit width of available space, even if it exceeds
-                         height. (default: scale to fit inside available rectangle)
+        -W, --fit-width: Scale to fit width of available space, even if it
+                         exceeds height.
         --grid=<cols>[x<rows>] : Arrange images in a grid (contact sheet).
-        -w<seconds>    : If multiple images given: Wait time between (default: 0.0).
-        -a             : Switch off anti aliasing (default: on)
-        -b<str>        : Background color to use behind transparent images.
-                         format 'yellow', '#rrggbb' or 'auto' or 'none' (default 'auto').
-        -B<str>        : Checkerboard pattern color to use on transparent (default '').
-        --pattern-size=<n> : Integer factor scale of the checkerboard pattern
+        -w<seconds>    : Wait time between images (default: 0.0).
+        -a             : Switch off anti aliasing (default: on).
+        -b<str>        : Background color to use behind alpha channel. Format
+                         'yellow', '#rrggbb', 'auto' or 'none' (default 'auto').
+        -B<str>        : Checkerboard pattern color to use on alpha.
+        --pattern-size=<n> : Integer factor scale of the checkerboard pattern.
         --auto-crop[=<pre-crop>] : Crop away all same-color pixels around image.
                          The optional pre-crop is the width of border to
                          remove beforehand to get rid of an uneven border.
-        --rotate=<exif|off> : Rotate according to included exif orientation or off.
-                              Default: exif.
-        --clear        : Clear screen first. Optional argument 'every' will clean
-                         before every image (useful with -w)
-        -U, --upscale[=i]: Allow Upscaling. If an image is smaller than the available
-                         frame (e.g. an icon), enlarge it to fit. Optional
-                         parameter 'i' only enlarges in sharp integer increments.
-        -V             : Directly use Video subsystem. Don't probe image decoding first.
-                         (useful, if you stream video from stdin).
-        -I             : Only  use Image subsystem. Don't attempt video decoding.
+        --rotate=<exif|off> : Rotate according to included exif orientation.
+                              or 'off'. Default: exif.
+        --clear        : Clear screen first. Optional argument 'every' will
+                         clear before every image (useful with -w)
+        -U, --upscale[=i]: Allow Upscaling. If an image is smaller than the
+                         available frame (e.g. an icon), enlarge it to fit.
+                         Optional parameter 'i' only enlarges in integer steps.
+        -V             : Directly use Video subsystem. Don't probe image
+                         decoding first (useful, if you stream video from stdin)
+        -I             : Only  use Image subsystem. Don't attempt video decoding
         -F, --title    : Print filename as title above each image.
         -f<filelist>   : Read newline-separated list of image files to show.
                          (Can be provided multiple times.)
@@ -103,20 +103,21 @@ Options:
         -E             : Don't hide the cursor while showing images.
         --threads=<n>  : Run image decoding in parallel with n threads
                          (Default 2, half #cores on this machine)
+        --color8       : Choose 8 bit color mode for -ph or -pq
         --version      : Print version and exit.
         -h, --help     : Print this help and exit.
 
   Scrolling
         --scroll=[<ms>]       : Scroll horizontally (optionally: delay ms (60)).
-        --delta-move=<dx:dy>  : delta x and delta y when scrolling (default: 1:0).
+        --delta-move=<dx:dy>  : delta x and delta y when scrolling (default:1:0)
 
   For Animations, Scrolling, or Video
   These options influence how long/often and what is shown.
-        --loops=<num> : Number of runs through a full cycle. Use -1 to mean 'forever'.
+        --loops=<num> : Number of runs through a full cycle. -1 means 'forever'.
                         If not set, videos loop once, animated images forever
-                        unless there is more than one file to show (then: just once)
+                        unless there is more than one file to show.
         --frames=<num>: Only show first num frames (if looping, loop only these)
-        -t<seconds>   : Stop after this time, no matter what --loops or --frames say.
+        -t<seconds>   : Stop after this time, independent of --loops or --frames
 ```
 
 ### Examples
@@ -134,9 +135,11 @@ timg --grid=3 -t5 *.gif            # Load gifs one by one in grid. Play each for
 # Putting it all together; making an alias to list images; let's call it ils = 'image ls'
 # This prints images two per row with a filename title. Only showing one frame
 # so for animated gifs only the first frame is shown statically.
-alias ils='timg --grid=2 --center --title --frames=1 '
+# With hi-res iTerm or Kitty terminals, consider more columns, e.g --grid=4x1
+# Put this line in your ~/.bashrc
+alias ils='timg --grid=2x1 --upscale=i --center --title --frames=1 '
 
-# ... using this alias
+# ... using this alias on images outputs a useful column view
 ils *.jpg *.gif
 
 # Read the list of images to load from a file. One filename per line.
@@ -286,10 +289,11 @@ the output is not as expected.
 #### Half block and quarter block rendering
 
 The half block pixelation (`-p half`) uses the the unicode
-characters [▄](U+2584 - 'Lower Half Block')
-or [▀](U+2580 - 'Upper Half Block') (depending on the
+character [▄](U+2584 - 'Lower Half Block')
+_or_ [▀](U+2580 - 'Upper Half Block') (depending on the
 [`TIMG_USE_UPPER_BLOCK`](#half-block-choice-of-rendering-block)
-environment variable).
+environment variable). If the top and bottom color is the same, a simple
+space with background color is used.
 
 The quarter block pixelation (`-p quarter`) uses eight different blocks.
 
@@ -304,8 +308,9 @@ The `-p` command line flag allows to choose between `-p half`, `-p quarter`,
 also possible to just shorten to `-ph` and `-pq`. Default is `-pq`
 (see [above](#pixelation) how this looks like).
 
-Terminals that don't support Unicode or 24 bit color are not supported; they
-will probably not show a very pleasent output.
+Terminals that don't support Unicode or 24 bit color will probably not show
+a very pleasent output. For terminals that only do 8 bit color, use the
+`--color8` command line option.
 
 #### Some terminals support direct image output
 
@@ -430,6 +435,8 @@ sudo apt install libavcodec-dev libavformat-dev
 
 sudo apt install libavdevice-dev # If you want to read from video devices such as v4l2
 
+sudo apt install libopenslide-dev # If you want to add OpenSlide images support
+
 sudo apt install pandoc  # If you want to recreate the man page
 ```
 
@@ -445,6 +452,9 @@ brew unlink jpeg && brew link --force jpeg-turbo
 # If you want to include video decoding, install these additional libraries
 brew install ffmpeg
 
+# If you want to add OpenSlide images support
+brew install openslide
+
 brew install pandoc  # If you want to recreate the man page
 ```
 
@@ -456,7 +466,8 @@ cd timg  # Enter the checked out repository directory.
 mkdir build  # Generate a dedicated build directory.
 cd build
 # WITH_VIDEO_DECODING enables video; WITH_VIDEO_DEVICE reading from webcam
-cmake ../ -DWITH_VIDEO_DECODING=On -DWITH_VIDEO_DEVICE=On
+# WITH_OPENSLIDE_SUPPORT enables support to OpenSlide images
+cmake ../ -DWITH_VIDEO_DECODING=On -DWITH_VIDEO_DEVICE=On -DWITH_OPENSLIDE_SUPPORT=On
 make
 ```
 

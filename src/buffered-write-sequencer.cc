@@ -31,10 +31,11 @@ struct BufferedWriteSequencer::MemBlock {
 };
 
 BufferedWriteSequencer::BufferedWriteSequencer(
-    int fd, bool allow_frame_skip, int max_queu_len,
+    int fd, bool allow_frame_skip, int max_queu_len, bool debug_no_frame_delay,
     const volatile sig_atomic_t &interrupt_received)
     : fd_(fd), allow_frame_skipping_(allow_frame_skip),
       max_queue_len_(max_queu_len),
+      debug_no_frame_delay_(debug_no_frame_delay),
       interrupt_received_(interrupt_received),
       work_executor_(new std::thread(&BufferedWriteSequencer::ProcessQueue,
                                      this)) {
@@ -144,7 +145,8 @@ void BufferedWriteSequencer::ProcessQueue() {
                 static constexpr Duration kAllowedSkew = Duration::Millis(250);
                 do_skip = (allow_frame_skipping_ &&
                            finish_time + kAllowedSkew < Time::Now());
-                finish_time.WaitUntil();
+                if (!debug_no_frame_delay_)
+                    finish_time.WaitUntil();
             }
             break;
         case SeqType::FrameImmediate:

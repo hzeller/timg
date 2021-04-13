@@ -18,6 +18,7 @@
 // Various implementations we try in the constructor
 #include "image-display.h"
 #include "jpeg-source.h"
+#include "openslide-source.h"
 #include "video-display.h"
 
 #include <errno.h>
@@ -146,6 +147,13 @@ ImageSource *ImageSource::Create(const std::string &filename,
                                  bool attempt_video_loading) {
     std::unique_ptr<ImageSource> result;
     if (attempt_image_loading) {
+#ifdef WITH_OPENSLIDE_SUPPORT
+        result.reset(new OpenSlideSource(filename));
+        if (result->LoadAndScale(options, frame_offset, frame_count)) {
+            return result.release();
+        }
+#endif
+
         result.reset(new JPEGSource(filename));
         if (result->LoadAndScale(options, frame_offset, frame_count)) {
             return result.release();

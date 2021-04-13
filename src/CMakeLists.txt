@@ -45,6 +45,12 @@ endif()
 
 configure_file(timg-version.h.in timg-version.h)
 
+if(WITH_OPENSLIDE_SUPPORT)
+  target_sources(timg PUBLIC openslide-source.cc openslide-source.h)
+  target_compile_definitions(timg PUBLIC WITH_OPENSLIDE_SUPPORT)
+  target_link_libraries(timg PkgConfig::OPENSLIDE)
+endif()
+
 if(WITH_VIDEO_DECODING)
   target_sources(timg PUBLIC video-display.cc video-display.h)
   target_compile_definitions(timg PUBLIC WITH_TIMG_VIDEO)

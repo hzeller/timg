@@ -22,6 +22,8 @@
 #include "timg-time.h"
 
 #include <mutex>
+#include <thread>
+#include <utility>
 
 // libav: "U NO extern C in header ?"
 extern "C" {
@@ -168,6 +170,12 @@ bool VideoLoader::LoadAndScale(const DisplayOptions &display_options,
     frame_duration_ = Duration::Nanos(1e9 * rate.den / rate.num);
 
     codec_context_ = avcodec_alloc_context3(av_codec);
+    if (av_codec->capabilities & AV_CODEC_CAP_FRAME_THREADS &&
+        std::thread::hardware_concurrency() > 1) {
+        codec_context_->thread_type = FF_THREAD_FRAME;
+        codec_context_->thread_count =
+            std::min(4, (int)std::thread::hardware_concurrency());
+    }
     if (avcodec_parameters_to_context(codec_context_, codec_parameters) < 0)
         return false;
     if (avcodec_open2(codec_context_, av_codec, NULL) < 0
@@ -218,16 +226,6 @@ bool VideoLoader::LoadAndScale(const DisplayOptions &display_options,
     return true;
 }
 
-bool VideoLoader::DecodePacket(AVPacket *packet, AVFrame *output_frame) {
-    if (avcodec_send_packet(codec_context_, packet) < 0)
-        return false;
-
-    // TODO: the API looks like we could possibly call receive frame multiple
-    // times, possibly for some queued multiple frames ? In that case we
-    // should do something for each frame we get.
-    return avcodec_receive_frame(codec_context_, output_frame) == 0;
-}
-
 void VideoLoader::AlphaBlendFramebuffer() {
     if (!maybe_transparent_) return;
     terminal_fb_->AlphaComposeBackground(
@@ -259,9 +257,16 @@ void VideoLoader::SendFrames(Duration duration, int loops,
     AVPacket *packet = av_packet_alloc();
     bool is_first = true;
     timg::Duration time_from_first_frame;
+
+    // We made guesses above if something is potentially an animation, but
+    // we don't know until we observe how many frames there are - we don't
+    // know beforehand.
+    // So we will only loop iff we do not observe exactly one frame.
+    int observed_frame_count = 0;
+
     AVFrame *decode_frame = av_frame_alloc();  // Decode video into this
     for (int k = 0;
-         (loop_forever || k < loops)
+         ((loop_forever || k < loops) && observed_frame_count != 1)
              && !interrupt_received
              && time_from_first_frame < duration;
          ++k) {
@@ -271,24 +276,45 @@ void VideoLoader::SendFrames(Duration duration, int loops,
                           AVSEEK_FLAG_ANY);
             avcodec_flush_buffers(codec_context_);
         }
+        observed_frame_count = 0;
         int remaining_frames = frame_count_;
         int skip_offset = frame_offset_;
+        int decode_in_flight = 0;
+
+        bool state_reading = true;
 
         while (!interrupt_received && time_from_first_frame < duration
-               && av_read_frame(format_context_, packet) >= 0
                && (!frame_limit || remaining_frames > 0)) {
-            if (packet->stream_index != video_stream_index_) {
-                av_packet_unref(packet);
-                continue;
+
+            if (state_reading &&
+                av_read_frame(format_context_, packet) != 0) {
+                state_reading = false;  // Ran out of packets from input
             }
 
+            if (!state_reading && decode_in_flight == 0)
+                break;     // Decoder fully drained.
 
-            if (DecodePacket(packet, decode_frame)) {
+            if (state_reading && packet->stream_index != video_stream_index_) {
+                av_packet_unref(packet);
+                continue;  // Not a packet we're interested in
+            }
+
+            if (state_reading) {
+                if (avcodec_send_packet(codec_context_, packet) == 0) {
+                    ++decode_in_flight;
+                }
+                av_packet_unref(packet);
+            } else {
+                avcodec_send_packet(codec_context_, nullptr);  // Trigger drain
+            }
+
+            while (decode_in_flight &&
+                   avcodec_receive_frame(codec_context_, decode_frame) == 0) {
+                --decode_in_flight;
                 if (skip_offset > 0) {
                     // TODO: there is probably a faster/better way to skip
                     // ahead to the last keyframe first.
                     --skip_offset;
-                    av_packet_unref(packet);
                     continue;
                 }
 
@@ -309,8 +335,8 @@ void VideoLoader::SendFrames(Duration duration, int loops,
                      time_from_first_frame);
                 is_first = false;
                 if (frame_limit) --remaining_frames;
+                ++observed_frame_count;
             }
-            av_packet_unref(packet);  // was allocated by av_read_frame
         }
     }
 
