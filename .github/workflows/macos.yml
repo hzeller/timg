@@ -10,8 +10,9 @@ jobs:
     name: Install Dependencies and Build
     runs-on: macos-latest
     steps:
-      - name: Install dependencies
+      - name: Prepare environment and install dependencies
         run: |
+          brew update
           brew install GraphicsMagick webp cmake
           brew install ffmpeg jpeg-turbo libexif libpng
           brew install openslide
