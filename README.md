@@ -422,6 +422,13 @@ For Mac users, at least the combination of macOS 11.2 and iTerm2 3.4.3 works.
 brew install timg
 ```
 
+#### NixOS or Nix package manager
+
+
+```bash
+nix-env -iA nixpkgs.timg
+```
+
 ### Build from source
 
 #### Get dependencies on Debian/Ubuntu
