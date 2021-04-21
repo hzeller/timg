@@ -18,8 +18,6 @@
 #ifndef TIMG_BASE64_H_
 #define TIMG_BASE64_H_
 
-#include <assert.h>
-
 namespace timg {
 // Encode data as base64.
 // input_iterator "begin" yields chars, output_iterator "out" receives chars.

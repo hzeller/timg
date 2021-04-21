@@ -19,7 +19,6 @@
 #include "framebuffer.h"
 #include "terminal-canvas.h"
 
-#include <cassert>
 #include <cstdio>
 #include <unistd.h>
 
