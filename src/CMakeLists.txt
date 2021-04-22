@@ -1,9 +1,7 @@
 set(CMAKE_CXX_FLAGS "-W -Wall -Wextra -Wno-unused-parameter -O3")
 
-add_executable(timg)
+add_executable(timg timg.cc)
 target_sources(timg PRIVATE
-  timg.cc
-
   buffered-write-sequencer.h buffered-write-sequencer.cc
   display-options.h
   framebuffer.h     framebuffer.cc
