@@ -417,6 +417,29 @@ For Mac users, at least the combination of macOS 11.2 and iTerm2 3.4.3 works.
 
 ### Install pre-built package
 
+### Linux distributions that support snap packages
+
+Several Linux distributions have built-in snap package support (Ubuntu and flavors, Solus, Zorin OS and KDE Neon). Other distributions require you to install first the `snapd` package. See for details the page [Installing snapd](https://snapcraft.io/docs/installing-snapd).
+
+To install `timg`, visit [the `timg` page at the Snap Store](https://snapcraft.io/timg) and click the green _Install_ button at the top right.
+
+Alternatively, you can install directly through the command line with the following command:
+```
+sudo snap install timg
+```
+
+Currently, the snap package of `timg` is using the `strict` confinement. This means that the executable can only open files from the user's home directory and subdirectories. It cannot open files from `/tmp`, other non-home directories, or hidden subdirectories directories in the home folder (such as `~/.local/`). It cannot open files from mounted disks (under `/media/`) but this can change if we ask for the permission at the Snap Store. For now, you can copy those files to the home directory and open from there. 
+
+The snap package of `timg` is available on six hardware architectures. `snapd` will automatically use the appropriate package for the architecture of your system. If you have access to any of the untested architectures, please try the `timg` snap package and report back whether it worked or not.
+
+1. amd64, **OK** (tested, on desktop Ubuntu and on Ubuntu running on a VPS)
+2. i386, untested.
+3. armhf, untested.
+4. ppc64el, untested.
+5. s390x, untested.
+6. arm64, untested.
+
+
 #### macOS
 ```bash
 brew install timg
