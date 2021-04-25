@@ -1,4 +1,4 @@
-set(CMAKE_CXX_FLAGS "-W -Wall -Wextra -Wno-unused-parameter -O3")
+set(CMAKE_CXX_FLAGS "-W -Wall -Wextra -Wno-unused-parameter -O3 ${CMAKE_CXX_FLAGS}")
 
 add_executable(timg timg.cc)
 target_sources(timg PRIVATE
