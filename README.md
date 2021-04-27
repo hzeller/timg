@@ -417,6 +417,13 @@ For Mac users, at least the combination of macOS 11.2 and iTerm2 3.4.3 works.
 
 ### Install pre-built package
 
+### Linux distributions that support snap packages
+
+If you have enabled support for snap packages in your Linux distribution, you can install `timg` with
+```
+sudo snap install timg
+```
+
 #### macOS
 ```bash
 brew install timg
