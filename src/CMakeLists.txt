@@ -5,10 +5,8 @@ target_sources(timg PRIVATE
   buffered-write-sequencer.h buffered-write-sequencer.cc
   display-options.h
   framebuffer.h     framebuffer.cc
-  image-display.h   image-display.cc
   image-source.h    image-source.cc
   iterm2-canvas.h   iterm2-canvas.cc
-  jpeg-source.h     jpeg-source.cc
   kitty-canvas.h    kitty-canvas.cc
   renderer.h        renderer.cc
   terminal-canvas.h terminal-canvas.cc
@@ -21,9 +19,6 @@ target_sources(timg PRIVATE
 )
 
 target_link_libraries(timg
-  PkgConfig::GRAPHICSMAGICKXX
-  PkgConfig::EXIF
-  PkgConfig::TURBOJPEG
   PkgConfig::SWSCALE
   PkgConfig::AVUTIL
   PkgConfig::ZLIB
@@ -43,14 +38,26 @@ endif()
 
 configure_file(timg-version.h.in timg-version.h)
 
+if(WITH_GRAPHICSMAGICK)
+  target_sources(timg PUBLIC image-display.h image-display.cc)
+  target_compile_definitions(timg PUBLIC WITH_TIMG_GRPAPHICSMAGICK)
+  target_link_libraries(timg PkgConfig::GRAPHICSMAGICKXX)
+endif()
+
+if(WITH_TURBOJPEG)
+  target_sources(timg PUBLIC jpeg-source.h jpeg-source.cc)
+  target_compile_definitions(timg PUBLIC WITH_TIMG_JPEG)
+  target_link_libraries(timg PkgConfig::TURBOJPEG PkgConfig::EXIF)
+endif()
+
 if(WITH_OPENSLIDE_SUPPORT)
-  target_sources(timg PUBLIC openslide-source.cc openslide-source.h)
-  target_compile_definitions(timg PUBLIC WITH_OPENSLIDE_SUPPORT)
+  target_sources(timg PUBLIC openslide-source.h openslide-source.cc)
+  target_compile_definitions(timg PUBLIC WITH_TIMG_OPENSLIDE_SUPPORT)
   target_link_libraries(timg PkgConfig::OPENSLIDE)
 endif()
 
 if(WITH_VIDEO_DECODING)
-  target_sources(timg PUBLIC video-display.cc video-display.h)
+  target_sources(timg PUBLIC video-display.h video-display.cc)
   target_compile_definitions(timg PUBLIC WITH_TIMG_VIDEO)
   target_link_libraries(timg PkgConfig::LIBAV PkgConfig::SWSCALE)
   if (WITH_VIDEO_DEVICE)
