@@ -58,7 +58,7 @@ grid uses `--grid=2` and is pixelated with `-pq`).
 <details>
 <summary>This is how the same grid looks with Kitty or iTerm2 Graphics mode...</summary>
 
-![](img/grid-timg-kitty.png)
+![](img/grid-timg-wezterm.png)
 
 </details>
 
@@ -417,20 +417,20 @@ For Mac users, at least the combination of macOS 11.2 and iTerm2 3.4.3 works.
 
 ### Install pre-built package
 
-### Linux distributions that support snap packages
+#### macOS
+
+```bash
+brew install timg
+```
+
+#### Linux distributions that support snap packages
 
 If you have enabled support for snap packages in your Linux distribution, you can install `timg` with
 ```
 sudo snap install timg
 ```
 
-#### macOS
-```bash
-brew install timg
-```
-
 #### NixOS or Nix package manager
-
 
 ```bash
 nix-env -iA nixpkgs.timg
