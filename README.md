@@ -442,7 +442,7 @@ nix-env -iA nixpkgs.timg
 
 ```bash
 sudo apt install cmake git g++ pkg-config
-sudo apt install libgraphicsmagick++-dev libturbojpeg-dev libexif-dev libswscale-dev libpng-dev # needed libs
+sudo apt install libgraphicsmagick++-dev libturbojpeg-dev libexif-dev libswscale-dev # needed libs
 
 # If you want to include video decoding, also install these additional libraries
 sudo apt install libavcodec-dev libavformat-dev

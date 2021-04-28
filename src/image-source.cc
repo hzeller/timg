@@ -147,23 +147,28 @@ ImageSource *ImageSource::Create(const std::string &filename,
                                  bool attempt_video_loading) {
     std::unique_ptr<ImageSource> result;
     if (attempt_image_loading) {
-#ifdef WITH_OPENSLIDE_SUPPORT
+#ifdef WITH_TIMG_OPENSLIDE_SUPPORT
         result.reset(new OpenSlideSource(filename));
         if (result->LoadAndScale(options, frame_offset, frame_count)) {
             return result.release();
         }
 #endif
 
+#ifdef WITH_TIMG_JPEG
         result.reset(new JPEGSource(filename));
         if (result->LoadAndScale(options, frame_offset, frame_count)) {
             return result.release();
         }
+#endif
 
+#ifdef WITH_TIMG_GRPAPHICSMAGICK
         result.reset(new ImageLoader(filename));
         if (result->LoadAndScale(options, frame_offset, frame_count)) {
             return result.release();
         }
+#endif
     }
+
 
 #ifdef WITH_TIMG_VIDEO
     if (attempt_video_loading) {
@@ -185,6 +190,7 @@ ImageSource *ImageSource::Create(const std::string &filename,
             fprintf(stderr, "%s: %s\n", filename.c_str(), strerror(errno));
         }
     }
+
     // We either loaded, played and continue'ed, or we end up here.
     //fprintf(stderr, "%s: couldn't load\n", filename);
 #ifdef WITH_TIMG_VIDEO

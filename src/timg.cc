@@ -30,13 +30,17 @@
 #include "timg-version.h"
 #include "unicode-block-canvas.h"
 #include "buffered-write-sequencer.h"
+
 // To display version number
-#include "image-display.h"
-#ifdef WITH_OPENSLIDE_SUPPORT
+#ifdef WITH_TIMG_OPENSLIDE_SUPPORT
 #  include "openslide-source.h"
 #endif
 #ifdef WITH_TIMG_VIDEO
 #  include "video-display.h"
+#endif
+#ifdef WITH_TIMG_GRPAPHICSMAGICK
+#  include "image-display.h"
+#  include <Magick++.h>
 #endif
 
 
@@ -54,7 +58,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <Magick++.h>
+
 #include <fstream>
 #include <future>
 #include <iostream>
@@ -296,7 +300,9 @@ static void PresentImages(LoadedImageSources &loaded_sources,
 }
 
 int main(int argc, char *argv[]) {
+#ifdef WITH_TIMG_GRPAPHICSMAGICK
     Magick::InitializeMagick(*argv);
+#endif
 
     bool verbose = false;
     const timg::TermSizeResult term = timg::DetermineTermSize();
@@ -524,9 +530,11 @@ int main(int argc, char *argv[]) {
                     " <https://timg.sh/>\n"
                     "Copyright (c) 2016..2021 Henner Zeller. "
                     "This program is free software; license GPL 2.0.\n\n");
+#ifdef WITH_TIMG_GRPAPHICSMAGICK
             fprintf(stderr, "Image decoding %s\n",
                     timg::ImageLoader::VersionInfo());
-#ifdef WITH_OPENSLIDE_SUPPORT
+#endif
+#ifdef WITH_TIMG_OPENSLIDE_SUPPORT
             fprintf(stderr, "Openslide %s\n",
                     timg::OpenSlideSource::VersionInfo());
 #endif
