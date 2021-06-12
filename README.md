@@ -417,6 +417,14 @@ For Mac users, at least the combination of macOS 11.2 and iTerm2 3.4.3 works.
 
 ### Install pre-built package
 
+#### Debian-based systems
+
+```bash
+sudo apt install timg
+```
+
+(currently in Debian testing)
+
 #### macOS
 
 ```bash
