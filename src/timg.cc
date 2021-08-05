@@ -335,6 +335,7 @@ int main(int argc, char *argv[]) {
 
     enum LongOptionIds {
         OPT_CLEAR_SCREEN = 1000,
+        OPT_CLOSE_STDIN,
         OPT_COLOR_256,
         OPT_COMPRESS_PIXEL,
         OPT_DEBUG_NO_FRAME_DELAY,
@@ -354,6 +355,7 @@ int main(int argc, char *argv[]) {
         { "auto-crop",   optional_argument, NULL, 'T' },
         { "center",      no_argument,       NULL, 'C' },
         { "clear",       optional_argument, NULL, OPT_CLEAR_SCREEN },
+        { "close-stdin", no_argument,       NULL, OPT_CLOSE_STDIN },
         { "color8",      no_argument,       NULL, OPT_COLOR_256 },
         { "compress",    no_argument,       NULL, OPT_COMPRESS_PIXEL },
         { "delta-move",  required_argument, NULL, 'd' },
@@ -573,6 +575,9 @@ int main(int argc, char *argv[]) {
             break;
         case OPT_VERBOSE:
             verbose = true;
+            break;
+        case OPT_CLOSE_STDIN:
+            close(STDIN_FILENO);
             break;
         case OPT_DEBUG_NO_FRAME_DELAY:
             debug_no_frame_delay = true;
