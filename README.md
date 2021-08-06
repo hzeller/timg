@@ -425,6 +425,12 @@ sudo apt install timg
 
 (currently in Debian testing)
 
+#### NixOS or Nix package manager
+
+```bash
+nix-env -iA nixpkgs.timg
+```
+
 #### macOS
 
 ```bash
@@ -436,12 +442,6 @@ brew install timg
 If you have enabled support for snap packages in your Linux distribution, you can install `timg` with
 ```
 sudo snap install timg
-```
-
-#### NixOS or Nix package manager
-
-```bash
-nix-env -iA nixpkgs.timg
 ```
 
 ### Build from source
@@ -460,6 +460,15 @@ sudo apt install libavdevice-dev # If you want to read from video devices such a
 sudo apt install libopenslide-dev # If you want to add OpenSlide images support
 
 sudo apt install pandoc  # If you want to recreate the man page
+```
+
+#### Get dependencies on NixOS or Nix package manager
+
+The dependencies are set-up in the shell.nix, so you're ready to go opening
+a nix shell
+
+```bash
+nix-shell
 ```
 
 #### Get dependencies on macOS
