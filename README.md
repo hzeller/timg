@@ -502,6 +502,10 @@ cmake ../ -DWITH_VIDEO_DECODING=On -DWITH_VIDEO_DEVICE=On -DWITH_OPENSLIDE_SUPPO
 make
 ```
 
+If you want a very low dependency version, use
+`-DWITH_VIDEO_DECODING=off -DWITH_OPENSLIDE_SUPPORT=off -DWITH_GRAPHICSMAGICK=off -DWITH_TURBOJPEG=off -DWITH_STB_IMAGE=on`.
+A lot of features will not be working, but the binary is more self-contained with less references.
+
 #### Install
 
 You can run timg directly in the build directory using `src/timg`. To install

@@ -76,6 +76,11 @@ if(WITH_VIDEO_DECODING)
   endif()
 endif()
 
+if(WITH_STB_IMAGE)
+  target_sources(timg PUBLIC stb-image-source.h stb-image-source.cc)
+  target_compile_definitions(timg PUBLIC WITH_TIMG_STB)
+endif()
+
 install(TARGETS timg
   RUNTIME DESTINATION bin
 )

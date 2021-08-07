@@ -20,6 +20,7 @@
 #include "jpeg-source.h"
 #include "openslide-source.h"
 #include "video-display.h"
+#include "stb-image-source.h"
 
 #include <errno.h>
 #include <math.h>
@@ -169,6 +170,12 @@ ImageSource *ImageSource::Create(const std::string &filename,
 #endif
     }
 
+#ifdef WITH_TIMG_STB
+    result.reset(new STBImageSource(filename));
+    if (result->LoadAndScale(options, frame_offset, frame_count)) {
+        return result.release();
+    }
+#endif
 
 #ifdef WITH_TIMG_VIDEO
     if (attempt_video_loading) {

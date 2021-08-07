@@ -12,6 +12,8 @@ option(WITH_GRAPHICSMAGICK "Enable general image loading with Graphicsmagick. Yo
 option(WITH_TURBOJPEG "Optimized JPEG loading. You typically want this." ON)
 option(WITH_TERMINAL_QUERY "Query terminals for availability of kitty/iterm capabilities and background color. If not compiled in, choose with -p (pixelation) and -b (background)" ON)
 
+option(WITH_STB_IMAGE "Use STB image, a self-contained albeit limited image loading and lower quality. Use only if WITH_GRAPHICSMAGICK is not possible and want to limit dependencies." OFF)
+
 # Note: The version string can be ammended with -DDISTRIBUTION_VERSION, see src/timg-version.h.in
 option(TIMG_VERSION_FROM_GIT "Get the program version from the git repository" ON)
 
