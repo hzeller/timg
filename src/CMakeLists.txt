@@ -18,11 +18,7 @@ target_sources(timg PRIVATE
   unicode-block-canvas.h unicode-block-canvas.cc
 )
 
-target_link_libraries(timg
-  PkgConfig::SWSCALE
-  PkgConfig::AVUTIL
-  PkgConfig::ZLIB
-  Threads::Threads)
+target_link_libraries(timg PkgConfig::ZLIB Threads::Threads)
 target_include_directories(timg PRIVATE ${CMAKE_BINARY_DIR}/src)
 
 target_compile_features(timg PRIVATE cxx_std_14)
@@ -38,6 +34,11 @@ endif()
 
 configure_file(timg-version.h.in timg-version.h)
 
+if(WITH_TERMINAL_QUERY)
+  target_sources(timg PUBLIC term-query.h term-query.cc)
+  target_compile_definitions(timg PUBLIC WITH_TIMG_TERMINAL_QUERY)
+endif()
+
 if(WITH_GRAPHICSMAGICK)
   target_sources(timg PUBLIC image-display.h image-display.cc)
   target_compile_definitions(timg PUBLIC WITH_TIMG_GRPAPHICSMAGICK)
@@ -47,21 +48,30 @@ endif()
 if(WITH_TURBOJPEG)
   target_sources(timg PUBLIC jpeg-source.h jpeg-source.cc)
   target_compile_definitions(timg PUBLIC WITH_TIMG_JPEG)
-  target_link_libraries(timg PkgConfig::TURBOJPEG PkgConfig::EXIF)
+  target_link_libraries(timg
+    PkgConfig::TURBOJPEG
+    PkgConfig::EXIF
+    PkgConfig::AVUTIL
+    PkgConfig::SWSCALE)
 endif()
 
 if(WITH_OPENSLIDE_SUPPORT)
   target_sources(timg PUBLIC openslide-source.h openslide-source.cc)
   target_compile_definitions(timg PUBLIC WITH_TIMG_OPENSLIDE_SUPPORT)
-  target_link_libraries(timg PkgConfig::OPENSLIDE)
+  target_link_libraries(timg PkgConfig::OPENSLIDE
+    PkgConfig::AVUTIL
+    PkgConfig::SWSCALE)
 endif()
 
 if(WITH_VIDEO_DECODING)
   target_sources(timg PUBLIC video-display.h video-display.cc)
   target_compile_definitions(timg PUBLIC WITH_TIMG_VIDEO)
-  target_link_libraries(timg PkgConfig::LIBAV PkgConfig::SWSCALE)
+  target_link_libraries(timg
+    PkgConfig::LIBAV
+    PkgConfig::AVUTIL
+    PkgConfig::SWSCALE)
   if (WITH_VIDEO_DEVICE)
-    target_link_libraries(timg PkgConfig::LIBAV_DEVICE PkgConfig::SWSCALE)
+    target_link_libraries(timg PkgConfig::LIBAV_DEVICE)
     add_definitions(-DHAVE_AVDEVICE)
   endif()
 endif()

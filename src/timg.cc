@@ -31,6 +31,10 @@
 #include "unicode-block-canvas.h"
 #include "buffered-write-sequencer.h"
 
+#ifdef TIMG_WITH_TERMINAL_QUERY
+#  include "term-query.h"
+#endif
+
 // To display version number
 #ifdef WITH_TIMG_OPENSLIDE_SUPPORT
 #  include "openslide-source.h"
@@ -628,6 +632,7 @@ int main(int argc, char *argv[]) {
     // Determine best default to pixelate images.
     if (present.pixelation == Pixelation::kNotChosen) {
         present.pixelation = Pixelation::kQuarterBlock;  // Good default.
+#ifdef TIMG_WITH_TERMINAL_QUERY
         // Konsole has the bad behaviour that it does not absorb the kitty
         // graphics query but spills it on the screen. "Luckily", Konsole has
         // another bug not returning the window pixel size, so we can use that
@@ -638,6 +643,7 @@ int main(int argc, char *argv[]) {
             else if (timg::QueryHasKittyGraphics())
                 present.pixelation = Pixelation::kKittyGraphics;
         }
+#endif
     }
 
     // If 'none' is chosen for background color, then using the
@@ -734,14 +740,19 @@ int main(int argc, char *argv[]) {
     std::future<rgba_t> background_color_future;
     if (bg_color) {
         if (strcasecmp(bg_color, "auto") == 0) {
+#ifdef TIMG_WITH_TERMINAL_QUERY
             std::function<rgba_t()> query_terminal = []() {
-                return rgba_t::ParseColor(timg::DetermineBackgroundColor());
+                return rgba_t::ParseColor(timg::QueryBackgroundColor());
             };
             background_color_future = pool->ExecAsync(query_terminal);
             display_opts.bgcolor_getter = [&background_color_future]() {
                 static rgba_t value = background_color_future.get(); // once
                 return value;
             };
+#else
+            const rgba_t bg = rgba_t::ParseColor("#000000");
+            display_opts.bgcolor_getter = [bg]() { return bg; };
+#endif
         }
         else {
             const rgba_t bg = rgba_t::ParseColor(bg_color);
