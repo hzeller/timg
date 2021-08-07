@@ -24,5 +24,6 @@ pkgs.mkShell {
        ffmpeg
        libexif
        openslide
+       pandoc
     ];
 }
