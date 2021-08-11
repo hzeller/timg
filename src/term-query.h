@@ -16,6 +16,7 @@
 #ifndef TIMG_TERM_QUERY_H
 #define TIMG_TERM_QUERY_H
 
+namespace timg {
 // Attempt to determine the background color of current termninal.
 // Returns allocated string if successful or nullptr if not.
 char *QueryBackgroundColor();
@@ -25,5 +26,6 @@ bool QueryHasKittyGraphics();
 
 // Query if the terminal supports the iTerm2 graphics.
 bool QueryHasITerm2Graphics();
+}  // namespace timg
 
 #endif  // TIMG_TERM_QUERY_H

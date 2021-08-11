@@ -31,7 +31,7 @@
 #include "unicode-block-canvas.h"
 #include "buffered-write-sequencer.h"
 
-#ifdef TIMG_WITH_TERMINAL_QUERY
+#ifdef WITH_TIMG_TERMINAL_QUERY
 #  include "term-query.h"
 #endif
 
@@ -632,7 +632,7 @@ int main(int argc, char *argv[]) {
     // Determine best default to pixelate images.
     if (present.pixelation == Pixelation::kNotChosen) {
         present.pixelation = Pixelation::kQuarterBlock;  // Good default.
-#ifdef TIMG_WITH_TERMINAL_QUERY
+#ifdef WITH_TIMG_TERMINAL_QUERY
         // Konsole has the bad behaviour that it does not absorb the kitty
         // graphics query but spills it on the screen. "Luckily", Konsole has
         // another bug not returning the window pixel size, so we can use that
@@ -740,7 +740,7 @@ int main(int argc, char *argv[]) {
     std::future<rgba_t> background_color_future;
     if (bg_color) {
         if (strcasecmp(bg_color, "auto") == 0) {
-#ifdef TIMG_WITH_TERMINAL_QUERY
+#ifdef WITH_TIMG_TERMINAL_QUERY
             std::function<rgba_t()> query_terminal = []() {
                 return rgba_t::ParseColor(timg::QueryBackgroundColor());
             };
