@@ -51,6 +51,11 @@ bool STBImageSource::LoadAndScale(const DisplayOptions &options,
                              channels, 0, 0);
     stbi_image_free(data);
 
+    image_->AlphaComposeBackground(
+        options.bgcolor_getter, options.bg_pattern_color,
+        options.pattern_size * options.cell_x_px,
+        options.pattern_size * options.cell_y_px/2);
+
     indentation_ = options.center_horizontally
         ? (options.width - image_->width()) / 2
         : 0;
