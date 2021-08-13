@@ -19,6 +19,8 @@
 #include "../third_party/stb_image.h"
 
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
+// Least amount of fuzziness on upscaling
+#define STBIR_DEFAULT_FILTER_UPSAMPLE STBIR_FILTER_BOX
 #include "../third_party/stb_image_resize.h"
 
 namespace timg {
@@ -45,10 +47,10 @@ bool STBImageSource::LoadAndScale(const DisplayOptions &options,
     channels = kDesiredChannels;
 
     image_.reset(new timg::Framebuffer(target_width, target_height));
-    stbir_resize_uint8_srgb( data, w, h, 0,
-                             (uint8_t*) image_->begin(),
-                             target_width, target_height, 0,
-                             channels, 0, 0);
+    stbir_resize_uint8(data, w, h, 0,
+                       (uint8_t*) image_->begin(),
+                       target_width, target_height, 0,
+                       channels);
     stbi_image_free(data);
 
     image_->AlphaComposeBackground(
