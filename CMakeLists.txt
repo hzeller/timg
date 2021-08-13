@@ -4,7 +4,7 @@ project(timg VERSION 1.4.2 LANGUAGES CXX)
 
 option(WITH_VIDEO_DECODING "Enables video decoding feature" ON)
 option(WITH_VIDEO_DEVICE "Enables reading videos from devices e.g. v4l2 (requires WITH_VIDEO_DECODING)" ON)
-option(WITH_OPENSLIDE_SUPPORT "Enables support to scientific OpenSlide formats" ON)
+option(WITH_OPENSLIDE_SUPPORT "Enables support to scientific OpenSlide formats" OFF)
 
 # Options that should be typically on, but could be disabled for special
 # applications where less dependencies are required
@@ -12,7 +12,7 @@ option(WITH_GRAPHICSMAGICK "Enable general image loading with Graphicsmagick. Yo
 option(WITH_TURBOJPEG "Optimized JPEG loading. You typically want this." ON)
 option(WITH_TERMINAL_QUERY "Query terminals for availability of kitty/iterm capabilities and background color. If not compiled in, choose with -p (pixelation) and -b (background)" ON)
 
-option(WITH_STB_IMAGE "Use STB image, a self-contained albeit limited image loading and lower quality. Use only if WITH_GRAPHICSMAGICK is not possible and want to limit dependencies." OFF)
+option(WITH_STB_IMAGE "Use STB image, a self-contained albeit limited image loading and lower quality. Use if WITH_GRAPHICSMAGICK is not possible and want to limit dependencies." OFF)
 
 # Note: The version string can be ammended with -DDISTRIBUTION_VERSION, see src/timg-version.h.in
 option(TIMG_VERSION_FROM_GIT "Get the program version from the git repository" ON)

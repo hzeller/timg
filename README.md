@@ -491,6 +491,28 @@ brew install pandoc  # If you want to recreate the man page
 
 #### Get repo and compile timg
 
+In the script below you see that the build system allows for some
+compile-time choices:
+
+  * `WITH_VIDEO_DECODING` allow for video decoding. Requires ffmpeg-related
+     libraries. You typically want this **ON** (default)
+     * `WITH_VIDEO_DEVICE` if video decodig is selected, this allows for
+       accessing connected video devices, e.g. you watch your webcam stream.
+  * `WITH_GRAPHICSMAGICK` This is the main image loading library so you
+    typically want this **ON** (default).
+  * `WITH_TURBOJPEG` If enabled, uses this for faster jpeg file loading.
+     You typically want this **ON** (default).
+  * `WITH_OPENSLIDE_SUPPORT` Openslide is an image format used in scientific
+    applications. Switch ON if needed.
+  * `WITH_STB_IMAGE` Compile the simpler STB image library directly into
+    the timg binary in cases where Graphicsmagick is not suitable for
+    dependency management reasons; output is of less quality and animated
+    images won't work. You typically want this **OFF** (default) if you can use
+    Graphicsmagick.
+
+You can choose these options by providing `-D<option>=ON` on the cmake command
+line, see below.
+
 ```bash
 git clone https://github.com/hzeller/timg.git  # Get repo
 cd timg  # Enter the checked out repository directory.
@@ -501,10 +523,6 @@ cd build
 cmake ../ -DWITH_VIDEO_DECODING=On -DWITH_VIDEO_DEVICE=On -DWITH_OPENSLIDE_SUPPORT=On
 make
 ```
-
-If you want a very low dependency version, use
-`-DWITH_VIDEO_DECODING=off -DWITH_OPENSLIDE_SUPPORT=off -DWITH_GRAPHICSMAGICK=off -DWITH_TURBOJPEG=off -DWITH_STB_IMAGE=on`.
-A lot of features will not be working, but the binary is more self-contained with less references.
 
 #### Install
 
