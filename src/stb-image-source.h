@@ -26,6 +26,7 @@ namespace timg {
 class STBImageSource final : public ImageSource {
 public:
     STBImageSource(const std::string &filename);
+    ~STBImageSource();
 
     // Attempt to load given filename as video, open stream and set-up scaling.
     // Returns true on success.
@@ -40,7 +41,9 @@ public:
                     const volatile sig_atomic_t &interrupt_received,
                     const Renderer::WriteFramebufferFun &sink) final;
 private:
-    std::unique_ptr<timg::Framebuffer> image_;
+    class PreprocessedFrame;
+    std::vector<PreprocessedFrame*> frames_;
+    int max_frames_ = 1;
     int indentation_ = 0;
 };
 }  // namespace timg

@@ -506,9 +506,8 @@ compile-time choices:
     applications. Switch ON if needed.
   * `WITH_STB_IMAGE` Compile the simpler STB image library directly into
     the timg binary in cases where Graphicsmagick is not suitable for
-    dependency management reasons; output is of less quality and animated
-    images won't work. You typically want this **OFF** (default) if you can use
-    Graphicsmagick.
+    dependency management reasons; output can be slower and of less quality.
+    You typically want this **OFF** (default) if you can use Graphicsmagick.
 
 You can choose these options by providing `-D<option>=ON` on the cmake command
 line, see below.
