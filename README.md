@@ -494,19 +494,20 @@ brew install pandoc  # If you want to recreate the man page
 In the script below you see that the build system allows for some
 compile-time choices:
 
-  * `WITH_VIDEO_DECODING` allow for video decoding. Requires ffmpeg-related
+  * **`WITH_VIDEO_DECODING`** allow for video decoding. Requires ffmpeg-related
      libraries. You typically want this **ON** (default)
-     * `WITH_VIDEO_DEVICE` if video decodig is selected, this allows for
-       accessing connected video devices, e.g. you watch your webcam stream.
-  * `WITH_GRAPHICSMAGICK` This is the main image loading library so you
+     * **`WITH_VIDEO_DEVICE`** this allows for accessing connected video
+     devices, e.g. you can watch your webcam input (requires
+     `WITH_VIDEO_DECODING`).
+  * **`WITH_GRAPHICSMAGICK`** This is the main image loading library so you
     typically want this **ON** (default).
-  * `WITH_TURBOJPEG` If enabled, uses this for faster jpeg file loading.
+  * **`WITH_TURBOJPEG`** If enabled, uses this for faster jpeg file loading.
      You typically want this **ON** (default).
-  * `WITH_OPENSLIDE_SUPPORT` Openslide is an image format used in scientific
-    applications. Switch ON if needed.
-  * `WITH_STB_IMAGE` Compile the simpler STB image library directly into
+  * **`WITH_OPENSLIDE_SUPPORT`** Openslide is an image format used in scientific
+    applications. Default off, switch ON if needed.
+  * **`WITH_STB_IMAGE`** Compile the simpler STB image library directly into
     the timg binary in cases where Graphicsmagick is not suitable for
-    dependency management reasons; output can be slower and of less quality.
+    dependency pruning reasons; output can be slower and of less quality.
     You typically want this **OFF** (default) if you can use Graphicsmagick.
 
 You can choose these options by providing `-D<option>=ON` on the cmake command

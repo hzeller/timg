@@ -168,14 +168,15 @@ ImageSource *ImageSource::Create(const std::string &filename,
             return result.release();
         }
 #endif
-    }
 
 #ifdef WITH_TIMG_STB
-    result.reset(new STBImageSource(filename));
-    if (result->LoadAndScale(options, frame_offset, frame_count)) {
-        return result.release();
-    }
+        // STB image loading always last as last fallback resort.
+        result.reset(new STBImageSource(filename));
+        if (result->LoadAndScale(options, frame_offset, frame_count)) {
+            return result.release();
+        }
 #endif
+    }  // end attempt image loading
 
 #ifdef WITH_TIMG_VIDEO
     if (attempt_video_loading) {
@@ -183,7 +184,7 @@ ImageSource *ImageSource::Create(const std::string &filename,
         if (result->LoadAndScale(options, frame_offset, frame_count)) {
             return result.release();
         }
-    }
+    }  // end attempt video loading
 #endif
 
     // Ran into trouble opening. Let's see if this is even an accessible file.
