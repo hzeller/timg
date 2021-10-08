@@ -142,7 +142,7 @@ public:
     }
 
     void WaitUntil() const {
-#if defined(CLOCK_MONOTONIC) && defined(TIMER_ABSTIME)
+#if defined(CLOCK_MONOTONIC) && defined(TIMER_ABSTIME) && !defined(__OpenBSD__)
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &time_, nullptr);
 #else
         Time now;
