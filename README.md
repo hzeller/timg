@@ -67,7 +67,10 @@ grid uses `--grid=2` and is pixelated with `-pq`).
 ```
 usage: timg [options] <image/video> [<image/video>...]
 Options:
-        -g<w>x<h>      : Output geometry in character cells. Terminal is 160x50
+        -g<w>x<h>      : Output geometry in character cells. Partial geometry
+                         leaving out one value -g<w>x or -gx<h> is possible,
+                         the other value it then derived from the terminal size.
+                         Default derived from terminal size is 160x50
         -p<pixelation> : Pixelation: 'h' = half blocks    'q' = quarter blocks
                                      'k' = kitty graphics 'i' = iTerm2 graphics
                          Default: Auto-detect graphics, otherwise 'quarter'.

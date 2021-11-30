@@ -154,7 +154,10 @@ static int usage(const char *progname, ExitCode exit_code,
     fprintf(stderr, "usage: %s [options] <%s> [<%s>...]\n", progname,
             kFileType, kFileType);
     fprintf(stderr, "\e[1mOptions\e[0m:\n"
-            "\t-g<w>x<h>      : Output geometry in character cells. Terminal is %dx%d\n"
+            "\t-g<w>x<h>      : Output geometry in character cells. Partial geometry\n"
+            "\t                 leaving out one value -g<w>x or -gx<h> is possible,\n"
+            "\t                 the other value it then derived from the terminal size.\n"
+            "\t                 Default derived from terminal size is %dx%d\n"
             "\t-p<pixelation> : Pixelation: 'h' = half blocks    'q' = quarter blocks\n"
             "\t                             'k' = kitty graphics 'i' = iTerm2 graphics\n"
             "\t                 Default: Auto-detect graphics, otherwise 'quarter'.\n"
@@ -393,8 +396,10 @@ int main(int argc, char *argv[]) {
                               long_options, &option_index))!=-1) {
         switch (opt) {
         case 'g':
-            if (sscanf(optarg, "%dx%d",
-                       &geometry_width, &geometry_height) < 2) {
+            // Parse xHEIGHT, WIDTHx, WIDTHxHEIGHT
+            if ((sscanf(optarg, "x%d", &geometry_height) == 0) &&
+                (sscanf(optarg, "%dx%d",
+                        &geometry_width, &geometry_height) < 1)) {
                 fprintf(stderr, "Invalid size spec '%s'", optarg);
                 return usage(argv[0], ExitCode::kParameterError,
                              geometry_width, geometry_height);
@@ -812,6 +817,8 @@ int main(int argc, char *argv[]) {
     if (verbose) {
         fprintf(stderr, "Terminal cells: %dx%d  cell-pixels: %dx%d\n",
                 term.cols, term.rows, term.font_width_px, term.font_height_px);
+        fprintf(stderr, "Active Geometry: %dx%d\n",
+                geometry_width, geometry_height);
         const Duration d = end_show - start_show;
         const uint64_t written_bytes =
             sequencer.bytes_total() - sequencer.bytes_skipped();

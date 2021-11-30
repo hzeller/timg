@@ -42,10 +42,14 @@ these file decoders (GraphicsMagick or libav respectively).
 
 ## General Options
 **-g** *&lt;width&gt;x&lt;height&gt;*
-:     Output image to fit inside given geometry. By default, the size is
+:    Output image to fit inside given geometry. By default, the size is
      determined by the available space in the terminal. The image is
      scaled to fit inside the available box to fill the screen; see **-W** if
      you want to fill the width.
+
+     It is possible to only partially specify the size before or after the
+     **x** separator, like **-g<width>x** or **-gx<height>**. The corresponding
+     other value is then derived from the terminal size.
 
 **-p** *&lt;[h|q|k|i]&gt;*, **-\-pixelation**=*[h|q|k|i]*
 :    Choice for pixelation of the content. Value 'h' chooses unicode half
