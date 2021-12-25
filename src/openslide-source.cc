@@ -37,6 +37,12 @@ const char *OpenSlideSource::VersionInfo() {
     return openslide_get_version();
 }
 
+std::string OpenSlideSource::FormatTitle(
+  const std::string &format_string) const {
+    return FormatFromParameters(format_string, filename_, orig_width_,
+                                orig_height_, "openslide");
+}
+
 static void dummy_log(void *, int, const char *, va_list) {}
 
 // Scoped clean-up of c objects.
@@ -77,6 +83,9 @@ bool OpenSlideSource::LoadAndScale(const DisplayOptions &opts, int, int) {
     openslide_get_level0_dimensions(osr, &level0_width, &level0_height);
     if (invalid_dimensions(level0_width, level0_height))
         return false;
+
+    orig_width_ = level0_width;
+    orig_height_ = level0_height;
 
     // Get the target size
     CalcScaleToFitDisplay(level0_width, level0_height, opts, false,

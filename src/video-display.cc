@@ -111,6 +111,11 @@ const char *VideoLoader::VersionInfo() {
     return "libav " AV_STRINGIFY(LIBAVFORMAT_VERSION);
 }
 
+std::string VideoLoader::FormatTitle(const std::string& format_string) const {
+    return FormatFromParameters(format_string, filename_,
+                                orig_width_, orig_height_, "video");
+}
+
 bool VideoLoader::LoadAndScale(const DisplayOptions &display_options,
                                int frame_offset, int frame_count) {
     options_ = display_options;
@@ -181,6 +186,9 @@ bool VideoLoader::LoadAndScale(const DisplayOptions &display_options,
     if (avcodec_open2(codec_context_, av_codec, NULL) < 0
         || codec_context_->width <= 0 || codec_context_->height <= 0)
         return false;
+
+    orig_width_ = codec_context_->width;
+    orig_height_ = codec_context_->height;
 
     /*
      * Prepare frame to hold the scaled target frame to be send to matrix.

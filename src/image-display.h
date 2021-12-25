@@ -55,6 +55,9 @@ public:
                     const volatile sig_atomic_t &interrupt_received,
                     const Renderer::WriteFramebufferFun &sink) final;
 
+    // Format title according to the format-string.
+    std::string FormatTitle(const std::string& format_string) const final;
+
 private:
     class PreprocessedFrame;
 
@@ -69,6 +72,7 @@ private:
 
     DisplayOptions options_;
     std::vector<PreprocessedFrame *> frames_;
+    int orig_width_, orig_height_;
     int max_frames_;
     bool is_animation_ = false;
 };

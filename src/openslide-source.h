@@ -39,10 +39,13 @@ public:
                     const volatile sig_atomic_t &interrupt_received,
                     const Renderer::WriteFramebufferFun &sink) final;
 
+    std::string FormatTitle(const std::string& format_string) const final;
+
 private:
     int IndentationIfCentered(timg::Framebuffer &image) const;
 
     DisplayOptions options_;
+    int orig_width_, orig_height_;
     std::unique_ptr<timg::Framebuffer> image_;
 };
 

@@ -47,7 +47,7 @@ public:
     // rendered, to be called by whoever provides a framebuffer.
     // The returned call can be used to output multiple frames with the usual
     // (x, dy) positioning.
-    virtual WriteFramebufferFun render_cb(const char *title) = 0;
+    virtual WriteFramebufferFun render_cb(const std::string& title) = 0;
 
 protected:
     Renderer(timg::TerminalCanvas *canvas,
@@ -55,7 +55,7 @@ protected:
 
     // Trim and potentially title for rendering, obeying the column-width
     // and centering constraints. Adds a newline as this needs to be printed.
-    std::string TrimTitle(const char *title, int width);
+    std::string TrimTitle(const std::string &title, int width);
 
     timg::TerminalCanvas *const canvas_;
     const DisplayOptions &options_;

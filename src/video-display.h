@@ -51,6 +51,9 @@ public:
                     const volatile sig_atomic_t &interrupt_received,
                     const Renderer::WriteFramebufferFun &sink) final;
 
+    // Format title according to the format-string.
+    std::string FormatTitle(const std::string& format_string) const final;
+
 private:
     void AlphaBlendFramebuffer();
 
@@ -58,6 +61,7 @@ private:
     bool maybe_transparent_ = false;
     int frame_offset_ = 0;
     int frame_count_ = -1;
+    int orig_width_, orig_height_;
 
     int video_stream_index_ = -1;
     AVFormatContext *format_context_ = nullptr;

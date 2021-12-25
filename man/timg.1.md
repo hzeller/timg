@@ -178,8 +178,19 @@ these file decoders (GraphicsMagick or libav respectively).
 :    This is an image, don't attempt to fall back to video decoding. Somewhat
     the opposite of **-V**.
 
-**-F**, **-\-title**
-:    Print filename as title above each image.
+**-\-title=[format-string]**
+:    Print filename as title above each image. By default, this is just the
+     filename (`%f`), but it is possible to customize the title by giving a
+     format string. In this string, the following format specifiers are expanded
+
+       * `%f` = full filename
+       * `%b` = basename (filename without path)
+       * `%w` = image width
+       * `%h` = image height
+       * `%D` = internal decoder used (image, video, ...)
+
+**-F**
+:    Behaves like --title=\"%f\", i.e. the filename is printed as title.
 
 **-f** &lt;*filelist-file*&gt;
 :    Read a list of image filenames to show from this file. The list needs

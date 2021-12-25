@@ -112,6 +112,11 @@ const char *JPEGSource::VersionInfo() {
     return "TurboJPEG "; // TODO: version number ?
 }
 
+std::string JPEGSource::FormatTitle(const std::string& format_string) const {
+    return FormatFromParameters(format_string, filename_,
+                                orig_width_, orig_height_, "jpeg");
+}
+
 bool JPEGSource::LoadAndScale(const DisplayOptions &opts, int, int) {
     options_ = opts;
     if (opts.scroll_animation ||
@@ -142,6 +147,11 @@ bool JPEGSource::LoadAndScale(const DisplayOptions &opts, int, int) {
                             &jpegSubsamp, &jpegColorspace) != 0) {
         return false;
     }
+
+    // TODO: consider applying exif rotation to width/height or leave as
+    // original as these are the 'true' dimensions ?
+    orig_width_ = width;
+    orig_height_ = height;
 
     ExifImageOp exif_op;
     if (opts.exif_rotate) exif_op = ReadExifOrientation(jpeg_content, filesize);

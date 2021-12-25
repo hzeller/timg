@@ -99,7 +99,12 @@ Options:
         -V             : Directly use Video subsystem. Don't probe image
                          decoding first (useful, if you stream video from stdin)
         -I             : Only  use Image subsystem. Don't attempt video decoding
-        -F, --title    : Print filename as title above each image.
+        --title[=<fmt_str>]: Print title above each image. Accepts the following
+                         format parameters: %f = full filename; %b = basename
+                                            %w = image width; %h = height
+                                            %D = internal decoder used
+                         If no parameter is given, defaults to "%f"
+        -F             : Print filename as title. Behaves like --title="%f"
         -f<filelist>   : Read newline-separated list of image files to show.
                          (Can be provided multiple times.)
         -o<outfile>    : Write to <outfile> instead of stdout.
@@ -131,6 +136,7 @@ timg -g50x50 some-image.jpg        # display image fitting in box of 50x50 pixel
 # Multiple images
 timg *.jpg                         # display all *.jpg images
 timg --title *.jpg                 # .. show name in title (short option -F)
+timg --title="%b (%wx%h)" *.jpg    # show short filename and image size as title
 timg --grid=3x2 *.jpg              # arrange in 3 columns, 2 rows in terminal
 timg --fit-width --grid=3 *.jpg    # maximize use of column width (short: -W)
 timg --grid=3 -t5 *.gif            # Load gifs one by one in grid. Play each for 5sec.

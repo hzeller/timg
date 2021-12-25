@@ -88,6 +88,11 @@ const char *ImageLoader::VersionInfo() {
     return "GraphicsMagick " MagickLibVersionText " (" MagickReleaseDate ")";
 }
 
+std::string ImageLoader::FormatTitle(const std::string& format_string) const {
+    return FormatFromParameters(format_string, filename_,
+                                orig_width_, orig_height_, "image");
+}
+
 static bool EndsWith(const std::string &filename, const char *suffix) {
     const size_t flen = filename.length();
     const size_t slen = strlen(suffix);
@@ -156,6 +161,9 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts,
         if (kDebug) fprintf(stderr, "No image found.");
         return false;
     }
+
+    orig_width_ = frames.front().columns();
+    orig_height_ = frames.front().rows();
 
     // We don't really know if something is an animation from the frames we
     // got back (or is there ?), so we use a blacklist approach here: filenames

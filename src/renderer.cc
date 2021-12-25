@@ -19,7 +19,7 @@
 #include <unistd.h>
 
 namespace timg {
-std::string Renderer::TrimTitle(const char *title, int requested_width) {
+std::string Renderer::TrimTitle(const std::string &title, int requested_width) {
     std::string result = title;
     // Columns can be too narrow. We might need to trim what we print.
     if ((int)result.length() > requested_width) {
@@ -40,7 +40,7 @@ public:
                          const DisplayOptions &display_opts)
         : Renderer(canvas, display_opts) {}
 
-    WriteFramebufferFun render_cb(const char *title) final {
+    WriteFramebufferFun render_cb(const std::string& title) final {
         // For single column mode, implementation is straightforward
         RenderTitle(title);
         return [this](int x, int dy, const Framebuffer &fb,
@@ -50,8 +50,8 @@ public:
     }
 
 private:
-    void RenderTitle(const char *title) {
-        if (!title || !options_.show_filename) return;
+    void RenderTitle(const std::string& title) {
+        if (!options_.show_title) return;
         const std::string tout = TrimTitle(
             title, options_.width / options_.cell_x_px);
         canvas_->AddPrefixNextSend(tout.data(), tout.size());
@@ -79,7 +79,7 @@ public:
         }
     }
 
-    WriteFramebufferFun render_cb(const char *title) final {
+    WriteFramebufferFun render_cb(const std::string& title) final {
         ++current_column_;
         if (current_column_ >= columns_) {
             // If our current image is shorter than the previous one,
@@ -102,7 +102,7 @@ public:
             } else {
                 y_offset = dy;
             }
-            if (options_.show_filename && first_render_call_) {
+            if (options_.show_title && first_render_call_) {
                 // If we have to show the headline, we've to do the move up
                 // before Send() would do it.
                 // We need to move one more up to be in the 'headline' ypos
@@ -128,8 +128,8 @@ public:
     }
 
 private:
-    void PrepareTitle(const char *title) {
-        if (!title || !options_.show_filename) return;
+    void PrepareTitle(const std::string& title) {
+        if (!options_.show_title) return;
         title_ = TrimTitle(title, column_width_ / options_.cell_x_px);
     }
 

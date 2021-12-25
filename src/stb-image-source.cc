@@ -61,6 +61,12 @@ STBImageSource::~STBImageSource() {
     for (PreprocessedFrame *f : frames_) delete f;
 }
 
+std::string STBImageSource::FormatTitle(
+  const std::string &format_string) const {
+    return FormatFromParameters(format_string, filename_, orig_width_,
+                                orig_height_, "stb");
+}
+
 // NB: Animation is using some internal API of stb image, so is somewhat
 // dependent on the implemantation used; but since we ship it in third_party/,
 // this is not an issue.
@@ -85,6 +91,8 @@ bool STBImageSource::LoadAndScale(const DisplayOptions &options,
                                            &channels, kDesiredChannels, 0))) {
             if (data == (const uint8_t*)&context)
                 break;
+            orig_width_ = gdata.w;
+            orig_height_ = gdata.h;
 
             CalcScaleToFitDisplay(gdata.w, gdata.h, options, false,
                                   &target_width, &target_height);
@@ -103,6 +111,9 @@ bool STBImageSource::LoadAndScale(const DisplayOptions &options,
                                                         &w, &h, &channels,
                                                         kDesiredChannels);
         if (!data) return false;
+
+        orig_width_ = w;
+        orig_height_ = h;
 
         CalcScaleToFitDisplay(w, h, options, false,
                               &target_width, &target_height);

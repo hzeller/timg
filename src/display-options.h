@@ -17,6 +17,7 @@
 
 #include "timg-time.h"
 
+#include <string>
 #include <functional>
 #include <limits>
 
@@ -56,7 +57,14 @@ struct DisplayOptions {
     bool auto_crop = false;     // Autocrop, removing 'boring' space around.
                                 // Done after crop-border has been applied.
     bool exif_rotate = true;    // Rotate image according to exif data found.
-    bool show_filename = false; // show filename as title.
+    bool show_title = false;    // show title.
+
+    // Format for title, can contain %-format like place holders
+    //  %f = filename
+    //  %w = width
+    //  %h = height
+    //  %D = decoder used (image, video, jpeg, ...)
+    std::string title_format = "%f";  // Default: just filename
 
     // Scrolling specific
     bool scroll_animation = false; // Create an image scroll animation.

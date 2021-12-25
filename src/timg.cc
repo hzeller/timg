@@ -188,7 +188,12 @@ static int usage(const char *progname, ExitCode exit_code,
             "\t                 decoding first (useful, if you stream video from stdin)\n"
             "\t-I             : Only  use Image subsystem. Don't attempt video decoding\n"
 #endif
-            "\t-F, --title    : Print filename as title above each image.\n"
+            "\t--title[=<fmt_str>]: Print title above each image. Accepts the following\n"
+            "\t                 format parameters: %%f = full filename; %%b = basename\n"
+            "\t                                    %%w = image width; %%h = height\n"
+            "\t                                    %%D = internal decoder used\n"
+            "\t                 If no parameter is given, defaults to \"%%f\"\n"
+            "\t-F             : Print filename as title. Behaves like --title=\"%%f\"\n"
             "\t-f<filelist>   : Read newline-separated list of image files to show.\n"
             "\t                 (Can be provided multiple times.)\n"
             "\t-o<outfile>    : Write to <outfile> instead of stdout.\n"
@@ -295,9 +300,10 @@ static void PresentImages(LoadedImageSources &loaded_sources,
         std::unique_ptr<timg::ImageSource> source(source_future.get());
         if (!source) continue;
         before_image_show(is_first);
-        source->SendFrames(present.duration_per_image,
-                           present.loops, interrupt_received,
-                           renderer->render_cb(source->filename().c_str()));
+        source->SendFrames(present.duration_per_image, present.loops,
+                           interrupt_received,
+                           renderer->render_cb(
+                               source->FormatTitle(display_opts.title_format)));
         after_image_show();
         if (!present.duration_between_images.is_zero()) {
             (Time::Now() + present.duration_between_images).WaitUntil();
@@ -376,7 +382,7 @@ int main(int argc, char *argv[]) {
         { "rotate",      required_argument, NULL, OPT_ROTATE },
         { "scroll",      optional_argument, NULL, 's' },
         { "threads",     required_argument, NULL, OPT_THREADS },
-        { "title",       no_argument,       NULL, 'F' },
+        { "title",       optional_argument, NULL, 'F' },
         { "upscale",     optional_argument, NULL, 'U' },
         { "verbose",     no_argument,       NULL, OPT_VERBOSE },
         { "version",     no_argument,       NULL, OPT_VERSION },
@@ -526,7 +532,8 @@ int main(int argc, char *argv[]) {
             }
             break;
         case 'F':
-            display_opts.show_filename = !display_opts.show_filename;
+            display_opts.show_title = !display_opts.show_title;
+            if (optarg) display_opts.title_format = optarg;
             break;
         case 'E':
             present.hide_cursor = false;
@@ -732,7 +739,7 @@ int main(int argc, char *argv[]) {
         present.loops = 1;  // Don't get stuck on the first endless-loop
     }
 
-    if (display_opts.show_filename) {
+    if (display_opts.show_title) {
         // Leave space for text.
         display_opts.height -= display_opts.cell_y_px * present.grid_rows;
     }

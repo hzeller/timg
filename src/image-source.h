@@ -47,6 +47,9 @@ public:
                             const volatile sig_atomic_t &interrupt_received,
                             const Renderer::WriteFramebufferFun &sink) = 0;
 
+    // Format title according to the format-string.
+    virtual std::string FormatTitle(const std::string& format_string) const = 0;
+
     // Return filename, this ImageSource has loaded.
     const std::string& filename() const { return filename_; }
 
@@ -77,6 +80,13 @@ protected:
                                       const DisplayOptions &display_options,
                                       bool fit_in_rotated_frame,
                                       int *target_width, int *target_height);
+
+    // Utility function to format
+    static std::string FormatFromParameters(const std::string &fmt_string,
+                                            const std::string &filename,
+                                            int orig_width, int orig_height,
+                                            const char *decoder);
+
 protected:
     const std::string filename_;
 };

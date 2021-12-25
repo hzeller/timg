@@ -29,8 +29,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <utility>
 #include <memory>
+#include <sstream>
+#include <utility>
 
 namespace timg {
 
@@ -208,6 +209,39 @@ ImageSource *ImageSource::Create(const std::string &filename,
     }
 #endif
     return nullptr;
+}
+
+static std::string Basename(const std::string& filename) {
+    size_t last_slash_pos = filename.find_last_of("/\\");
+
+    return last_slash_pos == std::string::npos
+        ? filename
+        : filename.substr(last_slash_pos + 1);
+}
+
+std::string ImageSource::FormatFromParameters(const std::string &fmt_string,
+                                              const std::string &filename,
+                                              int orig_width, int orig_height,
+                                              const char *decoder) {
+    std::stringstream result;
+    for (size_t i = 0; i < fmt_string.length(); ++i) {
+        if (fmt_string[i] != '%' || i >= fmt_string.length() - 1) {
+            result << fmt_string[i];
+            continue;
+        }
+
+        ++i;
+        switch (fmt_string[i]) {
+        case 'f': result << filename; break;
+        case 'b': result << Basename(filename); break;
+        case 'w': result << orig_width; break;
+        case 'h': result << orig_height; break;
+        case 'D': result << decoder; break;
+        default: result << fmt_string[i]; break;
+        }
+    }
+
+    return result.str();
 }
 
 }  // namespace timg
