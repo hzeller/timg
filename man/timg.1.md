@@ -48,7 +48,7 @@ these file decoders (GraphicsMagick or libav respectively).
      you want to fill the width.
 
      It is possible to only partially specify the size before or after the
-     **x** separator, like **-g<width>x** or **-gx<height>**. The corresponding
+     **x** separator, like **-g&lt;width&gt;x** or **-gx&lt;height&gt;**. The corresponding
      other value is then derived from the terminal size.
 
 **-p** *&lt;[h|q|k|i]&gt;*, **-\-pixelation**=*[h|q|k|i]*
