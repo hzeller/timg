@@ -179,9 +179,9 @@ these file decoders (GraphicsMagick or libav respectively).
     the opposite of **-V**.
 
 **-\-title=[format-string]**
-:    Print filename as title above each image. By default, this is just the
-     filename (`%f`), but it is possible to customize the title by giving a
-     format string. In this string, the following format specifiers are expanded
+:    Print title above each image. It is possible to customize the
+     title by giving a format string. In this string, the following format
+     specifiers are expanded:
 
        * `%f` = full filename
        * `%b` = basename (filename without path)
@@ -189,8 +189,12 @@ these file decoders (GraphicsMagick or libav respectively).
        * `%h` = image height
        * `%D` = internal decoder used (image, video, ...)
 
+     If no format string is given, this is just the filename (`%f`) or, if
+     set, what is provided in the `TIMG_DEFAULT_TITLE` environment variable.
+
 **-F**
-:    Behaves like --title=\"%f\", i.e. the filename is printed as title.
+:    Behaves like --title=\"%f\", i.e. the filename is printed as title
+     (or, if set, the `TIMG_DEFAULT_TITLE` environment variable).
 
 **-f** &lt;*filelist-file*&gt;
 :    Read a list of image filenames to show from this file. The list needs
@@ -283,8 +287,12 @@ Exit code is
 
 # ENVIRONMENT
 
+**TIMG_DEFAULT_TITLE**
+:   The default format string used for `--title`. If not given, the default
+    title format string is \"`%f`\".
+
 **TIMG_USE_UPPER_BLOCK**
-:     If this environment variable is set to the value **1**, timg will use the
+:    If this environment variable is set to the value **1**, timg will use the
      U+2580 - 'Upper Half Block' (&#x2580;) Unicode character.
 
     To display pixels, timg uses a Unicode half block and sets the foreground

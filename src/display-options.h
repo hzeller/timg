@@ -17,6 +17,8 @@
 
 #include "timg-time.h"
 
+#include <stdlib.h>
+
 #include <string>
 #include <functional>
 #include <limits>
@@ -31,6 +33,11 @@ static constexpr int kNotInitialized = std::numeric_limits<int>::min();
 // Options influencing the rendering, chosen on the command-line or
 // programmatically.
 struct DisplayOptions {
+    DisplayOptions() {
+        static constexpr const char *kFormatEnv = "TIMG_DEFAULT_TITLE";
+        if (getenv(kFormatEnv)) title_format = getenv(kFormatEnv);
+    }
+
     int width = -1;             // Output size. These need to be set to...
     int height = -1;            // ... valid values.
 
