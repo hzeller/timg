@@ -36,7 +36,8 @@ public:
                                const DisplayOptions &options,
                                int frame_offset, int frames_count,
                                bool attempt_image_loading,
-                               bool attempt_video_loading);
+                               bool attempt_video_loading,
+                               bool print_errors);
 
     virtual ~ImageSource() {}
 

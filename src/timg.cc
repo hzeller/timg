@@ -780,18 +780,22 @@ int main(int argc, char *argv[]) {
 
     ExitCode exit_code = ExitCode::kSuccess;
 
+    // Only print errors if we got one explicit filename.
+    const bool print_errors = (filelist.size() == 1);
+
     // Async image loading, preparing them in a thread pool
     LoadedImageSources loaded_sources;
     for (const std::string &filename : filelist) {
         if (interrupt_received) break;
         std::function<timg::ImageSource*()> f =
-            [filename, frame_offset, max_frames, do_img_loading, do_vid_loading,
+            [filename, frame_offset, max_frames,
+             do_img_loading, do_vid_loading, print_errors,
              &display_opts, &exit_code]() -> timg::ImageSource* {
                 if (interrupt_received) return nullptr;
                 auto result = ImageSource::Create(filename, display_opts,
                                                   frame_offset, max_frames,
                                                   do_img_loading,
-                                                  do_vid_loading);
+                                                  do_vid_loading, print_errors);
                 if (!result) exit_code = ExitCode::kImageReadError;
                 return result;
             };

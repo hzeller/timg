@@ -146,7 +146,8 @@ ImageSource *ImageSource::Create(const std::string &filename,
                                  const DisplayOptions &options,
                                  int frame_offset, int frame_count,
                                  bool attempt_image_loading,
-                                 bool attempt_video_loading) {
+                                 bool attempt_video_loading,
+                                 bool print_errors) {
     std::unique_ptr<ImageSource> result;
     if (attempt_image_loading) {
 #ifdef WITH_TIMG_OPENSLIDE_SUPPORT
@@ -189,7 +190,7 @@ ImageSource *ImageSource::Create(const std::string &filename,
 #endif
 
     // Ran into trouble opening. Let's see if this is even an accessible file.
-    if (filename != "-") {
+    if (filename != "-" && print_errors) {
         struct stat statresult;
         if (stat(filename.c_str(), &statresult) < 0) {
             fprintf(stderr, "%s: %s\n", filename.c_str(), strerror(errno));
