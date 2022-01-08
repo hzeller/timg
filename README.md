@@ -426,6 +426,10 @@ For Mac users, at least the combination of macOS 11.2 and iTerm2 3.4.3 works.
 
 ### Install pre-built package
 
+<a href="https://repology.org/project/timg/versions">
+<img src="https://repology.org/badge/vertical-allrepos/timg.svg" alt="Packaging status" align="right">
+</a>
+
 #### Debian-based systems
 
 ```bash
