@@ -436,8 +436,6 @@ For Mac users, at least the combination of macOS 11.2 and iTerm2 3.4.3 works.
 sudo apt install timg
 ```
 
-(currently in Debian testing)
-
 #### NixOS or Nix package manager
 
 ```bash
