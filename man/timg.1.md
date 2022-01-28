@@ -57,7 +57,7 @@ these file decoders (GraphicsMagick or libav respectively).
      The choice 'k' chooses kitty-graphics protocol, 'i' the iTerm2 graphics
      protocol.
 
-     Half blocks have a pixel aspect ratio of about 1:1 and allow to represent
+     Half blocks have a pixel aspect ratio of about 1:1 and allow one to represent
      colors correctly, but they look more 'blocky'.
 
      Quarter blocks will have a pixel aspect ratio of 1:2 (timg will stretch
@@ -67,7 +67,7 @@ these file decoders (GraphicsMagick or libav respectively).
      in x-direction at expense of slight less color accuracy.
      It makes it look less 'blocky' and usually better.
 
-     There are terminal emulators that allow to display high-resolution
+     There are terminal emulators that allow one to display high-resolution
      pictures. If timg is detecting to run in a Kitty, iTerm2 or WezTerm,
      the corresponding mode is auto-selected. You can choose the modes
      explicitly with -pk (Kitty) or -pi (iTerm2 protocol, also implemented
