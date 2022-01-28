@@ -433,7 +433,7 @@ int main(int argc, char *argv[]) {
                 if (optlen <= 5 && strncasecmp(optarg, "every", optlen) == 0)
                     present.clear_screen = ClearScreen::kBeforeEachImage;
                 else {
-                    fprintf(stderr, "Paramter for --clear can be 'every', "
+                    fprintf(stderr, "Parameter for --clear can be 'every', "
                             "got %s\n", optarg);
                     return usage(argv[0], ExitCode::kParameterError,
                                  geometry_width, geometry_height);
