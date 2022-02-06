@@ -156,8 +156,8 @@ bool VideoLoader::LoadAndScale(const DisplayOptions &display_options,
     }
 
     // Find the first video stream
-    AVCodecParameters *codec_parameters = nullptr;
-    AVCodec *av_codec = nullptr;
+    const AVCodecParameters *codec_parameters = nullptr;
+    const AVCodec *av_codec = nullptr;
     for (int i = 0; i < (int)format_context_->nb_streams; ++i) {
         codec_parameters = format_context_->streams[i]->codecpar;
         av_codec = avcodec_find_decoder(codec_parameters->codec_id);
