@@ -15,9 +15,9 @@
 #ifndef BUFFERED_WRITE_SEQUENCER_H_
 #define BUFFERED_WRITE_SEQUENCER_H_
 
+#include <signal.h>
 #include <stddef.h>
 
-#include <signal.h>
 #include <condition_variable>
 #include <mutex>
 #include <queue>
@@ -56,8 +56,8 @@ public:
     // Writes that are still pending when the "interrupt_received" flag
     // is set externally (e.g. through a signal handler) are discarded to
     // finish quickly (except ControlWrite calls).
-    BufferedWriteSequencer(int fd, bool allow_frame_skipping,
-                           int max_queue_len, bool debug_no_frame_delay,
+    BufferedWriteSequencer(int fd, bool allow_frame_skipping, int max_queue_len,
+                           bool debug_no_frame_delay,
                            const volatile sig_atomic_t &interrupt_received);
     ~BufferedWriteSequencer();
 
@@ -100,8 +100,8 @@ public:
     //       next will try to finish in earlier as the frame-time is absolute.
     //
     // No return value: the write happens asynchronously.
-    void WriteBuffer(char *buffer, size_t size,
-                     SeqType sequence_type, Duration end_of_frame = {});
+    void WriteBuffer(char *buffer, size_t size, SeqType sequence_type,
+                     Duration end_of_frame = {});
 
     // Flush all pending writes.
     void Flush();
@@ -138,13 +138,13 @@ private:
 
     // A stash of re-usable memory blocks
     std::mutex mempool_lock_;
-    std::queue<MemBlock*> mempool_;
+    std::queue<MemBlock *> mempool_;
 
     // Statistics.
     mutable std::mutex stats_lock_;
-    int64_t stats_bytes_total_ = 0;
-    int64_t stats_bytes_skipped_ = 0;
-    int64_t stats_frames_total_ = 0;
+    int64_t stats_bytes_total_    = 0;
+    int64_t stats_bytes_skipped_  = 0;
+    int64_t stats_frames_total_   = 0;
     int64_t stats_frames_skipped_ = 0;
 };
 }  // namespace timg

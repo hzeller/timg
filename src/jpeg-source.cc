@@ -15,31 +15,30 @@
 
 #include "jpeg-source.h"
 
-#include "terminal-canvas.h"
-
 #include <fcntl.h>
+#include <libexif/exif-data.h>
 #include <stdint.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <unistd.h>
-
-#include <libexif/exif-data.h>
 #include <turbojpeg.h>
+#include <unistd.h>
 
 #include <utility>
 
+#include "terminal-canvas.h"
+
 extern "C" {
-#  include <libavutil/pixfmt.h>
-#  include <libswscale/swscale.h>
+#include <libavutil/pixfmt.h>
+#include <libswscale/swscale.h>
 }
 
 namespace timg {
 namespace {
 // Scoped clean-up of c objects.
 struct ScopeGuard {
-    ScopeGuard(std::function<void()> f) : f_(f) {}
+    explicit ScopeGuard(const std::function<void()> &f) : f_(f) {}
     ~ScopeGuard() { f_(); }
     std::function<void()> f_;
 };
@@ -49,23 +48,28 @@ static void dummy_log(void *, int, const char *, va_list) {}
 // Note, ExifImageOp is slightly different here than in image-source, as
 // that is using graphics-magick operations, where 'flip' has a different
 // meaning
-struct ExifImageOp { int angle = 0; bool mirror = false; };
+struct ExifImageOp {
+    int angle   = 0;
+    bool mirror = false;
+};
 static ExifImageOp ReadExifOrientation(const uint8_t *buffer, size_t len) {
     ExifData *ed = exif_data_new_from_data(buffer, len);
     if (!ed) return {};
     ScopeGuard s([ed]() { exif_data_unref(ed); });
-    ExifEntry *entry = exif_content_get_entry(ed->ifd[EXIF_IFD_0],
-                                              EXIF_TAG_ORIENTATION);
+    ExifEntry *entry =
+        exif_content_get_entry(ed->ifd[EXIF_IFD_0], EXIF_TAG_ORIENTATION);
     if (!entry || entry->format != EXIF_FORMAT_SHORT) return {};
+    // clang-format off
     switch (exif_get_short(entry->data, exif_data_get_byte_order(ed))) {
-    case 2: return { 0, true  };
+    case 2: return {   0, true  };
     case 3: return { 180, false };
     case 4: return { 180, true  };
-    case 5: return {  90, false  };
+    case 5: return {  90, false };
     case 6: return { -90, false };
     case 7: return { -90, true  };
-    case 8: return {  90, true };
+    case 8: return {  90, true  };
     }
+    // clang-format on
     return {};
 }
 
@@ -75,15 +79,13 @@ static timg::Framebuffer *ApplyExifOp(timg::Framebuffer *orig,
     const int w = orig->width();
     if (op.mirror) {
         for (int y = 0; y < h; ++y) {
-            Framebuffer::iterator left = &orig->begin()[y * w];
-            Framebuffer::iterator right = &orig->begin()[(y+1) * w - 1];
-            while (left < right) {
-                std::swap(*left++, *right--);
-            }
+            Framebuffer::iterator left  = &orig->begin()[y * w];
+            Framebuffer::iterator right = &orig->begin()[(y + 1) * w - 1];
+            while (left < right) { std::swap(*left++, *right--); }
         }
     }
     if (op.angle == 180) {
-        Framebuffer::iterator top_left = orig->begin();
+        Framebuffer::iterator top_left     = orig->begin();
         Framebuffer::iterator bottom_right = orig->end() - 1;
         while (top_left < bottom_right) {
             std::swap(*top_left++, *bottom_right--);
@@ -109,18 +111,18 @@ static timg::Framebuffer *ApplyExifOp(timg::Framebuffer *orig,
 }  // namespace
 
 const char *JPEGSource::VersionInfo() {
-    return "TurboJPEG "; // TODO: version number ?
+    return "TurboJPEG ";  // TODO: version number ?
 }
 
-std::string JPEGSource::FormatTitle(const std::string& format_string) const {
-    return FormatFromParameters(format_string, filename_,
-                                orig_width_, orig_height_, "jpeg");
+std::string JPEGSource::FormatTitle(const std::string &format_string) const {
+    return FormatFromParameters(format_string, filename_, orig_width_,
+                                orig_height_, "jpeg");
 }
 
 bool JPEGSource::LoadAndScale(const DisplayOptions &opts, int, int) {
     options_ = opts;
-    if (opts.scroll_animation ||
-        filename() == "/dev/stdin" || filename() == "-") {
+    if (opts.scroll_animation || filename() == "/dev/stdin" ||
+        filename() == "-") {
         return false;  // Not dealing with these now.
     }
     const int fd = open(filename().c_str(), O_RDONLY);
@@ -129,10 +131,10 @@ bool JPEGSource::LoadAndScale(const DisplayOptions &opts, int, int) {
     if (fstat(fd, &statresult) < 0) return false;
     const size_t filesize = statresult.st_size;
     if (filesize == 0) return false;
-    void* file_buf = mmap(nullptr, filesize, PROT_READ, MAP_PRIVATE, fd, 0);
+    void *file_buf = mmap(nullptr, filesize, PROT_READ, MAP_PRIVATE, fd, 0);
     close(fd);
     if (file_buf == MAP_FAILED) return false;
-    const uint8_t *jpeg_content = (uint8_t*) file_buf;
+    const uint8_t *jpeg_content = (uint8_t *)file_buf;
 
     tjhandle handle = tjInitDecompress();
     ScopeGuard s([handle, file_buf, filesize]() {  // cleanup C-objects
@@ -142,15 +144,14 @@ bool JPEGSource::LoadAndScale(const DisplayOptions &opts, int, int) {
 
     // Figure out the original size of the image
     int width, height, jpegSubsamp, jpegColorspace;
-    if (tjDecompressHeader3(handle, jpeg_content, filesize,
-                            &width, &height,
+    if (tjDecompressHeader3(handle, jpeg_content, filesize, &width, &height,
                             &jpegSubsamp, &jpegColorspace) != 0) {
         return false;
     }
 
     // TODO: consider applying exif rotation to width/height or leave as
     // original as these are the 'true' dimensions ?
-    orig_width_ = width;
+    orig_width_  = width;
     orig_height_ = height;
 
     ExifImageOp exif_op;
@@ -158,8 +159,7 @@ bool JPEGSource::LoadAndScale(const DisplayOptions &opts, int, int) {
 
     int target_width;
     int target_height;
-    CalcScaleToFitDisplay(width, height,
-                          opts, abs(exif_op.angle) == 90,
+    CalcScaleToFitDisplay(width, height, opts, abs(exif_op.angle) == 90,
                           &target_width, &target_height);
 
     // Output is larger and we request integer upscaling. That looks fuzzy
@@ -174,11 +174,11 @@ bool JPEGSource::LoadAndScale(const DisplayOptions &opts, int, int) {
     // larger than our target size.
     int factors_size;
     tjscalingfactor *factors = tjGetScalingFactors(&factors_size);
-    int decode_width = width;
-    int decode_height = height;
+    int decode_width         = width;
+    int decode_height        = height;
     // Looking backwards: later scale factors generate smaller images.
     for (tjscalingfactor *f = factors + factors_size; f >= factors; --f) {
-        decode_width = TJSCALED(width, (*f));
+        decode_width  = TJSCALED(width, (*f));
         decode_height = TJSCALED(height, (*f));
         if (decode_width >= target_width && decode_height >= target_height)
             break;
@@ -186,29 +186,26 @@ bool JPEGSource::LoadAndScale(const DisplayOptions &opts, int, int) {
 
     // Decode into an RGB buffer
     const TJPF decode_pixel_format = TJPF_RGBA;
-    const int decode_pixel_width = tjPixelSize[decode_pixel_format];
-    const int decode_row_bytes = decode_width * decode_pixel_width;
+    const int decode_pixel_width   = tjPixelSize[decode_pixel_format];
+    const int decode_row_bytes     = decode_width * decode_pixel_width;
     timg::Framebuffer decode_image(decode_width, decode_height);
     if (tjDecompress2(handle, jpeg_content, filesize,
-                      (uint8_t*) decode_image.begin(),
-                      decode_width, decode_row_bytes, decode_height,
-                      decode_pixel_format, 0) != 0) {
+                      (uint8_t *)decode_image.begin(), decode_width,
+                      decode_row_bytes, decode_height, decode_pixel_format,
+                      0) != 0) {
         return false;
     }
 
     // Further scaling to desired target width/height
     av_log_set_callback(dummy_log);
-    SwsContext *swsCtx = sws_getContext(decode_width, decode_height,
-                                        AV_PIX_FMT_RGBA,
-                                        target_width, target_height,
-                                        AV_PIX_FMT_RGBA,
-                                        SWS_BILINEAR, NULL, NULL, NULL);
+    SwsContext *swsCtx = sws_getContext(
+        decode_width, decode_height, AV_PIX_FMT_RGBA, target_width,
+        target_height, AV_PIX_FMT_RGBA, SWS_BILINEAR, NULL, NULL, NULL);
     if (!swsCtx) return false;
     image_.reset(new timg::Framebuffer(target_width, target_height));
 
-    sws_scale(swsCtx, decode_image.row_data(), decode_image.stride(),
-              0, decode_height,
-              image_->row_data(), image_->stride());
+    sws_scale(swsCtx, decode_image.row_data(), decode_image.stride(), 0,
+              decode_height, image_->row_data(), image_->stride());
     sws_freeContext(swsCtx);
 
     image_.reset(ApplyExifOp(image_.release(), exif_op));
@@ -216,16 +213,15 @@ bool JPEGSource::LoadAndScale(const DisplayOptions &opts, int, int) {
 }
 
 int JPEGSource::IndentationIfCentered(timg::Framebuffer &image) const {
-    return options_.center_horizontally
-        ? (options_.width - image.width()) / 2
-        : 0;
+    return options_.center_horizontally ? (options_.width - image.width()) / 2
+                                        : 0;
 }
 
 void JPEGSource::SendFrames(Duration duration, int loops,
                             const volatile sig_atomic_t &interrupt_received,
                             const Renderer::WriteFramebufferFun &sink) {
-    sink(IndentationIfCentered(*image_), 0, *image_,
-         SeqType::FrameImmediate, {});
+    sink(IndentationIfCentered(*image_), 0, *image_, SeqType::FrameImmediate,
+         {});
 }
 
 }  // namespace timg

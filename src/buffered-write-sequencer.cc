@@ -20,7 +20,7 @@
 #include <stdlib.h>
 
 // Allocate memory with nice round sizes
-static constexpr int kChunkSize = 1 << 16;
+static constexpr int kChunkSize     = 1 << 16;
 static constexpr uint32_t kSentinel = 0x5e9719e1;
 
 namespace timg {
@@ -33,13 +33,13 @@ struct BufferedWriteSequencer::MemBlock {
 BufferedWriteSequencer::BufferedWriteSequencer(
     int fd, bool allow_frame_skip, int max_queu_len, bool debug_no_frame_delay,
     const volatile sig_atomic_t &interrupt_received)
-    : fd_(fd), allow_frame_skipping_(allow_frame_skip),
+    : fd_(fd),
+      allow_frame_skipping_(allow_frame_skip),
       max_queue_len_(max_queu_len),
       debug_no_frame_delay_(debug_no_frame_delay),
       interrupt_received_(interrupt_received),
-      work_executor_(new std::thread(&BufferedWriteSequencer::ProcessQueue,
-                                     this)) {
-}
+      work_executor_(
+          new std::thread(&BufferedWriteSequencer::ProcessQueue, this)) {}
 
 BufferedWriteSequencer::~BufferedWriteSequencer() {
     Flush();
@@ -73,16 +73,16 @@ char *BufferedWriteSequencer::RequestBuffer(size_t size) {
     // will be added to our pool for re-use.
     size_t alloc_size = sizeof(MemBlock) + size + kChunkSize - 1;
     alloc_size -= alloc_size % kChunkSize;  // ceil() to multiple of kChunkSize
-    MemBlock *block = (MemBlock*) malloc(alloc_size);
+    MemBlock *block       = (MemBlock *)malloc(alloc_size);
     block->available_size = alloc_size - sizeof(MemBlock);
-    block->sentinel = kSentinel;
+    block->sentinel       = kSentinel;
 
     return block->data;
 }
 
 static ssize_t ReliableWrite(int fd, const char *buffer, const size_t size) {
     if (size == 0) return 0;
-    int written = 0;
+    int written      = 0;
     size_t remaining = size;
     while (remaining && (written = write(fd, buffer, remaining)) > 0) {
         remaining -= written;
@@ -98,13 +98,13 @@ void BufferedWriteSequencer::WriteBuffer(char *buffer, size_t size,
     assert(buffer != nullptr);
 
     // Recover block from the raw data (our metadata starts a bit before that)
-    MemBlock *block = (MemBlock*) (buffer - offsetof(MemBlock, data));
+    MemBlock *block = (MemBlock *)(buffer - offsetof(MemBlock, data));
     assert(block->sentinel == kSentinel);   // Is that a block we allocated ?
     assert(block->available_size >= size);  // No buffer overrun
 
     {
         std::unique_lock<std::mutex> l(work_lock_);
-        work_sync_.wait(l, [this](){ return work_.size() < max_queue_len_; });
+        work_sync_.wait(l, [this]() { return work_.size() < max_queue_len_; });
         work_.push({block, size, sequence_type, end_of_frame});
     }
     work_sync_.notify_all();
@@ -118,13 +118,13 @@ void BufferedWriteSequencer::ProcessQueue() {
         WorkItem work_item;
         {
             std::unique_lock<std::mutex> l(work_lock_);
-            work_sync_.wait(l, [this](){ return !work_.empty(); });
+            work_sync_.wait(l, [this]() { return !work_.empty(); });
             work_item = work_.front();
             work_.pop();
         }
         work_sync_.notify_all();
 
-        if (work_item.block == nullptr) return;   // Exit condition.
+        if (work_item.block == nullptr) return;  // Exit condition.
 
         if (interrupt_received_ &&
             work_item.sequence_type != SeqType::ControlWrite) {
@@ -134,9 +134,7 @@ void BufferedWriteSequencer::ProcessQueue() {
 
         bool do_skip = false;
         switch (work_item.sequence_type) {
-        case SeqType::StartOfAnimation:
-            animation_start = Time::Now();
-            break;
+        case SeqType::StartOfAnimation: animation_start = Time::Now(); break;
         case SeqType::AnimationFrame:
             if (!last_frame_end.is_zero()) {
                 const Time finish_time = animation_start + last_frame_end;
@@ -145,18 +143,15 @@ void BufferedWriteSequencer::ProcessQueue() {
                 static constexpr Duration kAllowedSkew = Duration::Millis(250);
                 do_skip = (allow_frame_skipping_ &&
                            finish_time + kAllowedSkew < Time::Now());
-                if (!debug_no_frame_delay_)
-                    finish_time.WaitUntil();
+                if (!debug_no_frame_delay_) finish_time.WaitUntil();
             }
             break;
         case SeqType::FrameImmediate:
-        case SeqType::ControlWrite:
-            break;
+        case SeqType::ControlWrite: break;
         }
         last_frame_end = work_item.end_of_frame;
 
-        if (!do_skip)
-            ReliableWrite(fd_, work_item.block->data, work_item.size);
+        if (!do_skip) ReliableWrite(fd_, work_item.block->data, work_item.size);
 
         ReturnMemblock(work_item.block);
 
@@ -179,7 +174,7 @@ void BufferedWriteSequencer::Flush() {
     WriteBuffer(RequestBuffer(0), 0, SeqType::ControlWrite, {});
     {
         std::unique_lock<std::mutex> l(work_lock_);
-        work_sync_.wait(l, [this](){ return work_.empty(); });
+        work_sync_.wait(l, [this]() { return work_.empty(); });
     }
 }
 

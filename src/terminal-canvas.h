@@ -16,13 +16,13 @@
 #ifndef TERMINAL_CANVAS_H_
 #define TERMINAL_CANVAS_H_
 
-#include "framebuffer.h"
-#include "buffered-write-sequencer.h"
-
 #include <stddef.h>
 #include <sys/types.h>
 
 #include <string>
+
+#include "buffered-write-sequencer.h"
+#include "framebuffer.h"
 
 namespace timg {
 
@@ -60,4 +60,4 @@ private:
 };
 }  // namespace timg
 
-#endif // TERMINAL_CANVAS_H_
+#endif  // TERMINAL_CANVAS_H_

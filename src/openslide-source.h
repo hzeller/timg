@@ -17,11 +17,11 @@
 #ifndef OPENSLIDE_SOURCE_H_
 #define OPENSLIDE_SOURCE_H_
 
+#include <memory>
+
 #include "display-options.h"
 #include "image-source.h"
 #include "terminal-canvas.h"
-
-#include <memory>
 
 namespace timg {
 // Special case for JPEG decoding, as we can make use of decode+rough_scale
@@ -32,14 +32,14 @@ public:
 
     static const char *VersionInfo();
 
-    bool LoadAndScale(const DisplayOptions &options,
-                      int frame_offset, int frame_count) final;
+    bool LoadAndScale(const DisplayOptions &options, int frame_offset,
+                      int frame_count) final;
 
     void SendFrames(Duration duration, int loops,
                     const volatile sig_atomic_t &interrupt_received,
                     const Renderer::WriteFramebufferFun &sink) final;
 
-    std::string FormatTitle(const std::string& format_string) const final;
+    std::string FormatTitle(const std::string &format_string) const final;
 
 private:
     int IndentationIfCentered(timg::Framebuffer &image) const;

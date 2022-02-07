@@ -40,8 +40,8 @@ public:
 
     // Attempt to load given filename as video, open stream and set-up scaling.
     // Returns true on success.
-    bool LoadAndScale(const DisplayOptions &options,
-                      int frame_offset, int frame_count) final;
+    bool LoadAndScale(const DisplayOptions &options, int frame_offset,
+                      int frame_count) final;
 
     // Play video up to given duration.
     //
@@ -52,26 +52,26 @@ public:
                     const Renderer::WriteFramebufferFun &sink) final;
 
     // Format title according to the format-string.
-    std::string FormatTitle(const std::string& format_string) const final;
+    std::string FormatTitle(const std::string &format_string) const final;
 
 private:
     void AlphaBlendFramebuffer();
 
     DisplayOptions options_;
     bool maybe_transparent_ = false;
-    int frame_offset_ = 0;
-    int frame_count_ = -1;
+    int frame_offset_       = 0;
+    int frame_count_        = -1;
     int orig_width_, orig_height_;
 
-    int video_stream_index_ = -1;
+    int video_stream_index_          = -1;
     AVFormatContext *format_context_ = nullptr;
-    AVCodecContext *codec_context_ = nullptr;
-    SwsContext *sws_context_ = nullptr;
+    AVCodecContext *codec_context_   = nullptr;
+    SwsContext *sws_context_         = nullptr;
     timg::Duration frame_duration_;  // 1/fps
     timg::Framebuffer *terminal_fb_ = nullptr;
-    int center_indentation_ = 0;
+    int center_indentation_         = 0;
 };
 
 }  // namespace timg
 
-#endif // VIDEO_DISPLAY_H_
+#endif  // VIDEO_DISPLAY_H_

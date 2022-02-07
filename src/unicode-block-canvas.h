@@ -16,10 +16,10 @@
 #ifndef UNICODE_BLOCK_CANVAS_H_
 #define UNICODE_BLOCK_CANVAS_H_
 
-#include "terminal-canvas.h"
-
 #include <stddef.h>
 #include <sys/types.h>
+
+#include "terminal-canvas.h"
 
 namespace timg {
 
@@ -32,13 +32,12 @@ public:
     // if "use_upper_half_block" is set, uses the upper instead of the
     // lower block (only for use_quarter == false).
     // "use_256_color" is for terminals that can't do 24 bit colors.
-    UnicodeBlockCanvas(BufferedWriteSequencer *ws,
-                       bool use_quarter, bool use_upper_half_block,
-                       bool use_256_color);
+    UnicodeBlockCanvas(BufferedWriteSequencer *ws, bool use_quarter,
+                       bool use_upper_half_block, bool use_256_color);
     ~UnicodeBlockCanvas() override;
 
-    void Send(int x, int dy, const Framebuffer &framebuffer,
-              SeqType seq_type, Duration end_of_frame) override;
+    void Send(int x, int dy, const Framebuffer &framebuffer, SeqType seq_type,
+              Duration end_of_frame) override;
 
 private:
     struct GlyphPick;
@@ -54,8 +53,7 @@ private:
 
     template <int N, int colorbits>
     char *AppendDoubleRow(char *pos, int indent, int width,
-                          const rgba_t *top_line,
-                          const rgba_t *bottom_line,
+                          const rgba_t *top_line, const rgba_t *bottom_line,
                           bool emit_difference, int *y_skip);
 
     // Find best glyph for two rows of color.
@@ -64,13 +62,13 @@ private:
 
     // Backing buffer stores a flattened view of last frame, storing top and
     // bottom pixel linearly.
-    rgba_t *backing_buffer_ = nullptr;  // Remembering last frame
+    rgba_t *backing_buffer_     = nullptr;  // Remembering last frame
     size_t backing_buffer_size_ = 0;
     rgba_t *prev_content_it_;
     int last_framebuffer_height_ = 0;
-    int last_x_indent_ = 0;
+    int last_x_indent_           = 0;
 
-    rgba_t *empty_line_ = nullptr;
+    rgba_t *empty_line_     = nullptr;
     size_t empty_line_size_ = 0;
 };
 }  // namespace timg

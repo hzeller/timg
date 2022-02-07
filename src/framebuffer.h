@@ -30,19 +30,19 @@ struct rgba_t {
 
     inline bool operator==(const rgba_t &that) const {
         // Using memcmp() slower, so force uint-compare with type-punning.
-        return *((uint32_t*)this) == *((uint32_t*)&that);
+        return *((uint32_t *)this) == *((uint32_t *)&that);
     }
     inline bool operator!=(const rgba_t &o) const { return !(*this == o); }
 
     // Rough mapping to the 256 color modes, a 6x6x6 cube.
     inline uint8_t As256TermColor() const {
         auto v2cube = [](uint8_t v) {  // middle of cut-off points for cube.
-            return v < 0x5f/2 ? 0
-                : v < (0x5f + 0x87)/2 ? 1
-                : v < (0x87 + 0xaf)/2 ? 2
-                : v < (0xaf + 0xd7)/2 ? 3
-                : v < (0xd7 + 0xff)/2 ? 4
-                : 5;
+            return v < 0x5f / 2            ? 0
+                   : v < (0x5f + 0x87) / 2 ? 1
+                   : v < (0x87 + 0xaf) / 2 ? 2
+                   : v < (0xaf + 0xd7) / 2 ? 3
+                   : v < (0xd7 + 0xff) / 2 ? 4
+                                           : 5;
         };
         return 16 + 36 * v2cube(r) + 6 * v2cube(g) + v2cube(b);
     }
@@ -59,12 +59,12 @@ static_assert(sizeof(rgba_t) == 4, "Unexpected size for rgba_t struct");
 // Very simple framebuffer, storing widht*height pixels in RGBA format.
 class Framebuffer {
 public:
-    typedef rgba_t * iterator;
-    typedef const rgba_t * const_iterator;
+    typedef rgba_t *iterator;
+    typedef const rgba_t *const_iterator;
     class rgb_iterator;
 
     Framebuffer(int width, int height);
-    Framebuffer() = delete;
+    Framebuffer()                         = delete;
     Framebuffer(const Framebuffer &other) = delete;
     ~Framebuffer();
 
@@ -109,10 +109,10 @@ public:
 
     // Return an array containing the amount of bytes for each line.
     // This is returned as an array.
-    const int* stride() const { return strides_; }
+    const int *stride() const { return strides_; }
 
     // Return an array containing pointers to the data for each line.
-    uint8_t** row_data();
+    uint8_t **row_data();
 
 private:
     const int width_;
@@ -128,7 +128,7 @@ class LinearColor {
 public:
     LinearColor() : r(0), g(0), b(0), a(0) {}
     // We approximate x^2.2 with x^2
-    LinearColor(rgba_t c) : r(c.r*c.r), g(c.g*c.g), b(c.b*c.b), a(c.a) {}
+    LinearColor(rgba_t c) : r(c.r * c.r), g(c.g * c.g), b(c.b * c.b), a(c.a) {}
 
     inline float dist(const LinearColor &other) const {
         // quadratic distance. Not bothering sqrt()ing them.
@@ -136,7 +136,7 @@ public:
     }
 
     inline rgba_t repack() const {
-        return { gamma(r), gamma(g), gamma(b), (uint8_t)a };
+        return {gamma(r), gamma(g), gamma(b), (uint8_t)a};
     }
 
     // If this color is transparent, blend in the background according to alpha
@@ -164,14 +164,18 @@ private:
 // Average "values" into "res" and return sum of distance of all values to avg
 inline float avd(LinearColor *res, std::initializer_list<LinearColor> values) {
     for (const LinearColor &c : values) {
-        res->r += c.r; res->g += c.g; res->b += c.b; res->a += c.a;
+        res->r += c.r;
+        res->g += c.g;
+        res->b += c.b;
+        res->a += c.a;
     }
     const size_t n = values.size();
-    res->r /= n; res->g /= n; res->b /= n; res->a /= n;
+    res->r /= n;
+    res->g /= n;
+    res->b /= n;
+    res->a /= n;
     float sum = 0;
-    for (const LinearColor &c : values) {
-        sum += res->dist(c);
-    }
+    for (const LinearColor &c : values) { sum += res->dist(c); }
     return sum;
 }
 

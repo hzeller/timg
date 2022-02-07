@@ -42,8 +42,8 @@ public:
     // if set.
     // If this is not a loadable image, returns false, otherwise
     // We're ready for display.
-    bool LoadAndScale(const DisplayOptions &options,
-                      int frame_offset, int frame_count) final;
+    bool LoadAndScale(const DisplayOptions &options, int frame_offset,
+                      int frame_count) final;
 
     // Display loaded image. If this is an animation, then
     // "duration", "max_frames" and "loops" will limit the duration of the
@@ -56,15 +56,15 @@ public:
                     const Renderer::WriteFramebufferFun &sink) final;
 
     // Format title according to the format-string.
-    std::string FormatTitle(const std::string& format_string) const final;
+    std::string FormatTitle(const std::string &format_string) const final;
 
 private:
     class PreprocessedFrame;
 
     // Provide image scrolling in dx/dy direction for up to the given time.
     void Scroll(Duration duration, int loops,
-                const volatile sig_atomic_t &interrupt_received,
-                int dx, int dy,  Duration scroll_delay,
+                const volatile sig_atomic_t &interrupt_received, int dx, int dy,
+                Duration scroll_delay,
                 const Renderer::WriteFramebufferFun &write_fb);
 
     // Return how much we should indent a frame if centering is requested.
@@ -79,4 +79,4 @@ private:
 
 }  // namespace timg
 
-#endif // IMAGE_DISPLAY_H_
+#endif  // IMAGE_DISPLAY_H_

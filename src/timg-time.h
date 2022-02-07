@@ -16,12 +16,11 @@
 #ifndef TIMG_TIME_H_
 #define TIMG_TIME_H_
 
-#include <time.h>
-#include <sys/time.h>
 #include <stdint.h>
-#include <unistd.h>
-
 #include <stdio.h>
+#include <sys/time.h>
+#include <time.h>
+#include <unistd.h>
 // Type-safe representation of time and duration.
 // Inspired by golang and absl.
 
@@ -41,12 +40,12 @@ public:
                 duration_.tv_nsec == other.duration_.tv_nsec);
     }
 
-    bool operator <(const Duration &other) const {
+    bool operator<(const Duration &other) const {
         if (duration_.tv_sec > other.duration_.tv_sec) return false;
         if (duration_.tv_sec < other.duration_.tv_sec) return true;
         return duration_.tv_nsec < other.duration_.tv_nsec;
     }
-    bool operator >(const Duration &other) const {
+    bool operator>(const Duration &other) const {
         if (duration_.tv_sec > other.duration_.tv_sec) return true;
         if (duration_.tv_sec < other.duration_.tv_sec) return false;
         return duration_.tv_nsec > other.duration_.tv_nsec;
@@ -65,9 +64,11 @@ public:
         return Duration(1000000000, 0);  // a few years; infinite enough :)
     }
 
-    struct timespec AsTimespec() const { return duration_; }
-    struct timeval  AsTimeval() const {
-        return { duration_.tv_sec, (suseconds_t)(duration_.tv_nsec / 1000)};
+    struct timespec AsTimespec() const {
+        return duration_;
+    }
+    struct timeval AsTimeval() const {
+        return {duration_.tv_sec, (suseconds_t)(duration_.tv_nsec / 1000)};
     }
 
     int64_t nanoseconds() const {
@@ -93,7 +94,7 @@ private:
 };
 
 // Calculate a value per second.
-inline float operator / (float value, Duration d) {
+inline float operator/(float value, Duration d) {
     return 1e9 * value / d.nanoseconds();
 }
 
@@ -107,7 +108,7 @@ public:
 #else
         struct timeval tv;
         gettimeofday(&tv, nullptr);
-        time_.tv_sec = tv.tv_sec;
+        time_.tv_sec  = tv.tv_sec;
         time_.tv_nsec = 1000L * (long)tv.tv_usec;
 #endif
     }
@@ -122,15 +123,18 @@ public:
         return Duration::Nanos(nanoseconds() - other.nanoseconds());
     }
 
-    Time& operator=(const Time &other) { time_ = other.time_; return *this; }
+    Time &operator=(const Time &other) {
+        time_ = other.time_;
+        return *this;
+    }
 
-    bool operator <(const Time &other) const {
+    bool operator<(const Time &other) const {
         if (time_.tv_sec > other.time_.tv_sec) return false;
         if (time_.tv_sec < other.time_.tv_sec) return true;
         return time_.tv_nsec < other.time_.tv_nsec;
     }
 
-    bool operator >=(const Time &other) const { return !(*this < other); }
+    bool operator>=(const Time &other) const { return !(*this < other); }
 
     void Add(Duration d) {
         time_.tv_sec += d.AsTimespec().tv_sec;

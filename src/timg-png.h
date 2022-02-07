@@ -34,8 +34,7 @@ enum class ColorEncoding {
     kRGB_24,
 };
 size_t EncodePNG(const Framebuffer &fb, int compression_level,
-                 ColorEncoding encoding,
-                 char *buffer, size_t size);
+                 ColorEncoding encoding, char *buffer, size_t size);
 
-}
+}  // namespace timg
 #endif  // TIMG_PNG_H

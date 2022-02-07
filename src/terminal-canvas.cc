@@ -27,14 +27,14 @@
 #define SCREEN_CURSOR_RIGHT_FORMAT "\033[%dC"  // Move cursor right given cols
 #define SCREEN_CURSOR_LEFT_FORMAT  "\033[%dD"  // Move cursor left given cols
 
-#define SCREEN_CLEAR            "\033c"
+#define SCREEN_CLEAR "\033c"
 
 // Interestingly, cursor-on does not take effect until the next newline on
 // the tested terminals. Not sure why that is, but adding a newline sounds
 // like waste of vertical space, so let's not do it here but rather try
 // to understand the actual reason why this is happening and fix it then.
-#define CURSOR_ON       "\033[?25h"
-#define CURSOR_OFF      "\033[?25l"
+#define CURSOR_ON  "\033[?25h"
+#define CURSOR_OFF "\033[?25l"
 
 namespace timg {
 
@@ -65,20 +65,18 @@ char *TerminalCanvas::AppendPrefixToBuffer(char *buffer) {
 void TerminalCanvas::MoveCursorDY(int rows) {
     if (rows == 0) return;
     char buf[32];
-    const size_t len = sprintf(buf, rows < 0
-                               ? SCREEN_CURSOR_UP_FORMAT
-                               : SCREEN_CURSOR_DN_FORMAT,
-                               abs(rows));
+    const size_t len = sprintf(
+        buf, rows < 0 ? SCREEN_CURSOR_UP_FORMAT : SCREEN_CURSOR_DN_FORMAT,
+        abs(rows));
     AddPrefixNextSend(buf, len);
 }
 
 void TerminalCanvas::MoveCursorDX(int cols) {
     if (cols == 0) return;
     char buf[32];
-    const size_t len = sprintf(buf, cols < 0
-                               ? SCREEN_CURSOR_LEFT_FORMAT
-                               : SCREEN_CURSOR_RIGHT_FORMAT,
-                               abs(cols));
+    const size_t len = sprintf(
+        buf, cols < 0 ? SCREEN_CURSOR_LEFT_FORMAT : SCREEN_CURSOR_RIGHT_FORMAT,
+        abs(cols));
     AddPrefixNextSend(buf, len);
 }
 

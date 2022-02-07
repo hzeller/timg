@@ -18,23 +18,23 @@
 
 #include "video-display.h"
 
-#include "image-display.h"
-#include "timg-time.h"
-
 #include <mutex>
 #include <thread>
 #include <utility>
 
+#include "image-display.h"
+#include "timg-time.h"
+
 // libav: "U NO extern C in header ?"
 extern "C" {
-#  include <libavcodec/avcodec.h>
-#  if HAVE_AVDEVICE
+#include <libavcodec/avcodec.h>
+#if HAVE_AVDEVICE
 #    include <libavdevice/avdevice.h>
-#  endif
-#  include <libavformat/avformat.h>
-#  include <libavutil/imgutils.h>
-#  include <libavutil/log.h>
-#  include <libswscale/swscale.h>
+#endif
+#include <libavformat/avformat.h>
+#include <libavutil/imgutils.h>
+#include <libavutil/log.h>
+#include <libswscale/swscale.h>
 }
 
 static constexpr bool kDebug = false;
@@ -54,25 +54,21 @@ static SwsContext *CreateSWSContext(const AVCodecContext *codec_ctx,
     case AV_PIX_FMT_YUVJ422P: src_pix_fmt = AV_PIX_FMT_YUV422P; break;
     case AV_PIX_FMT_YUVJ444P: src_pix_fmt = AV_PIX_FMT_YUV444P; break;
     case AV_PIX_FMT_YUVJ440P: src_pix_fmt = AV_PIX_FMT_YUV440P; break;
-    default:
-        src_range_extended_yuvj = false;
-        src_pix_fmt = codec_ctx->pix_fmt;
+    default: src_range_extended_yuvj = false; src_pix_fmt = codec_ctx->pix_fmt;
     }
-    SwsContext *swsCtx = sws_getContext(codec_ctx->width, codec_ctx->height,
-                                        src_pix_fmt,
-                                        display_width, display_height,
-                                        AV_PIX_FMT_RGBA,
-                                        SWS_BILINEAR, NULL, NULL, NULL);
+    SwsContext *swsCtx = sws_getContext(
+        codec_ctx->width, codec_ctx->height, src_pix_fmt, display_width,
+        display_height, AV_PIX_FMT_RGBA, SWS_BILINEAR, NULL, NULL, NULL);
     if (src_range_extended_yuvj) {
         // Manually set the source range to be extended. Read modify write.
         int dontcare[4];
         int src_range, dst_range;
         int brightness, contrast, saturation;
-        sws_getColorspaceDetails(swsCtx, (int**)&dontcare, &src_range,
-                                 (int**)&dontcare, &dst_range, &brightness,
+        sws_getColorspaceDetails(swsCtx, (int **)&dontcare, &src_range,
+                                 (int **)&dontcare, &dst_range, &brightness,
                                  &contrast, &saturation);
-        const int* coefs = sws_getCoefficients(SWS_CS_DEFAULT);
-        src_range = 1;  // New src range.
+        const int *coefs = sws_getCoefficients(SWS_CS_DEFAULT);
+        src_range        = 1;  // New src range.
         sws_setColorspaceDetails(swsCtx, coefs, src_range, coefs, dst_range,
                                  brightness, contrast, saturation);
     }
@@ -111,23 +107,21 @@ const char *VideoLoader::VersionInfo() {
     return "libav " AV_STRINGIFY(LIBAVFORMAT_VERSION);
 }
 
-std::string VideoLoader::FormatTitle(const std::string& format_string) const {
-    return FormatFromParameters(format_string, filename_,
-                                orig_width_, orig_height_, "video");
+std::string VideoLoader::FormatTitle(const std::string &format_string) const {
+    return FormatFromParameters(format_string, filename_, orig_width_,
+                                orig_height_, "video");
 }
 
 bool VideoLoader::LoadAndScale(const DisplayOptions &display_options,
                                int frame_offset, int frame_count) {
-    options_ = display_options;
+    options_      = display_options;
     frame_offset_ = frame_offset;
-    frame_count_ = frame_count;
+    frame_count_  = frame_count;
 
-    const char *file = (filename() == "-")
-        ? "/dev/stdin"
-        : filename().c_str();
+    const char *file = (filename() == "-") ? "/dev/stdin" : filename().c_str();
     // Only consider applying transparency for certain file types we know
     // it might happen.
-    for (const char *ending : { ".png", ".gif", "/dev/stdin" }) {
+    for (const char *ending : {".png", ".gif", "/dev/stdin"}) {
         if (strcasecmp(file + strlen(file) - strlen(ending), ending) == 0) {
             maybe_transparent_ = true;
             break;
@@ -143,7 +137,8 @@ bool VideoLoader::LoadAndScale(const DisplayOptions &display_options,
 #if not HAVE_AVDEVICE
         // Not compiled in video device support. Try to give helpful message.
         if (strncmp(file, "/dev/video", strlen("/dev/video")) == 0) {
-            fprintf(stderr, "Need to compile with -DWITH_VIDEO_DEVICE=On to "
+            fprintf(stderr,
+                    "Need to compile with -DWITH_VIDEO_DEVICE=On to "
                     "access v4l2 device\n");
         }
 #endif
@@ -157,20 +152,19 @@ bool VideoLoader::LoadAndScale(const DisplayOptions &display_options,
 
     // Find the first video stream
     const AVCodecParameters *codec_parameters = nullptr;
-    const AVCodec *av_codec = nullptr;
+    const AVCodec *av_codec                   = nullptr;
     for (int i = 0; i < (int)format_context_->nb_streams; ++i) {
         codec_parameters = format_context_->streams[i]->codecpar;
-        av_codec = avcodec_find_decoder(codec_parameters->codec_id);
+        av_codec         = avcodec_find_decoder(codec_parameters->codec_id);
         if (!av_codec) continue;
         if (codec_parameters->codec_type == AVMEDIA_TYPE_VIDEO) {
             video_stream_index_ = i;
             break;
         }
     }
-    if (video_stream_index_ == -1)
-        return false;
+    if (video_stream_index_ == -1) return false;
 
-    auto stream = format_context_->streams[video_stream_index_];
+    auto stream     = format_context_->streams[video_stream_index_];
     AVRational rate = av_guess_frame_rate(format_context_, stream, nullptr);
     frame_duration_ = Duration::Nanos(1e9 * rate.den / rate.num);
 
@@ -183,17 +177,17 @@ bool VideoLoader::LoadAndScale(const DisplayOptions &display_options,
     }
     if (avcodec_parameters_to_context(codec_context_, codec_parameters) < 0)
         return false;
-    if (avcodec_open2(codec_context_, av_codec, NULL) < 0
-        || codec_context_->width <= 0 || codec_context_->height <= 0)
+    if (avcodec_open2(codec_context_, av_codec, NULL) < 0 ||
+        codec_context_->width <= 0 || codec_context_->height <= 0)
         return false;
 
-    orig_width_ = codec_context_->width;
+    orig_width_  = codec_context_->width;
     orig_height_ = codec_context_->height;
 
     /*
      * Prepare frame to hold the scaled target frame to be send to matrix.
      */
-    int target_width = 0;
+    int target_width  = 0;
     int target_height = 0;
 
     // Make display fit within canvas using the timg scaling utility.
@@ -205,27 +199,31 @@ bool VideoLoader::LoadAndScale(const DisplayOptions &display_options,
     if (opts.crop_border != 0 || opts.auto_crop) {
         const bool is_url = (strncmp(file, "http://", 7) == 0 ||
                              strncmp(file, "https://", 8) == 0);
-        fprintf(stderr, "%s%s is handled by video subsystem. "
+        fprintf(stderr,
+                "%s%s is handled by video subsystem. "
                 "Unfortunately, no auto-crop feature is implemented there.\n",
                 is_url ? "URL " : "", file);
         if (is_url) {
-            fprintf(stderr, "use:\n\twget -qO- %s | timg -T%d -\n... instead "
-                    "for this to work\n", file, opts.crop_border);
+            fprintf(stderr,
+                    "use:\n\twget -qO- %s | timg -T%d -\n... instead "
+                    "for this to work\n",
+                    file, opts.crop_border);
         }
     }
     opts.fill_height = false;  // This only makes sense for horizontal scroll.
-    CalcScaleToFitDisplay(codec_context_->width, codec_context_->height,
-                          opts, false, &target_width, &target_height);
+    CalcScaleToFitDisplay(codec_context_->width, codec_context_->height, opts,
+                          false, &target_width, &target_height);
 
     if (display_options.center_horizontally) {
-        center_indentation_ = (display_options.width - target_width)/2;
+        center_indentation_ = (display_options.width - target_width) / 2;
     }
     // initialize SWS context for software scaling
-    sws_context_ = CreateSWSContext(codec_context_,
-                                    target_width, target_height);
+    sws_context_ =
+        CreateSWSContext(codec_context_, target_width, target_height);
     if (!sws_context_) {
-        if (kDebug) fprintf(stderr, "Trouble doing scaling to %dx%d :(\n",
-                            opts.width, opts.height);
+        if (kDebug)
+            fprintf(stderr, "Trouble doing scaling to %dx%d :(\n", opts.width,
+                    opts.height);
         return false;
     }
 
@@ -237,10 +235,9 @@ bool VideoLoader::LoadAndScale(const DisplayOptions &display_options,
 void VideoLoader::AlphaBlendFramebuffer() {
     if (!maybe_transparent_) return;
     terminal_fb_->AlphaComposeBackground(
-        options_.bgcolor_getter,
-        options_.bg_pattern_color,
+        options_.bgcolor_getter, options_.bg_pattern_color,
         options_.pattern_size * options_.cell_x_px,
-        options_.pattern_size * options_.cell_y_px/2);
+        options_.pattern_size * options_.cell_y_px / 2);
 }
 
 void VideoLoader::SendFrames(Duration duration, int loops,
@@ -254,16 +251,16 @@ void VideoLoader::SendFrames(Duration duration, int loops,
     // Unlike animated images, in which a not set value in loops means
     // 'infinite' repeat, it feels more sensible to show videos exactly once
     // then. A negative value otherwise is considered 'forever'
-    const bool animated_png = filename().size() > 3
-        && (strcasecmp(filename().c_str() + filename().size() - 3, "png") == 0);
-    const bool loop_forever = (loops < 0) &&
-        (loops != timg::kNotInitialized || animated_png);
+    const bool animated_png =
+        filename().size() > 3 &&
+        (strcasecmp(filename().c_str() + filename().size() - 3, "png") == 0);
+    const bool loop_forever =
+        (loops < 0) && (loops != timg::kNotInitialized || animated_png);
 
-    if (loops == timg::kNotInitialized && !animated_png)
-        loops = 1;
+    if (loops == timg::kNotInitialized && !animated_png) loops = 1;
 
     AVPacket *packet = av_packet_alloc();
-    bool is_first = true;
+    bool is_first    = true;
     timg::Duration time_from_first_frame;
 
     // We made guesses above if something is potentially an animation, but
@@ -274,9 +271,8 @@ void VideoLoader::SendFrames(Duration duration, int loops,
 
     AVFrame *decode_frame = av_frame_alloc();  // Decode video into this
     for (int k = 0;
-         ((loop_forever || k < loops) && observed_frame_count != 1)
-             && !interrupt_received
-             && time_from_first_frame < duration;
+         ((loop_forever || k < loops) && observed_frame_count != 1) &&
+         !interrupt_received && time_from_first_frame < duration;
          ++k) {
         if (k > 0) {
             // Rewind unless we're just starting.
@@ -286,21 +282,19 @@ void VideoLoader::SendFrames(Duration duration, int loops,
         }
         observed_frame_count = 0;
         int remaining_frames = frame_count_;
-        int skip_offset = frame_offset_;
+        int skip_offset      = frame_offset_;
         int decode_in_flight = 0;
 
         bool state_reading = true;
 
-        while (!interrupt_received && time_from_first_frame < duration
-               && (!frame_limit || remaining_frames > 0)) {
-
-            if (state_reading &&
-                av_read_frame(format_context_, packet) != 0) {
+        while (!interrupt_received && time_from_first_frame < duration &&
+               (!frame_limit || remaining_frames > 0)) {
+            if (state_reading && av_read_frame(format_context_, packet) != 0) {
                 state_reading = false;  // Ran out of packets from input
             }
 
             if (!state_reading && decode_in_flight == 0)
-                break;     // Decoder fully drained.
+                break;  // Decoder fully drained.
 
             if (state_reading && packet->stream_index != video_stream_index_) {
                 av_packet_unref(packet);
@@ -312,7 +306,8 @@ void VideoLoader::SendFrames(Duration duration, int loops,
                     ++decode_in_flight;
                 }
                 av_packet_unref(packet);
-            } else {
+            }
+            else {
                 avcodec_send_packet(codec_context_, nullptr);  // Trigger drain
             }
 
@@ -329,17 +324,14 @@ void VideoLoader::SendFrames(Duration duration, int loops,
                 time_from_first_frame.Add(frame_duration_);
                 // TODO: when frame skipping enabled, avoid this step if we're
                 // falling behind.
-                sws_scale(sws_context_,
-                          decode_frame->data, decode_frame->linesize,
-                          0, codec_context_->height,
-                          terminal_fb_->row_data(),
-                          terminal_fb_->stride());
+                sws_scale(sws_context_, decode_frame->data,
+                          decode_frame->linesize, 0, codec_context_->height,
+                          terminal_fb_->row_data(), terminal_fb_->stride());
                 AlphaBlendFramebuffer();
                 const int dy = is_first ? 0 : -terminal_fb_->height();
                 sink(center_indentation_, dy, *terminal_fb_,
-                     is_first
-                     ? SeqType::StartOfAnimation
-                     : SeqType::AnimationFrame,
+                     is_first ? SeqType::StartOfAnimation
+                              : SeqType::AnimationFrame,
                      time_from_first_frame);
                 is_first = false;
                 if (frame_limit) --remaining_frames;
