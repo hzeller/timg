@@ -18,6 +18,7 @@
 // To compile this image viewer, first get image-magick development files
 // $ sudo apt-get install libgraphicsmagick++-dev
 
+#include "buffered-write-sequencer.h"
 #include "display-options.h"
 #include "image-source.h"
 #include "iterm2-canvas.h"
@@ -29,24 +30,23 @@
 #include "timg-time.h"
 #include "timg-version.h"
 #include "unicode-block-canvas.h"
-#include "buffered-write-sequencer.h"
 
 #ifdef WITH_TIMG_TERMINAL_QUERY
-#  include "term-query.h"
+#    include "term-query.h"
 #endif
 
 // To display version number
 #ifdef WITH_TIMG_OPENSLIDE_SUPPORT
-#  include "openslide-source.h"
+#    include "openslide-source.h"
 #endif
 #ifdef WITH_TIMG_VIDEO
-#  include "video-display.h"
+#    include "video-display.h"
 #endif
 #ifdef WITH_TIMG_GRPAPHICSMAGICK
-#  include "image-display.h"
-#  include <Magick++.h>
-#endif
+#    include <Magick++.h>
 
+#    include "image-display.h"
+#endif
 
 #include <errno.h>
 #include <fcntl.h>
@@ -62,7 +62,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-
 #include <fstream>
 #include <future>
 #include <iostream>
@@ -72,18 +71,18 @@
 #include <vector>
 
 #ifndef TIMG_VERSION
-#  define TIMG_VERSION "(unknown)"
+#    define TIMG_VERSION "(unknown)"
 #endif
 
 using timg::Duration;
 using timg::Framebuffer;
 using timg::ImageSource;
-using timg::KittyGraphicsCanvas;
 using timg::ITerm2GraphicsCanvas;
+using timg::KittyGraphicsCanvas;
+using timg::rgba_t;
 using timg::TerminalCanvas;
 using timg::Time;
 using timg::UnicodeBlockCanvas;
-using timg::rgba_t;
 
 enum class ExitCode {
     kSuccess         = 0,
@@ -113,25 +112,25 @@ namespace timg {
 // Options configuring how images/videos are arranged and presented.
 struct PresentationOptions {
     // Rendering
-    Pixelation pixelation = Pixelation::kNotChosen;
+    Pixelation pixelation         = Pixelation::kNotChosen;
     bool terminal_use_upper_block = false;
-    bool use_256_color = false;   // For terminals that don't do 24 bit color
+    bool use_256_color = false;  // For terminals that don't do 24 bit color
 
     // Arrangement
-    int grid_cols = 1;                  // Grid arrangement
+    int grid_cols = 1;  // Grid arrangement
     int grid_rows = 1;
 
     // Per image
     Duration duration_per_image = Duration::InfiniteFuture();
     int loops = timg::kNotInitialized;  // If animation: loop count through all
-    bool hide_cursor = true;            // Hide cursor while emitting image
-    ClearScreen clear_screen = ClearScreen::kNot; // Clear between images ?
-    Duration duration_between_images;   // How long to wait between images
+    bool hide_cursor         = true;    // Hide cursor while emitting image
+    ClearScreen clear_screen = ClearScreen::kNot;  // Clear between images ?
+    Duration duration_between_images;  // How long to wait between images
 };
 }  // namespace timg
 
 // Image sources; as future as they are being filled while we start presenting
-typedef std::vector<std::future<timg::ImageSource*>> LoadedImageSources;
+typedef std::vector<std::future<timg::ImageSource *>> LoadedImageSources;
 
 // Modern processors with some sort of hyperthreading don't seem to scale
 // much beyond their physical core count when doing image processing.
@@ -140,82 +139,110 @@ static const int kDefaultThreadCount =
     std::max(1U, std::thread::hardware_concurrency() / 2);
 
 volatile sig_atomic_t interrupt_received = 0;
-static void InterruptHandler(int signo) {
-  interrupt_received = 1;
-}
+static void InterruptHandler(int signo) { interrupt_received = 1; }
 
-static int usage(const char *progname, ExitCode exit_code,
-                 int width, int height) {
+static int usage(const char *progname, ExitCode exit_code, int width,
+                 int height) {
 #ifdef WITH_TIMG_VIDEO
     static constexpr char kFileType[] = "image/video";
 #else
     static constexpr char kFileType[] = "image";
 #endif
-    fprintf(stderr, "usage: %s [options] <%s> [<%s>...]\n", progname,
-            kFileType, kFileType);
-    fprintf(stderr, "\e[1mOptions\e[0m:\n"
-            "\t-g<w>x<h>      : Output geometry in character cells. Partial geometry\n"
-            "\t                 leaving out one value -g<w>x or -gx<h> is possible,\n"
-            "\t                 the other value it then derived from the terminal size.\n"
-            "\t                 Default derived from terminal size is %dx%d\n"
-            "\t-p<pixelation> : Pixelation: 'h' = half blocks    'q' = quarter blocks\n"
-            "\t                             'k' = kitty graphics 'i' = iTerm2 graphics\n"
-            "\t                 Default: Auto-detect graphics, otherwise 'quarter'.\n"
-            "\t--compress     : Only for -pk or -pi: Compress image data. More\n"
-            "\t                 CPU use for timg, but less bandwidth needed.\n"
-            "\t-C, --center   : Center image horizontally.\n"
-            "\t-W, --fit-width: Scale to fit width of available space, even if it\n"
-            "\t                 exceeds height.\n"
-            "\t--grid=<cols>[x<rows>] : Arrange images in a grid (contact sheet).\n"
-            "\t-w<seconds>    : Wait time between images (default: 0.0).\n"
-            "\t-a             : Switch off anti aliasing (default: on).\n"
-            "\t-b<str>        : Background color to use behind alpha channel. Format\n"
-            "\t                 'yellow', '#rrggbb', 'auto' or 'none' (default 'auto').\n"
-            "\t-B<str>        : Checkerboard pattern color to use on alpha.\n"
-            "\t--pattern-size=<n> : Integer factor scale of the checkerboard pattern.\n"
-            "\t--auto-crop[=<pre-crop>] : Crop away all same-color pixels around image.\n"
-            "\t                 The optional pre-crop is the width of border to\n"
-            "\t                 remove beforehand to get rid of an uneven border.\n"
-            "\t--rotate=<exif|off> : Rotate according to included exif orientation.\n"
-            "\t                      or 'off'. Default: exif.\n"
-            "\t--clear        : Clear screen first. Optional argument 'every' will\n"
-            "\t                 clear before every image (useful with -w)\n"
-            "\t-U, --upscale[=i]: Allow Upscaling. If an image is smaller than the\n"
-            "\t                 available frame (e.g. an icon), enlarge it to fit.\n"
-            "\t                 Optional parameter 'i' only enlarges in integer steps.\n"
+    fprintf(stderr, "usage: %s [options] <%s> [<%s>...]\n", progname, kFileType,
+            kFileType);
+    fprintf(
+        stderr,
+        "\e[1mOptions\e[0m:\n"
+        "\t-g<w>x<h>      : Output geometry in character cells. Partial "
+        "geometry\n"
+        "\t                 leaving out one value -g<w>x or -gx<h> is "
+        "possible,\n"
+        "\t                 the other value it then derived from the terminal "
+        "size.\n"
+        "\t                 Default derived from terminal size is %dx%d\n"
+        "\t-p<pixelation> : Pixelation: 'h' = half blocks    'q' = quarter "
+        "blocks\n"
+        "\t                             'k' = kitty graphics 'i' = iTerm2 "
+        "graphics\n"
+        "\t                 Default: Auto-detect graphics, otherwise "
+        "'quarter'.\n"
+        "\t--compress     : Only for -pk or -pi: Compress image data. More\n"
+        "\t                 CPU use for timg, but less bandwidth needed.\n"
+        "\t-C, --center   : Center image horizontally.\n"
+        "\t-W, --fit-width: Scale to fit width of available space, even if it\n"
+        "\t                 exceeds height.\n"
+        "\t--grid=<cols>[x<rows>] : Arrange images in a grid (contact sheet).\n"
+        "\t-w<seconds>    : Wait time between images (default: 0.0).\n"
+        "\t-a             : Switch off anti aliasing (default: on).\n"
+        "\t-b<str>        : Background color to use behind alpha channel. "
+        "Format\n"
+        "\t                 'yellow', '#rrggbb', 'auto' or 'none' (default "
+        "'auto').\n"
+        "\t-B<str>        : Checkerboard pattern color to use on alpha.\n"
+        "\t--pattern-size=<n> : Integer factor scale of the checkerboard "
+        "pattern.\n"
+        "\t--auto-crop[=<pre-crop>] : Crop away all same-color pixels around "
+        "image.\n"
+        "\t                 The optional pre-crop is the width of border to\n"
+        "\t                 remove beforehand to get rid of an uneven border.\n"
+        "\t--rotate=<exif|off> : Rotate according to included exif "
+        "orientation.\n"
+        "\t                      or 'off'. Default: exif.\n"
+        "\t--clear        : Clear screen first. Optional argument 'every' "
+        "will\n"
+        "\t                 clear before every image (useful with -w)\n"
+        "\t-U, --upscale[=i]: Allow Upscaling. If an image is smaller than "
+        "the\n"
+        "\t                 available frame (e.g. an icon), enlarge it to "
+        "fit.\n"
+        "\t                 Optional parameter 'i' only enlarges in integer "
+        "steps.\n"
 #ifdef WITH_TIMG_VIDEO
-            "\t-V             : Directly use Video subsystem. Don't probe image\n"
-            "\t                 decoding first (useful, if you stream video from stdin)\n"
-            "\t-I             : Only  use Image subsystem. Don't attempt video decoding\n"
+        "\t-V             : Directly use Video subsystem. Don't probe image\n"
+        "\t                 decoding first (useful, if you stream video from "
+        "stdin)\n"
+        "\t-I             : Only  use Image subsystem. Don't attempt video "
+        "decoding\n"
 #endif
-            "\t--title[=<fmt_str>]: Print title above each image. Accepts the following\n"
-            "\t                 format parameters: %%f = full filename; %%b = basename\n"
-            "\t                                    %%w = image width; %%h = height\n"
-            "\t                                    %%D = internal decoder used\n"
-            "\t                 If no parameter is given, defaults to \"%%f\"\n"
-            "\t-F             : Print filename as title. Behaves like --title=\"%%f\"\n"
-            "\t-f<filelist>   : Read newline-separated list of image files to show.\n"
-            "\t                 (Can be provided multiple times.)\n"
-            "\t-o<outfile>    : Write to <outfile> instead of stdout.\n"
-            "\t-E             : Don't hide the cursor while showing images.\n"
-            "\t--threads=<n>  : Run image decoding in parallel with n threads\n"
-            "\t                 (Default %d, half #cores on this machine)\n"
-            "\t--color8       : Choose 8 bit color mode for -ph or -pq\n"
-            "\t--version      : Print version and exit.\n"
-            "\t-h, --help     : Print this help and exit.\n"
+        "\t--title[=<fmt_str>]: Print title above each image. Accepts the "
+        "following\n"
+        "\t                 format parameters: %%f = full filename; %%b = "
+        "basename\n"
+        "\t                                    %%w = image width; %%h = "
+        "height\n"
+        "\t                                    %%D = internal decoder used\n"
+        "\t                 If no parameter is given, defaults to \"%%f\"\n"
+        "\t-F             : Print filename as title. Behaves like "
+        "--title=\"%%f\"\n"
+        "\t-f<filelist>   : Read newline-separated list of image files to "
+        "show.\n"
+        "\t                 (Can be provided multiple times.)\n"
+        "\t-o<outfile>    : Write to <outfile> instead of stdout.\n"
+        "\t-E             : Don't hide the cursor while showing images.\n"
+        "\t--threads=<n>  : Run image decoding in parallel with n threads\n"
+        "\t                 (Default %d, half #cores on this machine)\n"
+        "\t--color8       : Choose 8 bit color mode for -ph or -pq\n"
+        "\t--version      : Print version and exit.\n"
+        "\t-h, --help     : Print this help and exit.\n"
 
-            "\n  \e[1mScrolling\e[0m\n"
-            "\t--scroll=[<ms>]       : Scroll horizontally (optionally: delay ms (60)).\n"
-            "\t--delta-move=<dx:dy>  : delta x and delta y when scrolling (default:1:0)\n"
+        "\n  \e[1mScrolling\e[0m\n"
+        "\t--scroll=[<ms>]       : Scroll horizontally (optionally: delay ms "
+        "(60)).\n"
+        "\t--delta-move=<dx:dy>  : delta x and delta y when scrolling "
+        "(default:1:0)\n"
 
-            "\n  \e[1mFor Animations, Scrolling, or Video\e[0m\n"
-            "  These options influence how long/often and what is shown.\n"
-            "\t--loops=<num> : Number of runs through a full cycle. -1 means 'forever'.\n"
-            "\t                If not set, videos loop once, animated images forever\n"
-            "\t                unless there is more than one file to show.\n"
-            "\t--frames=<num>: Only show first num frames (if looping, loop only these)\n"
-            "\t-t<seconds>   : Stop after this time, independent of --loops or --frames\n",
-            width, height, kDefaultThreadCount);
+        "\n  \e[1mFor Animations, Scrolling, or Video\e[0m\n"
+        "  These options influence how long/often and what is shown.\n"
+        "\t--loops=<num> : Number of runs through a full cycle. -1 means "
+        "'forever'.\n"
+        "\t                If not set, videos loop once, animated images "
+        "forever\n"
+        "\t                unless there is more than one file to show.\n"
+        "\t--frames=<num>: Only show first num frames (if looping, loop only "
+        "these)\n"
+        "\t-t<seconds>   : Stop after this time, independent of --loops or "
+        "--frames\n",
+        width, height, kDefaultThreadCount);
     return (int)exit_code;
 }
 
@@ -257,16 +284,12 @@ static void PresentImages(LoadedImageSources &loaded_sources,
     case Pixelation::kQuarterBlock:
     case Pixelation::kNotChosen:  // Should not happen.
         canvas.reset(new UnicodeBlockCanvas(
-                         sequencer,
-                         present.pixelation == Pixelation::kQuarterBlock,
-                         present.terminal_use_upper_block,
-                         present.use_256_color));
+            sequencer, present.pixelation == Pixelation::kQuarterBlock,
+            present.terminal_use_upper_block, present.use_256_color));
     }
 
     auto renderer = timg::Renderer::Create(
-        canvas.get(), display_opts,
-        present.grid_cols, present.grid_rows);
-
+        canvas.get(), display_opts, present.grid_cols, present.grid_rows);
 
     // Things to do before and after we show an image. Our goal is to keep
     // the terminal always in a good state (cursor on!) while also reacting
@@ -317,7 +340,7 @@ int main(int argc, char *argv[]) {
     Magick::InitializeMagick(*argv);
 #endif
 
-    bool verbose = false;
+    bool verbose                    = false;
     const timg::TermSizeResult term = timg::DetermineTermSize();
 
     timg::DisplayOptions display_opts;
@@ -325,25 +348,26 @@ int main(int argc, char *argv[]) {
     present.terminal_use_upper_block =
         timg::GetBoolenEnv("TIMG_USE_UPPER_BLOCK");
 
-    const char *bg_color = "auto";
+    const char *bg_color         = "auto";
     const char *bg_pattern_color = nullptr;
     display_opts.allow_frame_skipping =
         timg::GetBoolenEnv("TIMG_ALLOW_FRAME_SKIP");
 
     int output_fd = STDOUT_FILENO;
     std::vector<std::string> filelist;  // from -f<filelist> and command line
-    int frame_offset = 0;
-    int max_frames = timg::kNotInitialized;
-    bool do_img_loading = true;
-    bool do_vid_loading = true;
-    int thread_count = kDefaultThreadCount;
-    int geometry_width = (term.cols - 2);
-    int geometry_height = (term.rows - 2);
+    int frame_offset          = 0;
+    int max_frames            = timg::kNotInitialized;
+    bool do_img_loading       = true;
+    bool do_vid_loading       = true;
+    int thread_count          = kDefaultThreadCount;
+    int geometry_width        = (term.cols - 2);
+    int geometry_height       = (term.rows - 2);
     bool debug_no_frame_delay = false;
 
     // Convenience predicate: pixelation sending high-res images, no blocks.
     const auto is_pixel_direct_p = [](Pixelation p) {
-        return p==Pixelation::kKittyGraphics || p==Pixelation::kiTerm2Graphics;
+        return p == Pixelation::kKittyGraphics ||
+               p == Pixelation::kiTerm2Graphics;
     };
 
     enum LongOptionIds {
@@ -364,29 +388,30 @@ int main(int argc, char *argv[]) {
     // Flags with optional parameters need to be long-options, as on MacOS,
     // there is no way to have single-character options with
     static constexpr struct option long_options[] = {
-        { "auto-crop",   optional_argument, NULL, 'T' },
-        { "center",      no_argument,       NULL, 'C' },
-        { "clear",       optional_argument, NULL, OPT_CLEAR_SCREEN },
-        { "color8",      no_argument,       NULL, OPT_COLOR_256 },
-        { "compress",    no_argument,       NULL, OPT_COMPRESS_PIXEL },
-        { "delta-move",  required_argument, NULL, 'd' },
-        { "debug-no-frame-delay", no_argument, NULL, OPT_DEBUG_NO_FRAME_DELAY },
-        { "experimental-frame-offset",required_argument, NULL, OPT_FRAME_OFFSET },
-        { "fit-width",   no_argument,       NULL, 'W' },
-        { "frames",      required_argument, NULL, OPT_FRAME_COUNT },
-        { "grid",        required_argument, NULL, OPT_GRID },
-        { "help",        no_argument,       NULL, 'h' },
-        { "loops",       optional_argument, NULL, 'c' },
-        { "pattern-size", required_argument,NULL, OPT_PATTERN_SIZE },
-        { "pixelation",  required_argument, NULL, 'p' },
-        { "rotate",      required_argument, NULL, OPT_ROTATE },
-        { "scroll",      optional_argument, NULL, 's' },
-        { "threads",     required_argument, NULL, OPT_THREADS },
-        { "title",       optional_argument, NULL, 'F' },
-        { "upscale",     optional_argument, NULL, 'U' },
-        { "verbose",     no_argument,       NULL, OPT_VERBOSE },
-        { "version",     no_argument,       NULL, OPT_VERSION },
-        { 0, 0, 0, 0}
+        {"auto-crop",                 optional_argument, NULL, 'T'                     },
+        {"center",                    no_argument,       NULL, 'C'                     },
+        {"clear",                     optional_argument, NULL, OPT_CLEAR_SCREEN        },
+        {"color8",                    no_argument,       NULL, OPT_COLOR_256           },
+        {"compress",                  no_argument,       NULL, OPT_COMPRESS_PIXEL      },
+        {"delta-move",                required_argument, NULL, 'd'                     },
+        {"debug-no-frame-delay",      no_argument,       NULL, OPT_DEBUG_NO_FRAME_DELAY},
+        {"experimental-frame-offset", required_argument, NULL,
+         OPT_FRAME_OFFSET                                                              },
+        {"fit-width",                 no_argument,       NULL, 'W'                     },
+        {"frames",                    required_argument, NULL, OPT_FRAME_COUNT         },
+        {"grid",                      required_argument, NULL, OPT_GRID                },
+        {"help",                      no_argument,       NULL, 'h'                     },
+        {"loops",                     optional_argument, NULL, 'c'                     },
+        {"pattern-size",              required_argument, NULL, OPT_PATTERN_SIZE        },
+        {"pixelation",                required_argument, NULL, 'p'                     },
+        {"rotate",                    required_argument, NULL, OPT_ROTATE              },
+        {"scroll",                    optional_argument, NULL, 's'                     },
+        {"threads",                   required_argument, NULL, OPT_THREADS             },
+        {"title",                     optional_argument, NULL, 'F'                     },
+        {"upscale",                   optional_argument, NULL, 'U'                     },
+        {"verbose",                   no_argument,       NULL, OPT_VERBOSE             },
+        {"version",                   no_argument,       NULL, OPT_VERSION             },
+        {0,                           0,                 0,    0                       }
     };
     // BSD's don't have a getopt() that has the GNU extension to allow
     // optional parameters on single-character flags, so we now only document
@@ -396,30 +421,30 @@ int main(int argc, char *argv[]) {
 
     int opt;
     int option_index = 0;
-    while ((opt = getopt_long(argc, argv,
-                              "vg:w:t:c:f:b:B:hCFEd:UWaVIo:f:p:"
-                              OLD_COMPAT_FLAGS,
-                              long_options, &option_index))!=-1) {
+    while ((opt = getopt_long(
+                argc, argv, "vg:w:t:c:f:b:B:hCFEd:UWaVIo:f:p:" OLD_COMPAT_FLAGS,
+                long_options, &option_index)) != -1) {
         switch (opt) {
         case 'g':
             // Parse xHEIGHT, WIDTHx, WIDTHxHEIGHT
             if ((sscanf(optarg, "x%d", &geometry_height) == 0) &&
-                (sscanf(optarg, "%dx%d",
-                        &geometry_width, &geometry_height) < 1)) {
+                (sscanf(optarg, "%dx%d", &geometry_width, &geometry_height) <
+                 1)) {
                 fprintf(stderr, "Invalid size spec '%s'", optarg);
-                return usage(argv[0], ExitCode::kParameterError,
-                             geometry_width, geometry_height);
+                return usage(argv[0], ExitCode::kParameterError, geometry_width,
+                             geometry_height);
             }
             break;
         case 'w':
-            present.duration_between_images
-                = Duration::Millis(roundf(atof(optarg) * 1000.0f));
+            present.duration_between_images =
+                Duration::Millis(roundf(atof(optarg) * 1000.0f));
             break;
         case 't':
-            present.duration_per_image
-                = Duration::Millis(roundf(atof(optarg) * 1000.0f));
+            present.duration_per_image =
+                Duration::Millis(roundf(atof(optarg) * 1000.0f));
             if (present.duration_per_image.is_zero()) {
-                fprintf(stderr, "Note, -t<zero-duration> will effectively "
+                fprintf(stderr,
+                        "Note, -t<zero-duration> will effectively "
                         "skip animations/movies\n");
             }
             break;
@@ -433,33 +458,24 @@ int main(int argc, char *argv[]) {
                 if (optlen <= 5 && strncasecmp(optarg, "every", optlen) == 0)
                     present.clear_screen = ClearScreen::kBeforeEachImage;
                 else {
-                    fprintf(stderr, "Parameter for --clear can be 'every', "
-                            "got %s\n", optarg);
+                    fprintf(stderr,
+                            "Parameter for --clear can be 'every', "
+                            "got %s\n",
+                            optarg);
                     return usage(argv[0], ExitCode::kParameterError,
                                  geometry_width, geometry_height);
                 }
-            } else {
+            }
+            else {
                 present.clear_screen = ClearScreen::kBeforeFirstImage;
             }
             break;
-        case OPT_FRAME_OFFSET:
-            frame_offset = atoi(optarg);
-            break;
-        case OPT_FRAME_COUNT:
-            max_frames = atoi(optarg);
-            break;
-        case 'a':
-            display_opts.antialias = false;
-            break;
-        case 'b':
-            bg_color = strdup(optarg);
-            break;
-        case 'B':
-            bg_pattern_color = strdup(optarg);
-            break;
-        case OPT_PATTERN_SIZE:
-            display_opts.pattern_size = atoi(optarg);
-            break;
+        case OPT_FRAME_OFFSET: frame_offset = atoi(optarg); break;
+        case OPT_FRAME_COUNT: max_frames = atoi(optarg); break;
+        case 'a': display_opts.antialias = false; break;
+        case 'b': bg_color = strdup(optarg); break;
+        case 'B': bg_pattern_color = strdup(optarg); break;
+        case OPT_PATTERN_SIZE: display_opts.pattern_size = atoi(optarg); break;
         case 's':
             display_opts.scroll_animation = true;
             if (optarg != NULL) {
@@ -474,8 +490,7 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "-V: Video support not compiled in\n");
 #endif
             break;
-        case 'I':
-            do_img_loading = true;
+        case 'I': do_img_loading = true;
 #if WITH_TIMG_VIDEO
             do_vid_loading = false;
 #endif
@@ -484,65 +499,58 @@ int main(int argc, char *argv[]) {
             // TODO(hzeller): Maybe later also pass angles ?
             if (strcasecmp(optarg, "exif") == 0) {
                 display_opts.exif_rotate = true;
-            } else if (strcasecmp(optarg, "off") == 0) {
+            }
+            else if (strcasecmp(optarg, "off") == 0) {
                 display_opts.exif_rotate = false;
-            } else {
+            }
+            else {
                 fprintf(stderr, "--rotate=%s: expected 'exif' or 'off'\n",
                         optarg);
-                return usage(argv[0], ExitCode::kParameterError,
-                             geometry_width, geometry_height);
+                return usage(argv[0], ExitCode::kParameterError, geometry_width,
+                             geometry_height);
             }
             break;
         case OPT_GRID:
-            switch (sscanf(optarg, "%dx%d",
-                           &present.grid_cols, &present.grid_rows)) {
+            switch (sscanf(optarg, "%dx%d", &present.grid_cols,
+                           &present.grid_rows)) {
             case 0:
                 fprintf(stderr, "Invalid grid spec '%s'", optarg);
-                return usage(argv[0], ExitCode::kParameterError,
-                             geometry_width, geometry_height);
-            case 1:
-                present.grid_rows = present.grid_cols;
-                break;
+                return usage(argv[0], ExitCode::kParameterError, geometry_width,
+                             geometry_height);
+            case 1: present.grid_rows = present.grid_cols; break;
             }
             break;
-        case OPT_THREADS:
-            thread_count = atoi(optarg);
-            break;
+        case OPT_THREADS: thread_count = atoi(optarg); break;
         case 'd':
-            if (sscanf(optarg, "%d:%d",
-                       &display_opts.scroll_dx, &display_opts.scroll_dy) < 1) {
-                fprintf(stderr, "--delta-move=%s: At least dx parameter needed"
+            if (sscanf(optarg, "%d:%d", &display_opts.scroll_dx,
+                       &display_opts.scroll_dy) < 1) {
+                fprintf(stderr,
+                        "--delta-move=%s: At least dx parameter needed"
                         " e.g. --delta-move=1."
-                        "Or you can give dx, dy like so: -d1:-1", optarg);
-                return usage(argv[0], ExitCode::kParameterError,
-                             geometry_width, geometry_height);
+                        "Or you can give dx, dy like so: -d1:-1",
+                        optarg);
+                return usage(argv[0], ExitCode::kParameterError, geometry_width,
+                             geometry_height);
             }
             break;
-        case 'C':
-            display_opts.center_horizontally = true;
-            break;
+        case 'C': display_opts.center_horizontally = true; break;
         case 'U':
-            display_opts.upscale = !display_opts.upscale;
+            display_opts.upscale         = !display_opts.upscale;
             display_opts.upscale_integer = (optarg && optarg[0] == 'i');
             break;
         case 'T':
             display_opts.auto_crop = true;
-            if (optarg) {
-                display_opts.crop_border = atoi(optarg);
-            }
+            if (optarg) { display_opts.crop_border = atoi(optarg); }
             break;
         case 'F':
             display_opts.show_title = !display_opts.show_title;
             if (optarg) display_opts.title_format = optarg;
             break;
-        case 'E':
-            present.hide_cursor = false;
-            break;
-        case 'W':
-            display_opts.fill_width = true;
-            break;
+        case 'E': present.hide_cursor = false; break;
+        case 'W': display_opts.fill_width = true; break;
         case OPT_VERSION:
-            fprintf(stderr, "timg " TIMG_VERSION
+            fprintf(stderr,
+                    "timg " TIMG_VERSION
                     " <https://timg.sh/>\n"
                     "Copyright (c) 2016..2021 Henner Zeller. "
                     "This program is free software; license GPL 2.0.\n\n");
@@ -560,11 +568,11 @@ int main(int argc, char *argv[]) {
 #endif
             return 0;
         case 'o':
-            output_fd = open(optarg, O_WRONLY|O_CREAT|O_TRUNC, 0664);
+            output_fd = open(optarg, O_WRONLY | O_CREAT | O_TRUNC, 0664);
             if (output_fd < 0) {
                 fprintf(stderr, "%s: %s\n", optarg, strerror(errno));
-                return usage(argv[0], ExitCode::kCantOpenOutput,
-                             geometry_width, geometry_height);
+                return usage(argv[0], ExitCode::kCantOpenOutput, geometry_width,
+                             geometry_height);
             }
             break;
         case 'f':
@@ -575,30 +583,24 @@ int main(int argc, char *argv[]) {
             break;
         case 'p':
             switch (tolower(optarg[0])) {
-            case 'h': present.pixelation = Pixelation::kHalfBlock;      break;
-            case 'q': present.pixelation = Pixelation::kQuarterBlock;   break;
-            case 'k': present.pixelation = Pixelation::kKittyGraphics;  break;
+            case 'h': present.pixelation = Pixelation::kHalfBlock; break;
+            case 'q': present.pixelation = Pixelation::kQuarterBlock; break;
+            case 'k': present.pixelation = Pixelation::kKittyGraphics; break;
             case 'i': present.pixelation = Pixelation::kiTerm2Graphics; break;
             }
             break;
         case OPT_COMPRESS_PIXEL:
             display_opts.compress_pixel_format = true;
             break;
-        case OPT_COLOR_256:
-            present.use_256_color = true;
-            break;
-        case OPT_VERBOSE:
-            verbose = true;
-            break;
-        case OPT_DEBUG_NO_FRAME_DELAY:
-            debug_no_frame_delay = true;
-            break;
+        case OPT_COLOR_256: present.use_256_color = true; break;
+        case OPT_VERBOSE: verbose = true; break;
+        case OPT_DEBUG_NO_FRAME_DELAY: debug_no_frame_delay = true; break;
         case 'h':
         default:
-            return usage(argv[0], (opt == 'h'
-                                   ? ExitCode::kSuccess
-                                   : ExitCode::kParameterError),
-                         geometry_width, geometry_height);
+            return usage(
+                argv[0],
+                (opt == 'h' ? ExitCode::kSuccess : ExitCode::kParameterError),
+                geometry_width, geometry_height);
         }
     }
 
@@ -606,14 +608,16 @@ int main(int argc, char *argv[]) {
 
     if (geometry_width < 1 || geometry_height < 1) {
         if (term.cols < 0 || term.rows < 0) {
-            fprintf(stderr, "Failed to read size from terminal; "
+            fprintf(stderr,
+                    "Failed to read size from terminal; "
                     "Please supply -g<width>x<height> directly.\n");
-        } else {
-            fprintf(stderr, "%dx%d is a rather unusual size\n",
-                    geometry_width, geometry_height);
         }
-        return usage(argv[0], ExitCode::kNotATerminal,
-                     geometry_width, geometry_height);
+        else {
+            fprintf(stderr, "%dx%d is a rather unusual size\n", geometry_width,
+                    geometry_height);
+        }
+        return usage(argv[0], ExitCode::kNotATerminal, geometry_width,
+                     geometry_height);
     }
 
     if ((term.font_width_px < 0 || term.font_height_px < 0) &&
@@ -627,10 +631,11 @@ int main(int argc, char *argv[]) {
         //
         // For instance, Chromium Secure Shell (hterm) extension supports
         // iTerm2 graphics, but unfortunately does not report size :(
-        fprintf(stderr, "Terminal does not support pixel size query, "
+        fprintf(stderr,
+                "Terminal does not support pixel size query, "
                 "but graphics protocol requested.\n"
                 "Can't show animations or have columns in grid.\n");
-        max_frames = 1;   // Since don't know how many cells move up next frame
+        max_frames = 1;  // Since don't know how many cells move up next frame
         // We need a cell size to have something to scale the image into.
         display_opts.cell_x_px = 9;  // Make up some typical values.
         display_opts.cell_y_px = 18;
@@ -663,17 +668,18 @@ int main(int argc, char *argv[]) {
     if (is_pixel_direct_p(present.pixelation) &&
         strcasecmp(bg_color, "none") == 0) {
         display_opts.compress_pixel_format = true;
-        display_opts.local_alpha_handling = false;
+        display_opts.local_alpha_handling  = false;
     }
 
     // If we're using block graphics, we might need to adapt the aspect ratio
     // slightly depending if the font-cell has a 1:2 ratio.
     // Terminals using direct pixels don't need this.
-    const float stretch_correct = is_pixel_direct_p(present.pixelation)
-        ? 1.0f
-        : 0.5f * term.font_height_px / term.font_width_px;
-    display_opts.width_stretch = timg::GetFloatEnv("TIMG_FONT_WIDTH_CORRECT",
-                                                   stretch_correct);
+    const float stretch_correct =
+        is_pixel_direct_p(present.pixelation)
+            ? 1.0f
+            : 0.5f * term.font_height_px / term.font_width_px;
+    display_opts.width_stretch =
+        timg::GetFloatEnv("TIMG_FONT_WIDTH_CORRECT", stretch_correct);
 
     switch (present.pixelation) {
     case Pixelation::kHalfBlock:
@@ -687,13 +693,13 @@ int main(int argc, char *argv[]) {
         break;
     case Pixelation::kKittyGraphics:
     case Pixelation::kiTerm2Graphics:
-        if (term.font_width_px>0)  display_opts.cell_x_px = term.font_width_px;
-        if (term.font_height_px>0) display_opts.cell_y_px = term.font_height_px;
+        if (term.font_width_px > 0) display_opts.cell_x_px = term.font_width_px;
+        if (term.font_height_px > 0)
+            display_opts.cell_y_px = term.font_height_px;
         break;
-    case Pixelation::kNotChosen:
-        break;  // Should not happen. Was set above.
+    case Pixelation::kNotChosen: break;  // Should not happen. Was set above.
     }
-    display_opts.width = geometry_width * display_opts.cell_x_px;
+    display_opts.width  = geometry_width * display_opts.cell_x_px;
     display_opts.height = geometry_height * display_opts.cell_y_px;
 
     for (int imgarg = optind; imgarg < argc && !interrupt_received; ++imgarg) {
@@ -701,15 +707,17 @@ int main(int argc, char *argv[]) {
     }
 
     if (filelist.size() <= 0) {
-        fprintf(stderr, "Expected image filename(s) on command line "
+        fprintf(stderr,
+                "Expected image filename(s) on command line "
                 "or via -f\n");
-        return usage(argv[0], ExitCode::kImageReadError,
-                     geometry_width, geometry_height);
+        return usage(argv[0], ExitCode::kImageReadError, geometry_width,
+                     geometry_height);
     }
 
     // There is no scroll if there is no movement.
     if (display_opts.scroll_dx == 0 && display_opts.scroll_dy == 0) {
-        fprintf(stderr, "Scrolling chosen, but dx:dy = 0:0. "
+        fprintf(stderr,
+                "Scrolling chosen, but dx:dy = 0:0. "
                 "Just showing image, no scroll.\n");
         display_opts.scroll_animation = false;
     }
@@ -722,20 +730,19 @@ int main(int argc, char *argv[]) {
 
     // If we scroll in one direction (so have 'infinite' space) we want fill
     // the available screen space fully in the other direction.
-    display_opts.fill_width  = display_opts.fill_width ||
+    display_opts.fill_width =
+        display_opts.fill_width ||
         (display_opts.scroll_animation && display_opts.scroll_dy != 0);
     display_opts.fill_height = display_opts.scroll_animation &&
-        display_opts.scroll_dx != 0; // scroll h, fill v
+                               display_opts.scroll_dx != 0;  // scroll h, fill v
 
     // Showing exactly one frame implies animation behaves as static image
-    if (max_frames == 1) {
-        present.loops = 1;
-    }
+    if (max_frames == 1) { present.loops = 1; }
 
     // If nothing is set to limit animations but we have multiple images,
     // set some sensible limit.
-    if (filelist.size() > 1 && present.loops == timg::kNotInitialized
-        && present.duration_per_image == Duration::InfiniteFuture()) {
+    if (filelist.size() > 1 && present.loops == timg::kNotInitialized &&
+        present.duration_per_image == Duration::InfiniteFuture()) {
         present.loops = 1;  // Don't get stuck on the first endless-loop
     }
 
@@ -746,8 +753,8 @@ int main(int argc, char *argv[]) {
 
     // Asynconrous image loading (filelist.size()) and terminal query (+1)
     thread_count = (thread_count > 0 ? thread_count : kDefaultThreadCount);
-    auto pool = new timg::ThreadPool(std::min(thread_count,
-                                              (int)filelist.size() + 1));
+    auto pool =
+        new timg::ThreadPool(std::min(thread_count, (int)filelist.size() + 1));
 
     std::future<rgba_t> background_color_future;
     if (bg_color) {
@@ -756,18 +763,18 @@ int main(int argc, char *argv[]) {
             std::function<rgba_t()> query_terminal = []() {
                 return rgba_t::ParseColor(timg::QueryBackgroundColor());
             };
-            background_color_future = pool->ExecAsync(query_terminal);
+            background_color_future     = pool->ExecAsync(query_terminal);
             display_opts.bgcolor_getter = [&background_color_future]() {
-                static rgba_t value = background_color_future.get(); // once
+                static rgba_t value = background_color_future.get();  // once
                 return value;
             };
 #else
-            const rgba_t bg = rgba_t::ParseColor("#000000");
+            const rgba_t bg             = rgba_t::ParseColor("#000000");
             display_opts.bgcolor_getter = [bg]() { return bg; };
 #endif
         }
         else {
-            const rgba_t bg = rgba_t::ParseColor(bg_color);
+            const rgba_t bg             = rgba_t::ParseColor(bg_color);
             display_opts.bgcolor_getter = [bg]() { return bg; };
         }
     }
@@ -787,18 +794,16 @@ int main(int argc, char *argv[]) {
     LoadedImageSources loaded_sources;
     for (const std::string &filename : filelist) {
         if (interrupt_received) break;
-        std::function<timg::ImageSource*()> f =
-            [filename, frame_offset, max_frames,
-             do_img_loading, do_vid_loading, print_errors,
-             &display_opts, &exit_code]() -> timg::ImageSource* {
-                if (interrupt_received) return nullptr;
-                auto result = ImageSource::Create(filename, display_opts,
-                                                  frame_offset, max_frames,
-                                                  do_img_loading,
-                                                  do_vid_loading, print_errors);
-                if (!result) exit_code = ExitCode::kImageReadError;
-                return result;
-            };
+        std::function<timg::ImageSource *()> f =
+            [filename, frame_offset, max_frames, do_img_loading, do_vid_loading,
+             print_errors, &display_opts, &exit_code]() -> timg::ImageSource * {
+            if (interrupt_received) return nullptr;
+            auto result = ImageSource::Create(
+                filename, display_opts, frame_offset, max_frames,
+                do_img_loading, do_vid_loading, print_errors);
+            if (!result) exit_code = ExitCode::kImageReadError;
+            return result;
+        };
         loaded_sources.push_back(pool->ExecAsync(f));
     }
 
@@ -806,11 +811,9 @@ int main(int argc, char *argv[]) {
     // Since Unicode blocks emit differences, we can't skip frames in output.
     const bool buffer_allow_skipping = (display_opts.allow_frame_skipping &&
                                         is_pixel_direct_p(present.pixelation));
-    timg::BufferedWriteSequencer sequencer(output_fd,
-                                           buffer_allow_skipping,
-                                           kAsyncWriteQueueSize,
-                                           debug_no_frame_delay,
-                                           interrupt_received);
+    timg::BufferedWriteSequencer sequencer(
+        output_fd, buffer_allow_skipping, kAsyncWriteQueueSize,
+        debug_no_frame_delay, interrupt_received);
     const Time start_show = Time::Now();
     PresentImages(loaded_sources, display_opts, present, &sequencer);
     sequencer.Flush();
@@ -828,8 +831,8 @@ int main(int argc, char *argv[]) {
     if (verbose) {
         fprintf(stderr, "Terminal cells: %dx%d  cell-pixels: %dx%d\n",
                 term.cols, term.rows, term.font_width_px, term.font_height_px);
-        fprintf(stderr, "Active Geometry: %dx%d\n",
-                geometry_width, geometry_height);
+        fprintf(stderr, "Active Geometry: %dx%d\n", geometry_width,
+                geometry_height);
         const Duration d = end_show - start_show;
         const uint64_t written_bytes =
             sequencer.bytes_total() - sequencer.bytes_skipped();
@@ -842,13 +845,13 @@ int main(int argc, char *argv[]) {
                 sequencer.frames_total());
         // Only show FPS if we have one video or animation
         if (filelist.size() == 1 && sequencer.frames_total() > 100) {
-            fprintf(stderr, "; %.1ffps", sequencer.frames_total()/d);
+            fprintf(stderr, "; %.1ffps", sequencer.frames_total() / d);
         }
         if (display_opts.allow_frame_skipping && sequencer.frames_total() > 0) {
-            fprintf(stderr, " (%" PRId64 " skipped, %.1f%%)\n",
-                    sequencer.frames_skipped(),
-                    100.0 * sequencer.frames_skipped()
-                    /sequencer.frames_total());
+            fprintf(
+                stderr, " (%" PRId64 " skipped, %.1f%%)\n",
+                sequencer.frames_skipped(),
+                100.0 * sequencer.frames_skipped() / sequencer.frames_total());
         }
         fprintf(stderr, "\n");
     }

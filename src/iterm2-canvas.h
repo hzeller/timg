@@ -16,8 +16,8 @@
 #ifndef ITERM2_CANVAS_H
 #define ITERM2_CANVAS_H
 
-#include "terminal-canvas.h"
 #include "display-options.h"
+#include "terminal-canvas.h"
 
 namespace timg {
 // Implements https://iterm2.com/documentation-images.html
@@ -35,7 +35,7 @@ private:
 
     char *RequestBuffer(int width, int height);
 
-    char *png_buf_ = nullptr;   // Scratch buffer to encode PNG into
+    char *png_buf_       = nullptr;  // Scratch buffer to encode PNG into
     size_t png_buf_size_ = 0;
 };
 }  // namespace timg

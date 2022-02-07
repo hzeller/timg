@@ -13,10 +13,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://gnu.org/licenses/gpl-2.0.txt>
 
-#include "termutils.h"
-
-#include "timg-time.h"
-
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,8 +23,11 @@
 #include <termios.h>
 #include <unistd.h>
 
-#include <initializer_list>
 #include <functional>
+#include <initializer_list>
+
+#include "termutils.h"
+#include "timg-time.h"
 
 namespace timg {
 static struct termios s_orig_terminal_setting;
@@ -48,18 +47,16 @@ static void clean_up_terminal() {
 // "time_budget" is reached.
 // Otherwise, returns with nullptr.
 // Only one query can be going on in parallel (due to cleanup considerations)
-using ResponseFinder = std::function<const char*(const char *, size_t len)>;
-static const char *QueryTerminal(const char *query,
-                                 char *const buffer, const size_t buflen,
-                                 Duration time_budget,
+using ResponseFinder = std::function<const char *(const char *, size_t len)>;
+static const char *QueryTerminal(const char *query, char *const buffer,
+                                 const size_t buflen, Duration time_budget,
                                  ResponseFinder response_found_p) {
     // There might be pipes and redirects.
     // Let's see if we have at least one file descriptor that is connected
     // to our terminal. We can then open that terminal directly RD/WR.
     const char *ttypath;
-    for (int fd : { STDOUT_FILENO, STDERR_FILENO, STDIN_FILENO }) {
-        if (isatty(fd) && (ttypath = ttyname(fd)) != nullptr)
-            break;
+    for (int fd : {STDOUT_FILENO, STDERR_FILENO, STDIN_FILENO}) {
+        if (isatty(fd) && (ttypath = ttyname(fd)) != nullptr) break;
     }
     if (!ttypath) return nullptr;
     s_tty_fd = open(ttypath, O_RDWR);
@@ -67,17 +64,16 @@ static const char *QueryTerminal(const char *query,
 
     struct termios raw_terminal_setting;
 
-    if (tcgetattr(s_tty_fd, &s_orig_terminal_setting) != 0)
-        return nullptr;
+    if (tcgetattr(s_tty_fd, &s_orig_terminal_setting) != 0) return nullptr;
 
     // Get terminal into non-blocking 'raw' mode.
     raw_terminal_setting = s_orig_terminal_setting;
 
     // There might be terminals that don't support the query. So our minimum
     // expectation is to receive zero bytes.
-    raw_terminal_setting.c_cc[VMIN] = 0;
+    raw_terminal_setting.c_cc[VMIN]  = 0;
     raw_terminal_setting.c_cc[VTIME] = 0;  // We handle timeout with select()
-    raw_terminal_setting.c_iflag = 0;
+    raw_terminal_setting.c_iflag     = 0;
     raw_terminal_setting.c_lflag &= ~(ICANON | ECHO);
 
     if (tcsetattr(s_tty_fd, TCSANOW, &raw_terminal_setting) != 0)
@@ -89,12 +85,12 @@ static const char *QueryTerminal(const char *query,
 
     const int query_len = strlen(query);
     if (write(s_tty_fd, query, query_len) != query_len)
-        return nullptr;   // Don't bother. We're best effort here.
+        return nullptr;  // Don't bother. We're best effort here.
 
-    const char *found_pos = nullptr;
-    size_t available = buflen;
-    char *pos = buffer;
-    timg::Time now = Time::Now();
+    const char *found_pos     = nullptr;
+    size_t available          = buflen;
+    char *pos                 = buffer;
+    timg::Time now            = Time::Now();
     const timg::Time deadline = now + time_budget;
     do {
         struct timeval timeout = (deadline - now).AsTimeval();
@@ -104,14 +100,12 @@ static const char *QueryTerminal(const char *query,
         if (select(s_tty_fd + 1, &read_fds, nullptr, nullptr, &timeout) <= 0)
             break;
         const int r = read(s_tty_fd, pos, available);
-        if (r < 0)
-            break;
+        if (r < 0) break;
         pos += r;
         available -= r;
         const size_t total_read = pos - buffer;
-        found_pos = response_found_p(buffer, total_read);
-        if (found_pos)
-            break;
+        found_pos               = response_found_p(buffer, total_read);
+        if (found_pos) break;
         now = Time::Now();
     } while (available && now < deadline);
 
@@ -122,7 +116,7 @@ static const char *QueryTerminal(const char *query,
 
 // Read and allocate background color queried from terminal emulator.
 // Might leak a file-descriptor when bailing out early. Accepted for brevity.
-char* QueryBackgroundColor() {
+char *QueryBackgroundColor() {
     // The response might take a while. Typically, this should be only a
     // few milliseconds, but there can be situations over slow ssh
     // connections or very slow machines where it takes a little.
@@ -138,7 +132,7 @@ char* QueryBackgroundColor() {
     const Duration kTimeBudget = Duration::Millis(1500);
 
     constexpr char query_background_color[] = "\033]11;?\033\\";
-    constexpr size_t kColorLen    = 18; // strlen("rgb:1234/1234/1234")
+    constexpr size_t kColorLen = 18;  // strlen("rgb:1234/1234/1234")
 
     // Query and testing the response. It is the query-string with the
     // question mark replaced with the requested information.
@@ -159,17 +153,17 @@ char* QueryBackgroundColor() {
     char buffer[512];
     const char *const start_color = QueryTerminal(
         query_background_color, buffer, sizeof(buffer), kTimeBudget,
-        [](const char *data, size_t len) -> const char* {
+        [](const char *data, size_t len) -> const char * {
             // We might've gotten some spurious bytes in the beginning from
             // keypresses, so find where the color starts.
-            const char *found = (const char*)memmem(data, len, "rgb:", 4);
-            if (found && len - (found - data) > kColorLen) // at least 1 more
-                return found; // Found start of color sequence and enough bytes.
+            const char *found = (const char *)memmem(data, len, "rgb:", 4);
+            if (found && len - (found - data) > kColorLen)  // at least 1 more
+                return found;  // Found start of color sequence and enough
+                               // bytes.
             return nullptr;
         });
 
-    if (!start_color)
-        return nullptr;
+    if (!start_color) return nullptr;
 
     // Assemble a standard #rrggbb string into our existing buffer.
     // NB, save, as this is not overlapping buffer areas
@@ -229,8 +223,8 @@ bool QueryHasITerm2Graphics() {
     // If we only get a response to the innocuous status report request,
     // we don't have a terminal that supports the CSI >q
     constexpr char term_query[] =
-        "\033[>q"    // terminal version query
-        "\033[5n";   // general status report.
+        "\033[>q"   // terminal version query
+        "\033[5n";  // general status report.
     bool has_iterm_graphics = false;
     char buffer[512];
     QueryTerminal(
@@ -239,7 +233,7 @@ bool QueryHasITerm2Graphics() {
             has_iterm_graphics |= (memmem(data, len, "iTerm2", 6) != 0);
             has_iterm_graphics |= (memmem(data, len, "WezTerm", 7) != 0);
             // We finish once we found the response to DSR5
-            return (const char*) memmem(data, len, "\033[0n", 3);
+            return (const char *)memmem(data, len, "\033[0n", 3);
         });
     return has_iterm_graphics;
 }

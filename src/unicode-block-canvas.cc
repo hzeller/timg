@@ -29,31 +29,33 @@
 #define PIXEL_BLOCK_CHARACTER_LEN strlen("\u2584")  // blocks are 3 bytes UTF8
 
 // 24 bit color setting
-#define PIXEL_SET_FG_COLOR24     "38;2;"
-#define PIXEL_SET_BG_COLOR24     "48;2;"
+#define PIXEL_SET_FG_COLOR24 "38;2;"
+#define PIXEL_SET_BG_COLOR24 "48;2;"
 
 // 8 bit color setting
-#define PIXEL_SET_FG_COLOR8     "38;5;"
-#define PIXEL_SET_BG_COLOR8     "48;5;"
+#define PIXEL_SET_FG_COLOR8 "38;5;"
+#define PIXEL_SET_BG_COLOR8 "48;5;"
 
-
-#define PIXEL_SET_COLOR_LEN     strlen(PIXEL_SET_FG_COLOR24)  // all the same
+#define PIXEL_SET_COLOR_LEN strlen(PIXEL_SET_FG_COLOR24)  // all the same
 
 // Maximum length of the color value sequence
-#define ESCAPE_COLOR_MAX_LEN    strlen("rrr;ggg;bbb")
+#define ESCAPE_COLOR_MAX_LEN strlen("rrr;ggg;bbb")
 
 // We reset the terminal at the end of a line
-#define SCREEN_END_OF_LINE      "\033[0m\n"
-#define SCREEN_END_OF_LINE_LEN  strlen(SCREEN_END_OF_LINE)
+#define SCREEN_END_OF_LINE     "\033[0m\n"
+#define SCREEN_END_OF_LINE_LEN strlen(SCREEN_END_OF_LINE)
 
 namespace timg {
 enum BlockChoice : uint8_t {
     kBackground,
-    kTopLeft, kTopRight,
-    kBotLeft, kBotRight,
-    kLeftBar, kTopLeftBotRight,
+    kTopLeft,
+    kTopRight,
+    kBotLeft,
+    kBotRight,
+    kLeftBar,
+    kTopLeftBotRight,
 
-    kLowerBlock,   // Depending on user choice, one of these is used.
+    kLowerBlock,  // Depending on user choice, one of these is used.
     kUpperBlock,
 };
 
@@ -68,16 +70,16 @@ enum BlockChoice : uint8_t {
 // Quarter block rendering: similar, but more choices, which means we have
 // to distribute foreground/background color as averages of the 'real' color.
 static constexpr const char *kBlockGlyphs[9] = {
-    /*[kBackground] = */      " ",  // space
-    /*[kTopLeft] = */         "▘",  // U+2598 Quadrant upper left
-    /*[kTopRight] = */        "▝",  // U+259D Quadrant upper right
-    /*[kBotLeft] = */         "▖",  // U+2596 Quadrant lower left
-    /*[kBotRight] = */        "▗",  // U+2597 Quadrant lower right
-    /*[kLeftBar] = */         "▌",  // U+258C Left half block
+    /*[kBackground] =      */ " ",  // space
+    /*[kTopLeft] =         */ "▘",  // U+2598 Quadrant upper left
+    /*[kTopRight] =        */ "▝",  // U+259D Quadrant upper right
+    /*[kBotLeft] =         */ "▖",  // U+2596 Quadrant lower left
+    /*[kBotRight] =        */ "▗",  // U+2597 Quadrant lower right
+    /*[kLeftBar] =         */ "▌",  // U+258C Left half block
     /*[kTopLeftBotRight] = */ "▚",  // U+259A Quadrant upper left & lower right
 
-    /*[kLowerBlock] = */      "▄",  // U+2584 Lower half block
-    /*[kUpperBlock] = */      "▀",  // U+2580 Upper half block
+    /*[kLowerBlock] =      */ "▄",  // U+2584 Lower half block
+    /*[kUpperBlock] =      */ "▀",  // U+2580 Upper half block
 };
 
 UnicodeBlockCanvas::UnicodeBlockCanvas(BufferedWriteSequencer *ws,
@@ -87,8 +89,7 @@ UnicodeBlockCanvas::UnicodeBlockCanvas(BufferedWriteSequencer *ws,
     : TerminalCanvas(ws),
       use_quarter_blocks_(use_quarter),
       use_upper_half_block_(use_upper_half_block),
-      use_256_color_(use_256_color) {
-}
+      use_256_color_(use_256_color) {}
 
 UnicodeBlockCanvas::~UnicodeBlockCanvas() {
     free(backing_buffer_);
@@ -96,13 +97,16 @@ UnicodeBlockCanvas::~UnicodeBlockCanvas() {
 }
 
 static char *int_append_with_semicolon(char *buf, uint8_t val);
-template <int colorbits> static inline const char *AnsiSetFG() {
+template <int colorbits>
+static inline const char *AnsiSetFG() {
     return colorbits == 8 ? PIXEL_SET_FG_COLOR8 : PIXEL_SET_FG_COLOR24;
 }
-template <int colorbits> static inline const char *AnsiSetBG() {
+template <int colorbits>
+static inline const char *AnsiSetBG() {
     return colorbits == 8 ? PIXEL_SET_BG_COLOR8 : PIXEL_SET_BG_COLOR24;
 }
-template <int colorbits> static char *AnsiWriteColor(char *buf, rgba_t color) {
+template <int colorbits>
+static char *AnsiWriteColor(char *buf, rgba_t color) {
     static_assert(colorbits == 8 || colorbits == 24, "unsupported color bits");
     if (colorbits == 8)
         return int_append_with_semicolon(buf, color.As256TermColor());
@@ -121,25 +125,28 @@ static inline char *str_append(char *pos, const char *value, size_t len) {
 template <int N>
 inline bool EqualToBacking(const rgba_t *top, const rgba_t *bottom,
                            const rgba_t *backing) {
-    if (N == 1)
-        return *top == backing[0] && *bottom == backing[1];
-    return *top == backing[0] && *(top+1) == backing[1] &&
-        *bottom == backing[2] && *(bottom+1) == backing[3];
+    if (N == 1) return *top == backing[0] && *bottom == backing[1];
+    return *top == backing[0] && *(top + 1) == backing[1] &&
+           *bottom == backing[2] && *(bottom + 1) == backing[3];
 }
 
 // Store pixels of top and bottom row into backing store.
 template <int N>
-inline void StoreBacking(rgba_t *backing,
-                         const rgba_t *top, const rgba_t *bottom) {
+inline void StoreBacking(rgba_t *backing, const rgba_t *top,
+                         const rgba_t *bottom) {
     if (N == 1) {
-        backing[0] = *top; backing[1] = *bottom;
-    } else {
-        backing[0] = top[0]; backing[1] = top[1];
-        backing[2] = bottom[0]; backing[3] = bottom[1];
+        backing[0] = *top;
+        backing[1] = *bottom;
+    }
+    else {
+        backing[0] = top[0];
+        backing[1] = top[1];
+        backing[2] = bottom[0];
+        backing[3] = bottom[1];
     }
 }
 
-inline bool is_transparent(rgba_t c) {  return c.a < 0x60; }
+inline bool is_transparent(rgba_t c) { return c.a < 0x60; }
 
 struct UnicodeBlockCanvas::GlyphPick {
     rgba_t fg;
@@ -149,16 +156,14 @@ struct UnicodeBlockCanvas::GlyphPick {
 
 template <int N>
 UnicodeBlockCanvas::GlyphPick UnicodeBlockCanvas::FindBestGlyph(
-    const rgba_t *top,
-    const rgba_t *bottom) const {
+    const rgba_t *top, const rgba_t *bottom) const {
     if (N == 1) {
         if (*top == *bottom ||
             (is_transparent(*top) && is_transparent(*bottom))) {
-            return { *top, *bottom, kBackground };
+            return {*top, *bottom, kBackground};
         }
-        if (use_upper_half_block_)
-            return { *top, *bottom, kUpperBlock };
-        return { *bottom, *top, kLowerBlock };
+        if (use_upper_half_block_) return {*top, *bottom, kUpperBlock};
+        return {*bottom, *top, kLowerBlock};
     }
     // N == 2
     const LinearColor tl(top[0]);
@@ -171,13 +176,13 @@ UnicodeBlockCanvas::GlyphPick UnicodeBlockCanvas::FindBestGlyph(
     // Even though this adds branches, special casing is worthile.
     if (is_transparent(top[0]) && is_transparent(top[1]) &&
         is_transparent(bottom[0]) && is_transparent(bottom[1])) {
-        return { bottom[0], top[0], kBackground };
+        return {bottom[0], top[0], kBackground};
     }
     if (is_transparent(top[0]) && is_transparent(top[1])) {
-        return { linear_average({bl, br}).repack(), top[0], kLowerBlock };
+        return {linear_average({bl, br}).repack(), top[0], kLowerBlock};
     }
     if (is_transparent(bottom[0]) && is_transparent(bottom[1])) {
-        return { linear_average({tl, tr}).repack(), bottom[0], kUpperBlock };
+        return {linear_average({tl, tr}).repack(), bottom[0], kUpperBlock};
     }
 
     struct Result {
@@ -190,8 +195,11 @@ UnicodeBlockCanvas::GlyphPick UnicodeBlockCanvas::FindBestGlyph(
         LinearColor fg, bg;
         // We can't fix all the blocks that the user tries to work around
         // with TIMG_USE_UPPER_BLOCK. But fix the half-blocks at least.
-        const BlockChoice block = (BlockChoice)
-            (b < 7 ? b : (use_upper_half_block_ ? kUpperBlock : kLowerBlock));
+        const BlockChoice block =
+            (BlockChoice)(b < 7 ? b
+                                : (use_upper_half_block_ ? kUpperBlock
+                                                         : kLowerBlock));
+        // clang-format off
         switch (block) {
         case kBackground:      d = avd(&bg, {tl, tr, bl, br}); fg = bg;   break;
         case kTopLeft:         d = avd(&bg, {tr, bl, br});     fg = tl;   break;
@@ -203,30 +211,31 @@ UnicodeBlockCanvas::GlyphPick UnicodeBlockCanvas::FindBestGlyph(
         case kLowerBlock:      d = avd(&bg, {tl, tr})+avd(&fg, {bl, br}); break;
         case kUpperBlock:      d = avd(&bg, {bl, br})+avd(&fg, {tl, tr}); break;
         }
+        // clang-format on
         if (d < best_distance) {
-            best = { fg, bg, block };
-            if (d < 1) break;   // Essentially zero.
+            best = {fg, bg, block};
+            if (d < 1) break;  // Essentially zero.
             best_distance = d;
         }
     }
-    return { best.fg.repack(), best.bg.repack(), best.block };
+    return {best.fg.repack(), best.bg.repack(), best.block};
 }
 
 // Append two rows of pixels at once.
-template <int N, int colorbits>   // Advancing N x-pixels per char
+template <int N, int colorbits>  // Advancing N x-pixels per char
 char *UnicodeBlockCanvas::AppendDoubleRow(char *pos, int indent, int width,
-                                      const rgba_t *tline,
-                                      const rgba_t *bline,
-                                      bool emit_diff,
-                                      int *y_skip) {
+                                          const rgba_t *tline,
+                                          const rgba_t *bline, bool emit_diff,
+                                          int *y_skip) {
     static constexpr char kStartEscape[] = "\033[";
-    GlyphPick last = {};
-    rgba_t last_foreground = {};
-    bool last_fg_unknown = true;
-    bool last_bg_unknown = true;
-    int x_skip = indent;
-    const char *start = pos;
-    for (int x=0; x < width; x+=N, prev_content_it_+=2*N, tline+=N, bline+=N) {
+    GlyphPick last                       = {};
+    rgba_t last_foreground               = {};
+    bool last_fg_unknown                 = true;
+    bool last_bg_unknown                 = true;
+    int x_skip                           = indent;
+    const char *start                    = pos;
+    for (int x = 0; x < width;
+         x += N, prev_content_it_ += 2 * N, tline += N, bline += N) {
         if (emit_diff && EqualToBacking<N>(tline, bline, prev_content_it_)) {
             ++x_skip;
             continue;
@@ -236,7 +245,8 @@ char *UnicodeBlockCanvas::AppendDoubleRow(char *pos, int indent, int width,
             if (*y_skip <= 4) {
                 memset(pos, '\n', *y_skip);
                 pos += *y_skip;
-            } else {
+            }
+            else {
                 pos += sprintf(pos, SCREEN_CURSOR_DN_FORMAT, *y_skip);
             }
             *y_skip = 0;
@@ -258,7 +268,7 @@ char *UnicodeBlockCanvas::AppendDoubleRow(char *pos, int indent, int width,
             pos = str_append(pos, kStartEscape, strlen(kStartEscape));
             pos = str_append(pos, AnsiSetFG<colorbits>(), PIXEL_SET_COLOR_LEN);
             pos = AnsiWriteColor<colorbits>(pos, pick.fg);
-            color_emitted = true;
+            color_emitted   = true;
             last_foreground = pick.fg;
             last_fg_unknown = false;
         }
@@ -271,21 +281,23 @@ char *UnicodeBlockCanvas::AppendDoubleRow(char *pos, int indent, int width,
             if (is_transparent(pick.bg)) {
                 // This is best effort and only happens with -b none
                 pos = str_append(pos, "49;", 3);  // Reset background color
-            } else {
+            }
+            else {
                 pos = str_append(pos, AnsiSetBG<colorbits>(),
                                  PIXEL_SET_COLOR_LEN);
                 pos = AnsiWriteColor<colorbits>(pos, pick.bg);
             }
-            color_emitted = true;
+            color_emitted   = true;
             last_bg_unknown = false;
         }
 
         if (color_emitted) {
-            *(pos-1) = 'm';   // overwrite semicolon with finish ESC seq.
+            *(pos - 1) = 'm';  // overwrite semicolon with finish ESC seq.
         }
         if (pick.block == kBackground) {
             *pos++ = ' ';  // Simple background 'block'. One character.
-        } else {
+        }
+        else {
             pos = str_append(pos, kBlockGlyphs[pick.block],
                              PIXEL_BLOCK_CHARACTER_LEN);
         }
@@ -295,20 +307,20 @@ char *UnicodeBlockCanvas::AppendDoubleRow(char *pos, int indent, int width,
 
     if (pos == start) {  // Nothing emitted for whole line
         (*y_skip)++;
-    } else {
+    }
+    else {
         pos = str_append(pos, SCREEN_END_OF_LINE, SCREEN_END_OF_LINE_LEN);
     }
 
     return pos;
 }
 
-void UnicodeBlockCanvas::Send(int x, int dy,
-                              const Framebuffer &framebuffer,
+void UnicodeBlockCanvas::Send(int x, int dy, const Framebuffer &framebuffer,
                               SeqType seq_type, Duration end_of_frame) {
-    const int width = framebuffer.width();
-    const int height = framebuffer.height();
+    const int width          = framebuffer.width();
+    const int height         = framebuffer.height();
     char *const start_buffer = RequestBuffers(width, height);
-    char *pos = start_buffer;
+    char *pos                = start_buffer;
 
     if (dy < 0) MoveCursorDY((dy - 1) / 2);
 
@@ -323,9 +335,10 @@ void UnicodeBlockCanvas::Send(int x, int dy,
 
     // If we just got requested to move back where we started the last image,
     // we just need to emit pixels that changed.
-    prev_content_it_ = backing_buffer_;
+    prev_content_it_           = backing_buffer_;
     const bool emit_difference = (x == last_x_indent_) &&
-        (last_framebuffer_height_ > 0) && abs(dy) == last_framebuffer_height_;
+                                 (last_framebuffer_height_ > 0) &&
+                                 abs(dy) == last_framebuffer_height_;
 
     // We are always writing two lines at once with one character, which
     // requires to leave an empty line if the height of the framebuffer is odd.
@@ -335,78 +348,82 @@ void UnicodeBlockCanvas::Send(int x, int dy,
     // pixels, we might need to shift displaying by one pixel to make sure
     // the empty line matches up with the background part of that character.
     // This it the row_offset we calculate here.
-    const bool needs_empty_line = (height % 2 != 0);
+    const bool needs_empty_line   = (height % 2 != 0);
     const bool top_optional_blank = !use_upper_half_block_;
     const int row_offset = (needs_empty_line && top_optional_blank) ? -1 : 0;
 
     int y_skip = 0;
-    for (int y = 0; y < height; y+=2) {
+    for (int y = 0; y < height; y += 2) {
         const int row = y + row_offset;
-        top_row = row < 0 ? empty_line_ : &pixels[width*row];
-        bottom_row = (row+1) >= height ? empty_line_ : &pixels[width*(row+1)];
+        top_row       = row < 0 ? empty_line_ : &pixels[width * row];
+        bottom_row =
+            (row + 1) >= height ? empty_line_ : &pixels[width * (row + 1)];
 
         if (use_256_color_) {
             if (use_quarter_blocks_) {
                 pos = AppendDoubleRow<2, 8>(pos, x, width, top_row, bottom_row,
                                             emit_difference, &y_skip);
-            } else {
+            }
+            else {
                 pos = AppendDoubleRow<1, 8>(pos, x, width, top_row, bottom_row,
                                             emit_difference, &y_skip);
             }
-        } else {
+        }
+        else {
             if (use_quarter_blocks_) {
                 pos = AppendDoubleRow<2, 24>(pos, x, width, top_row, bottom_row,
                                              emit_difference, &y_skip);
-            } else {
+            }
+            else {
                 pos = AppendDoubleRow<1, 24>(pos, x, width, top_row, bottom_row,
                                              emit_difference, &y_skip);
             }
         }
     }
     last_framebuffer_height_ = height;
-    last_x_indent_ = x;
+    last_x_indent_           = x;
     if (before_image_emission == pos) {
         // Don't even emit cursor up/dn jump, but make sure to return buffer.
         write_sequencer_->WriteBuffer(start_buffer, 0, seq_type, end_of_frame);
         return;
     }
 
-    if (y_skip) {
-        pos += sprintf(pos, SCREEN_CURSOR_DN_FORMAT, y_skip);
-    }
-    write_sequencer_->WriteBuffer(start_buffer, pos - start_buffer,
-                                  seq_type, end_of_frame);
+    if (y_skip) { pos += sprintf(pos, SCREEN_CURSOR_DN_FORMAT, y_skip); }
+    write_sequencer_->WriteBuffer(start_buffer, pos - start_buffer, seq_type,
+                                  end_of_frame);
 }
 
 char *UnicodeBlockCanvas::RequestBuffers(int width, int height) {
     // Pixels will be variable size depending on if we need to change colors
     // between two adjacent pixels. This is the maximum size they can be.
-    static const int max_pixel_size = strlen("\033[")
-        + PIXEL_SET_COLOR_LEN + ESCAPE_COLOR_MAX_LEN
-        + 1 /* ; */
-        + PIXEL_SET_COLOR_LEN + ESCAPE_COLOR_MAX_LEN
-        + 1 /* m */
+    static const int max_pixel_size =
+        strlen("\033[")                               //
+        + PIXEL_SET_COLOR_LEN + ESCAPE_COLOR_MAX_LEN  //
+        + 1                                           /* ; */
+        + PIXEL_SET_COLOR_LEN + ESCAPE_COLOR_MAX_LEN  //
+        + 1                                           /* m */
         + PIXEL_BLOCK_CHARACTER_LEN;
     // Few extra space for number printed in the format.
-    static const int opt_cursor_up = strlen(SCREEN_CURSOR_UP_FORMAT) + 3;
+    static const int opt_cursor_up    = strlen(SCREEN_CURSOR_UP_FORMAT) + 3;
     static const int opt_cursor_right = strlen(SCREEN_CURSOR_RIGHT_FORMAT) + 3;
-    const int vertical_characters = (height+1) / 2;   // two pixels, one glyph
-    const size_t content_size = opt_cursor_up     // Jump up
-        + vertical_characters
-        * (opt_cursor_right            // Horizontal jump
-           + width * max_pixel_size    // pixels in one row
-           + SCREEN_END_OF_LINE_LEN);  // Finishing a line.
+    const int vertical_characters = (height + 1) / 2;  // two pixels, one glyph
+    const size_t content_size =
+        opt_cursor_up  // Jump up
+        +
+        vertical_characters * (opt_cursor_right            // Horizontal jump
+                               + width * max_pixel_size    // pixels in one row
+                               + SCREEN_END_OF_LINE_LEN);  // Finishing a line.
 
     // Depending on even/odd situation, we might need one extra row.
-    const size_t new_backing = width * (height+1) * sizeof(rgba_t);
+    const size_t new_backing = width * (height + 1) * sizeof(rgba_t);
     if (new_backing > backing_buffer_size_) {
-        backing_buffer_ =(rgba_t*)realloc(backing_buffer_, new_backing);
+        backing_buffer_      = (rgba_t *)realloc(backing_buffer_, new_backing);
         backing_buffer_size_ = new_backing;
     }
 
     const size_t new_empty = width * sizeof(rgba_t);
     if (new_empty > empty_line_size_) {
-        empty_line_ = (rgba_t*)realloc(empty_line_, new_empty);
+        empty_line_      = (rgba_t *)realloc(empty_line_, new_empty);
         empty_line_size_ = new_empty;
         memset(empty_line_, 0x00, empty_line_size_);
     }
@@ -424,7 +441,7 @@ char *UnicodeBlockCanvas::RequestBuffers(int width, int height) {
 struct digit_convert {
     char data[1025];
 };
-static constexpr digit_convert convert_lookup __attribute__ ((aligned(64))) = {
+static constexpr digit_convert convert_lookup __attribute__((aligned(64))) = {
     "0;  1;  2;  3;  4;  5;  6;  7;  8;  9;  10; 11; 12; 13; 14; 15; "
     "16; 17; 18; 19; 20; 21; 22; 23; 24; 25; 26; 27; 28; 29; 30; 31; "
     "32; 33; 34; 35; 36; 37; 38; 39; 40; 41; 42; 43; 44; 45; 46; 47; "
@@ -440,8 +457,7 @@ static constexpr digit_convert convert_lookup __attribute__ ((aligned(64))) = {
     "192;193;194;195;196;197;198;199;200;201;202;203;204;205;206;207;"
     "208;209;210;211;212;213;214;215;216;217;218;219;220;221;222;223;"
     "224;225;226;227;228;229;230;231;232;233;234;235;236;237;238;239;"
-    "240;241;242;243;244;245;246;247;248;249;250;251;252;253;254;255;"
-};
+    "240;241;242;243;244;245;246;247;248;249;250;251;252;253;254;255;"};
 
 // Append decimal representation plus semicolon of given "value" to "buffer".
 // Does not \0-terminate. Might write one byte beyond number.
@@ -451,13 +467,13 @@ static char *int_append_with_semicolon(char *buffer, uint8_t value) {
     // be able to interpret it as uint-array generating fast accesses like
     //    mov eax, DWORD PTR convert_lookup[0+rax*4]
     // (only slightly invokong undefined behavior with this type punning :) )
-    const uint32_t *const four_bytes = (const uint32_t*) convert_lookup.data;
+    const uint32_t *const four_bytes = (const uint32_t *)convert_lookup.data;
     if (value >= 100) {
         memcpy(buffer, &four_bytes[value], 4);
         return buffer + 4;
     }
     if (value >= 10) {
-        memcpy(buffer, &four_bytes[value], 4); // copy 4 cheaper than 3
+        memcpy(buffer, &four_bytes[value], 4);  // copy 4 cheaper than 3
         return buffer + 3;
     }
     memcpy(buffer, &four_bytes[value], 2);

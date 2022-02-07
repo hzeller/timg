@@ -16,12 +16,12 @@
 #ifndef RENDERER_H_
 #define RENDERER_H_
 
-#include <memory>
 #include <functional>
+#include <memory>
 #include <string>
 
-#include "terminal-canvas.h"
 #include "display-options.h"
+#include "terminal-canvas.h"
 
 namespace timg {
 // A renderer for framebuffers. The renderer provides a callback to which
@@ -47,11 +47,10 @@ public:
     // rendered, to be called by whoever provides a framebuffer.
     // The returned call can be used to output multiple frames with the usual
     // (x, dy) positioning.
-    virtual WriteFramebufferFun render_cb(const std::string& title) = 0;
+    virtual WriteFramebufferFun render_cb(const std::string &title) = 0;
 
 protected:
-    Renderer(timg::TerminalCanvas *canvas,
-             const DisplayOptions &display_opts);
+    Renderer(timg::TerminalCanvas *canvas, const DisplayOptions &display_opts);
 
     // Trim and potentially title for rendering, obeying the column-width
     // and centering constraints. Adds a newline as this needs to be printed.

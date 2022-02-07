@@ -1,5 +1,4 @@
-
-name: Ubuntu Build
+name: CI
 on:
   push:
     branches:
@@ -7,16 +6,28 @@ on:
   pull_request:
 
 jobs:
-  install_dependencies_and_build:
-    name: Install Dependencies and Build
+  build-and-test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler:
+          - g++
+          - clang++
+
+    name: Build ${{matrix.compiler}}
     steps:
       - name: Install minimal dependencies
         run: |
-          sudo apt install cmake git g++ pkg-config libswscale-dev libavutil-dev
+          sudo apt install cmake git g++ clang pkg-config libswscale-dev libavutil-dev
 
       - name: Get the Source
         uses: actions/checkout@v2
+
+      - name: Configure shell
+        run: |
+          echo "CXX=${{ matrix.compiler }}" >> $GITHUB_ENV
+          echo "CXXFLAGS=-Werror" >> $GITHUB_ENV
 
       - name: Build minimal dependency timg
         # Building a timg with all dependencies removed to the point that it
@@ -41,3 +52,21 @@ jobs:
           cd build
           cmake .. -DWITH_VIDEO_DECODING=On -DWITH_VIDEO_DEVICE=On -DWITH_OPENSLIDE_SUPPORT=On
           make -k
+
+  CodeFormatting:
+    if: false   # currently, there is no clang-format-13 in ubuntu latest
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Checkout code
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Install Dependencies
+      run: |
+        sudo apt-get install clang-format-13
+
+    - name: Run formatting style check
+      run: ./.github/bin/run-clang-format.sh

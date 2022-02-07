@@ -1,0 +1,20 @@
+# Formatting used in this project
+BasedOnStyle: Google
+AccessModifierOffset: -4
+AlignAfterOpenBracket: Align
+AlignArrayOfStructures: Left
+AlignConsecutiveAssignments: Consecutive
+AlignConsecutiveBitFields: true
+AlignConsecutiveMacros: true
+AllowShortBlocksOnASingleLine: true
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortEnumsOnASingleLine: true
+BreakBeforeBraces: Custom
+BraceWrapping:
+  BeforeElse: true
+  BeforeCatch: true
+ContinuationIndentWidth: 4
+IndentAccessModifiers: false
+IndentCaseLabels: false
+IndentPPDirectives: AfterHash
+IndentWidth: 4

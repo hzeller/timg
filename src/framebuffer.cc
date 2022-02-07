@@ -24,9 +24,9 @@
 namespace timg {
 
 rgba_t rgba_t::ParseColor(const char *color) {
-    if (!color) return { 0, 0, 0, 0 };
+    if (!color) return {0, 0, 0, 0};
 
-    // If it is a named color, convert it first to its #rrggbb string.
+        // If it is a named color, convert it first to its #rrggbb string.
 #include "html-colors.inc"
     for (const auto &c : html_colors) {
         if (strcasecmp(color, c.name) == 0) {
@@ -41,15 +41,17 @@ rgba_t rgba_t::ParseColor(const char *color) {
         if (r > 255) r = 255;
         if (g > 255) g = 255;
         if (b > 255) b = 255;
-        return { (uint8_t)r, (uint8_t)g, (uint8_t)b, 0xff };
+        return {(uint8_t)r, (uint8_t)g, (uint8_t)b, 0xff};
     }
     if (strcasecmp(color, "none") != 0)  // 'allowed' non-color. Don't complain.
         fprintf(stderr, "Couldn't parse color '%s'\n", color);
-    return { 0, 0, 0, 0 };
+    return {0, 0, 0, 0};
 }
 
 Framebuffer::Framebuffer(int w, int h)
-    : width_(w), height_(h), pixels_(new rgba_t [ width_ * height_]),
+    : width_(w),
+      height_(h),
+      pixels_(new rgba_t[width_ * height_]),
       end_(pixels_ + width_ * height_) {
     strides_[0] = (int)sizeof(rgba_t) * width_;
     strides_[1] = 0;  // empty sentinel value.
@@ -57,8 +59,8 @@ Framebuffer::Framebuffer(int w, int h)
 }
 
 Framebuffer::~Framebuffer() {
-    delete [] row_data_;
-    delete [] pixels_;
+    delete[] row_data_;
+    delete[] pixels_;
 }
 
 void Framebuffer::SetPixel(int x, int y, rgba_t value) {
@@ -75,19 +77,19 @@ void Framebuffer::Clear() {
     memset(pixels_, 0, sizeof(*pixels_) * width_ * height_);
 }
 
-uint8_t** Framebuffer::row_data() {
+uint8_t **Framebuffer::row_data() {
     if (!row_data_) {
-        row_data_ = new uint8_t* [ height_ + 1];
+        row_data_ = new uint8_t *[height_ + 1];
         for (int i = 0; i < height_; ++i)
-            row_data_[i] = (uint8_t*)pixels_ + i * width_ * sizeof(rgba_t);
+            row_data_[i] = (uint8_t *)pixels_ + i * width_ * sizeof(rgba_t);
         row_data_[height_] = nullptr;  // empty sentinel value.
     }
     return row_data_;
 }
 
 void Framebuffer::AlphaComposeBackground(bgcolor_query get_bg,
-                                         rgba_t pattern_col,
-                                         int pwidth, int pheight) {
+                                         rgba_t pattern_col, int pwidth,
+                                         int pheight) {
     if (!get_bg) return;  // -b none
 
     iterator pos = begin();
@@ -98,11 +100,11 @@ void Framebuffer::AlphaComposeBackground(bgcolor_query get_bg,
 
     // Need to do alpha blending, so only now we have to retrieve the bgcolor.
     const rgba_t bgcolor = get_bg();
-    if (bgcolor.a == 0x00) return; // nothing to do.
+    if (bgcolor.a == 0x00) return;  // nothing to do.
 
     // Fast path if we don't have a pattern color.
-    if (pattern_col.a == 0x00 || pattern_col == bgcolor ||
-        pwidth <= 0 || pheight <= 0 ) {
+    if (pattern_col.a == 0x00 || pattern_col == bgcolor || pwidth <= 0 ||
+        pheight <= 0) {
         const LinearColor bg(bgcolor);
         for (/**/; pos < end(); ++pos) {
             if (pos->a == 0xff) continue;
@@ -112,7 +114,7 @@ void Framebuffer::AlphaComposeBackground(bgcolor_query get_bg,
     }
 
     // If we have a pattern color, use that as alternating choice.
-    const LinearColor bg_choice[2] = { bgcolor, pattern_col };
+    const LinearColor bg_choice[2] = {bgcolor, pattern_col};
 
     // Pos moved to the first pixel that required alpha blending.
     // From this pos, we need to recover the x/y position to be in the
@@ -124,10 +126,9 @@ void Framebuffer::AlphaComposeBackground(bgcolor_query get_bg,
         for (int x = (y == start_y ? start_x : 0); x < width_; ++x, pos++) {
             if (pos->a == 0xff) continue;
             const auto &bg = bg_choice[((x / pwidth) + y_pattern_pos) % 2];
-            *pos = LinearColor(*pos).AlphaBlend(bg).repack();
+            *pos           = LinearColor(*pos).AlphaBlend(bg).repack();
         }
     }
 }
-
 
 }  // namespace timg

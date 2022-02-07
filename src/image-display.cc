@@ -15,9 +15,6 @@
 
 #include "image-display.h"
 
-#include "terminal-canvas.h"
-#include "timg-time.h"
-
 #include <Magick++.h>
 #include <assert.h>
 #include <fcntl.h>
@@ -29,24 +26,25 @@
 
 #include <algorithm>
 
+#include "terminal-canvas.h"
+#include "timg-time.h"
+
 static constexpr bool kDebug = false;
 
 namespace timg {
 static void CopyToFramebuffer(const Magick::Image &img,
                               timg::Framebuffer *result) {
-    assert(result->width() >= (int) img.columns()
-           && result->height() >= (int) img.rows());
+    assert(result->width() >= (int)img.columns() &&
+           result->height() >= (int)img.rows());
     for (size_t y = 0; y < img.rows(); ++y) {
         for (size_t x = 0; x < img.columns(); ++x) {
             const Magick::Color &c = img.pixelColor(x, y);
-            result->SetPixel(x, y,
-                             {
-                                 ScaleQuantumToChar(c.redQuantum()),
-                                 ScaleQuantumToChar(c.greenQuantum()),
-                                 ScaleQuantumToChar(c.blueQuantum()),
-                                 (uint8_t)(0xff - ScaleQuantumToChar(
-                                               c.alphaQuantum()))
-                             });
+            result->SetPixel(
+                x, y,
+                {ScaleQuantumToChar(c.redQuantum()),
+                 ScaleQuantumToChar(c.greenQuantum()),
+                 ScaleQuantumToChar(c.blueQuantum()),
+                 (uint8_t)(0xff - ScaleQuantumToChar(c.alphaQuantum()))});
         }
     }
 }
@@ -60,10 +58,10 @@ public:
         : delay_(DurationFromImgDelay(img, is_part_of_animation)),
           framebuffer_(img.columns(), img.rows()) {
         CopyToFramebuffer(img, &framebuffer_);
-        framebuffer_.AlphaComposeBackground(opt.bgcolor_getter,
-                                            opt.bg_pattern_color,
-                                            opt.pattern_size * opt.cell_x_px,
-                                            opt.pattern_size * opt.cell_y_px/2);
+        framebuffer_.AlphaComposeBackground(
+            opt.bgcolor_getter, opt.bg_pattern_color,
+            opt.pattern_size * opt.cell_x_px,
+            opt.pattern_size * opt.cell_y_px / 2);
     }
     Duration delay() const { return delay_; }
     const timg::Framebuffer &framebuffer() const { return framebuffer_; }
@@ -88,9 +86,9 @@ const char *ImageLoader::VersionInfo() {
     return "GraphicsMagick " MagickLibVersionText " (" MagickReleaseDate ")";
 }
 
-std::string ImageLoader::FormatTitle(const std::string& format_string) const {
-    return FormatFromParameters(format_string, filename_,
-                                orig_width_, orig_height_, "image");
+std::string ImageLoader::FormatTitle(const std::string &format_string) const {
+    return FormatFromParameters(format_string, filename_, orig_width_,
+                                orig_height_, "image");
 }
 
 static bool EndsWith(const std::string &filename, const char *suffix) {
@@ -100,11 +98,15 @@ static bool EndsWith(const std::string &filename, const char *suffix) {
     return strcasecmp(filename.c_str() + flen - slen, suffix) == 0;
 }
 
-struct ExifImageOp { int angle = 0; bool flip = false; };
+struct ExifImageOp {
+    int angle = 0;
+    bool flip = false;
+};
 static ExifImageOp GetExifOp(Magick::Image &img) {
     const std::string rotation_tag = img.attribute("EXIF:Orientation");
     if (rotation_tag.empty() || rotation_tag.size() != 1)
-        return {}; // Nothing to do or broken tag.
+        return {};  // Nothing to do or broken tag.
+    // clang-format off
     switch (rotation_tag[0]) {
     case '2': return { 180, true  };
     case '3': return { 180, false };
@@ -114,31 +116,33 @@ static ExifImageOp GetExifOp(Magick::Image &img) {
     case '7': return { -90, true  };
     case '8': return { -90, false };
     }
+    // clang-format on
     return {};
 }
 
 static bool LooksLikeApng(const std::string &filename) {
-    // Somewhat handwavy: the "acTL" chunk could of course be at other places as well,
-    // let's assume it is just after IHDR.
+    // Somewhat handwavy: the "acTL" chunk could of course be at other places as
+    // well, let's assume it is just after IHDR.
     int fd = open(filename.c_str(), O_RDONLY);
     if (fd < 0) return false;
-    char actl_sig[4] = {};
+    char actl_sig[4]                   = {};
     static constexpr int kPngHeaderLen = 8;
-    static constexpr int kPngIHDRLen = 8 + 13 + 4;
+    static constexpr int kPngIHDRLen   = 8 + 13 + 4;
     const ssize_t len = pread(fd, actl_sig, 4, kPngHeaderLen + kPngIHDRLen + 4);
     close(fd);
     return len == 4 && memcmp(actl_sig, "acTL", 4) == 0;
 }
 
-bool ImageLoader::LoadAndScale(const DisplayOptions &opts,
-                               int frame_offset, int frame_count) {
+bool ImageLoader::LoadAndScale(const DisplayOptions &opts, int frame_offset,
+                               int frame_count) {
     options_ = opts;
 
     const char *const file = filename().c_str();
-    for (const char *ending : { ".png", ".apng" }) {
+    for (const char *ending : {".png", ".apng"}) {
         if (strcasecmp(file + strlen(file) - strlen(ending), ending) == 0 &&
             LooksLikeApng(filename())) {
-            return false;   // ImageMagick does not deal with apng. Let Video deal with it
+            return false;  // ImageMagick does not deal with apng. Let Video
+                           // deal with it
         }
     }
 
@@ -146,14 +150,16 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts,
     try {
         readImages(&frames, filename());  // ideally, we could set max_frames
     }
-    catch(Magick::Warning &warning) {
-        if (kDebug) fprintf(stderr, "Meh: %s (%s)\n",
-                            filename().c_str(), warning.what());
+    catch (Magick::Warning &warning) {
+        if (kDebug)
+            fprintf(stderr, "Meh: %s (%s)\n", filename().c_str(),
+                    warning.what());
     }
-    catch (std::exception& e) {
+    catch (std::exception &e) {
         // No message, let that file be handled by the next handler.
-        if (kDebug) fprintf(stderr, "Exception: %s (%s)\n",
-                            filename().c_str(), e.what());
+        if (kDebug)
+            fprintf(stderr, "Exception: %s (%s)\n", filename().c_str(),
+                    e.what());
         return false;
     }
 
@@ -162,7 +168,7 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts,
         return false;
     }
 
-    orig_width_ = frames.front().columns();
+    orig_width_  = frames.front().columns();
     orig_height_ = frames.front().rows();
 
     // We don't really know if something is an animation from the frames we
@@ -185,7 +191,8 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts,
     if (frames.size() > 1 && could_be_animation) {
         Magick::coalesceImages(&result, frames.begin(), frames.end());
         is_animation_ = true;
-    } else {
+    }
+    else {
         result.insert(result.end(), frames.begin(), frames.end());
         is_animation_ = false;
     }
@@ -204,20 +211,18 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts,
         if (!is_animation_) {
             if (opts.crop_border > 0) {
                 const int c = opts.crop_border;
-                const int w = std::max(1, (int)img.columns() - 2*c);
-                const int h = std::max(1, (int)img.rows() - 2*c);
+                const int w = std::max(1, (int)img.columns() - 2 * c);
+                const int h = std::max(1, (int)img.rows() - 2 * c);
                 img.crop(Magick::Geometry(w, h, c, c));
             }
-            if (opts.auto_crop) {
-                img.trim();
-            }
+            if (opts.auto_crop) { img.trim(); }
         }
 
         // Figure out scaling for the image.
         int target_width = 0, target_height = 0;
-        if (CalcScaleToFitDisplay(img.columns(), img.rows(),
-                                  opts, abs(exif_op.angle) == 90,
-                                  &target_width, &target_height)) {
+        if (CalcScaleToFitDisplay(img.columns(), img.rows(), opts,
+                                  abs(exif_op.angle) == 90, &target_width,
+                                  &target_height)) {
             try {
                 auto geometry = Magick::Geometry(target_width, target_height);
                 geometry.aspect(true);  // Force to scale to given size.
@@ -226,9 +231,9 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts,
                 else
                     img.sample(geometry);
             }
-            catch (const std::exception& e) {
-                if (kDebug) fprintf(stderr, "%s: %s\n",
-                                    filename().c_str(), e.what());
+            catch (const std::exception &e) {
+                if (kDebug)
+                    fprintf(stderr, "%s: %s\n", filename().c_str(), e.what());
                 return false;
             }
         }
@@ -241,31 +246,30 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts,
     }
 
     max_frames_ = (frame_count < 0)
-        ? (int)frames_.size()
-        : std::min(frame_count, (int)frames_.size());
+                      ? (int)frames_.size()
+                      : std::min(frame_count, (int)frames_.size());
 
     return true;
 }
 
 int ImageLoader::IndentationIfCentered(const PreprocessedFrame *frame) const {
     return options_.center_horizontally
-        ? (options_.width - frame->framebuffer().width()) / 2
-        : 0;
+               ? (options_.width - frame->framebuffer().width()) / 2
+               : 0;
 }
 
 void ImageLoader::SendFrames(Duration duration, int loops,
                              const volatile sig_atomic_t &interrupt_received,
                              const Renderer::WriteFramebufferFun &sink) {
     if (options_.scroll_animation) {
-        Scroll(duration, loops, interrupt_received,
-               options_.scroll_dx, options_.scroll_dy, options_.scroll_delay,
-               sink);
+        Scroll(duration, loops, interrupt_received, options_.scroll_dx,
+               options_.scroll_dy, options_.scroll_delay, sink);
         return;
     }
 
     int last_height = -1;  // First image emit will not have a height.
     if (frames_.size() == 1 || !is_animation_)
-        loops = 1;   // If there is no animation, nothing to repeat.
+        loops = 1;  // If there is no animation, nothing to repeat.
 
     // Not initialized or negative value wants us to loop forever.
     // (note, kNotInitialized is actually negative, but here for clarity
@@ -273,10 +277,8 @@ void ImageLoader::SendFrames(Duration duration, int loops,
 
     timg::Duration time_from_first_frame;
     bool is_first = true;
-    for (int k = 0;
-         (loop_forever || k < loops)
-             && !interrupt_received
-             && time_from_first_frame < duration;
+    for (int k = 0; (loop_forever || k < loops) && !interrupt_received &&
+                    time_from_first_frame < duration;
          ++k) {
         for (int f = 0; f < max_frames_ && !interrupt_received; ++f) {
             const auto &frame = frames_[f];
@@ -285,9 +287,8 @@ void ImageLoader::SendFrames(Duration duration, int loops,
             const int dy = is_animation_ && last_height > 0 ? -last_height : 0;
             SeqType seq_type = SeqType::FrameImmediate;
             if (is_animation_) {
-                seq_type = is_first
-                    ? SeqType::StartOfAnimation
-                    : SeqType::AnimationFrame;
+                seq_type = is_first ? SeqType::StartOfAnimation
+                                    : SeqType::AnimationFrame;
             }
             sink(dx, dy, frame->framebuffer(), seq_type,
                  std::min(time_from_first_frame, duration));
@@ -305,16 +306,18 @@ void ImageLoader::Scroll(Duration duration, int loops,
                          int dx, int dy, Duration scroll_delay,
                          const Renderer::WriteFramebufferFun &write_fb) {
     if (frames_.size() > 1) {
-        if (kDebug) fprintf(stderr, "This is an %simage format, "
-                            "scrolling on top of that is not supported. "
-                            "Just doing the scrolling of the first frame.\n",
-                            is_animation_ ? "animated " : "multi-");
+        if (kDebug)
+            fprintf(stderr,
+                    "This is an %simage format, "
+                    "scrolling on top of that is not supported. "
+                    "Just doing the scrolling of the first frame.\n",
+                    is_animation_ ? "animated " : "multi-");
         // TODO: do both.
     }
 
     const Framebuffer &img = frames_[0]->framebuffer();
-    const int img_width = img.width();
-    const int img_height = img.height();
+    const int img_width    = img.width();
+    const int img_height   = img.height();
 
     const int display_w = std::min(options_.width, img_width);
     const int display_h = std::min(options_.height, img_height);
@@ -324,35 +327,35 @@ void ImageLoader::Scroll(Duration duration, int loops,
     // to do the scroll. If this is just in one direction, that is simple: the
     // number of pixel in that direction. If we go diagonal, then it is
     // essentially the least common multiple of steps.
-    const int x_steps = (dx == 0)
-        ? 1
-        : ((img_width % abs(dx) == 0) ? img_width / abs(dx) : img_width);
-    const int y_steps = (dy == 0)
-        ? 1
-        : ((img_height % abs(dy) == 0) ? img_height / abs(dy) : img_height);
-    const int64_t cycle_steps =  x_steps * y_steps / gcd(x_steps, y_steps);
+    const int x_steps =
+        (dx == 0)
+            ? 1
+            : ((img_width % abs(dx) == 0) ? img_width / abs(dx) : img_width);
+    const int y_steps =
+        (dy == 0)
+            ? 1
+            : ((img_height % abs(dy) == 0) ? img_height / abs(dy) : img_height);
+    const int64_t cycle_steps = x_steps * y_steps / gcd(x_steps, y_steps);
 
     // Depending if we go forward or backward, we want to start out aligned
     // right or left.
-    // For negative direction, guarantee that we never run into negative numbers.
-    const int64_t x_init = (dx < 0)
-        ? (img_width - display_w - dx*cycle_steps) : 0;
-    const int64_t y_init = (dy < 0)
-        ? (img_height - display_h - dy*cycle_steps) : 0;
+    // For negative direction, guarantee that we never run into negative
+    // numbers.
+    const int64_t x_init =
+        (dx < 0) ? (img_width - display_w - dx * cycle_steps) : 0;
+    const int64_t y_init =
+        (dy < 0) ? (img_height - display_h - dy * cycle_steps) : 0;
     bool is_first = true;
 
     timg::Framebuffer display_fb(display_w, display_h);
     timg::Duration time_from_first_frame;
-    for (int k = 0;
-         (loops < 0 || k < loops)
-             && !interrupt_received
-             && time_from_first_frame < duration;
+    for (int k = 0; (loops < 0 || k < loops) && !interrupt_received &&
+                    time_from_first_frame < duration;
          ++k) {
         for (int64_t cycle_pos = 0; cycle_pos <= cycle_steps; ++cycle_pos) {
-            if (interrupt_received || time_from_first_frame > duration)
-                break;
-            const int64_t x_cycle_pos = dx*cycle_pos;
-            const int64_t y_cycle_pos = dy*cycle_pos;
+            if (interrupt_received || time_from_first_frame > duration) break;
+            const int64_t x_cycle_pos = dx * cycle_pos;
+            const int64_t y_cycle_pos = dy * cycle_pos;
             for (int y = 0; y < display_h; ++y) {
                 for (int x = 0; x < display_w; ++x) {
                     const int x_src = (x_init + x_cycle_pos + x) % img_width;
@@ -361,11 +364,10 @@ void ImageLoader::Scroll(Duration duration, int loops,
                 }
             }
             time_from_first_frame.Add(scroll_delay);
-            write_fb(0, is_first ? 0 : -display_fb.height(), display_fb,
-                     is_first
-                     ? SeqType::StartOfAnimation
-                     : SeqType::AnimationFrame,
-                     time_from_first_frame);
+            write_fb(
+                0, is_first ? 0 : -display_fb.height(), display_fb,
+                is_first ? SeqType::StartOfAnimation : SeqType::AnimationFrame,
+                time_from_first_frame);
             is_first = false;
         }
     }

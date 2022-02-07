@@ -15,15 +15,14 @@
 #ifndef DISPLAY_OPTIONS_H
 #define DISPLAY_OPTIONS_H
 
-#include "timg-time.h"
-
 #include <stdlib.h>
 
-#include <string>
 #include <functional>
 #include <limits>
+#include <string>
 
 #include "framebuffer.h"
+#include "timg-time.h"
 
 namespace timg {
 // Special sentinel value so signify a not initialized value on the command
@@ -38,11 +37,11 @@ struct DisplayOptions {
         if (getenv(kFormatEnv)) title_format = getenv(kFormatEnv);
     }
 
-    int width = -1;             // Output size. These need to be set to...
-    int height = -1;            // ... valid values.
+    int width  = -1;  // Output size. These need to be set to...
+    int height = -1;  // ... valid values.
 
-    int cell_x_px = 1;          // Pixels shown in one character cell
-    int cell_y_px = 2;          // This depends on TerminalCanvas
+    int cell_x_px = 1;  // Pixels shown in one character cell
+    int cell_y_px = 2;  // This depends on TerminalCanvas
 
     // Terminals that allow to transfer high-resolution pixels (Kitty,
     // iTerm2, and WezTerm) often allow some compressed option. This reduces
@@ -54,17 +53,17 @@ struct DisplayOptions {
 
     float width_stretch = 1.0;  // To correct font squareness aspect ratio
 
-    bool upscale = false;       // enlarging image only if this is true
-    bool upscale_integer = false; // Upscale only in integer increments.
-    bool fill_width = false;    // Fill screen width, allow overflow height.
-    bool fill_height = false;   // Fill screen height, allow overflow width.
-    bool antialias = true;      // Try a pleasing antialiasing while scaling.
+    bool upscale         = false;  // enlarging image only if this is true
+    bool upscale_integer = false;  // Upscale only in integer increments.
+    bool fill_width      = false;  // Fill screen width, allow overflow height.
+    bool fill_height     = false;  // Fill screen height, allow overflow width.
+    bool antialias       = true;   // Try a pleasing antialiasing while scaling.
     bool center_horizontally = false;  // Try to center image
-    int crop_border = 0;        // Pixels to be cropped around image.
-    bool auto_crop = false;     // Autocrop, removing 'boring' space around.
-                                // Done after crop-border has been applied.
-    bool exif_rotate = true;    // Rotate image according to exif data found.
-    bool show_title = false;    // show title.
+    int crop_border          = 0;      // Pixels to be cropped around image.
+    bool auto_crop = false;    // Autocrop, removing 'boring' space around.
+                               // Done after crop-border has been applied.
+    bool exif_rotate = true;   // Rotate image according to exif data found.
+    bool show_title  = false;  // show title.
 
     // Format for title, can contain %-format like place holders
     //  %f = filename
@@ -74,10 +73,10 @@ struct DisplayOptions {
     std::string title_format = "%f";  // Default: just filename
 
     // Scrolling specific
-    bool scroll_animation = false; // Create an image scroll animation.
-    int scroll_dx = 1;          // scroll direction in x-axis. Positive: left
-    int scroll_dy = 0;          // scroll in y-direction.
-    Duration scroll_delay = Duration::Millis(50); // delay between updates.
+    bool scroll_animation = false;  // Create an image scroll animation.
+    int scroll_dx         = 1;  // scroll direction in x-axis. Positive: left
+    int scroll_dy         = 0;  // scroll in y-direction.
+    Duration scroll_delay = Duration::Millis(50);  // delay between updates.
 
     bool allow_frame_skipping = false;  // skip frame if CPU or terminal slow
 

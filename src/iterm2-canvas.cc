@@ -26,13 +26,12 @@
 namespace timg {
 ITerm2GraphicsCanvas::ITerm2GraphicsCanvas(BufferedWriteSequencer *ws,
                                            const DisplayOptions &opts)
-    : TerminalCanvas(ws), options_(opts) {
-}
+    : TerminalCanvas(ws), options_(opts) {}
 
 void ITerm2GraphicsCanvas::Send(int x, int dy, const Framebuffer &fb,
                                 SeqType seq_type, Duration end_of_frame) {
     char *const buffer = RequestBuffer(fb.width(), fb.height());
-    char *pos = buffer;
+    char *pos          = buffer;
 
     if (dy < 0)
         MoveCursorDY(-((-dy + options_.cell_y_px - 1) / options_.cell_y_px));
@@ -40,16 +39,17 @@ void ITerm2GraphicsCanvas::Send(int x, int dy, const Framebuffer &fb,
 
     pos = AppendPrefixToBuffer(pos);
 
-    int png_size = timg::EncodePNG(fb, options_.compress_pixel_format ? 1 : 0,
-                                   options_.local_alpha_handling
-                                   ? ColorEncoding::kRGB_24
-                                   : ColorEncoding::kRGBA_32,
-                                   png_buf_, png_buf_size_);
+    int png_size =
+        timg::EncodePNG(fb, options_.compress_pixel_format ? 1 : 0,
+                        options_.local_alpha_handling ? ColorEncoding::kRGB_24
+                                                      : ColorEncoding::kRGBA_32,
+                        png_buf_, png_buf_size_);
 
-    if (!png_size) return; // Error. Ignore.
+    if (!png_size) return;  // Error. Ignore.
 
-    pos += sprintf(pos, "\e]1337;File=width=%dpx;height=%dpx;inline=1:",
-                   fb.width(), fb.height());
+    pos += sprintf(pos,
+                   "\e]1337;File=width=%dpx;height=%dpx;inline=1:", fb.width(),
+                   fb.height());
     pos = timg::EncodeBase64(png_buf_, png_size, pos);
 
     *pos++ = '\007';
@@ -58,23 +58,21 @@ void ITerm2GraphicsCanvas::Send(int x, int dy, const Framebuffer &fb,
     write_sequencer_->WriteBuffer(buffer, pos - buffer, seq_type, end_of_frame);
 }
 
-ITerm2GraphicsCanvas::~ITerm2GraphicsCanvas() {
-    free(png_buf_);
-}
+ITerm2GraphicsCanvas::~ITerm2GraphicsCanvas() { free(png_buf_); }
 
 char *ITerm2GraphicsCanvas::RequestBuffer(int width, int height) {
     // We don't really know how much size the encoded image takes, though one
     // would expect typically smaller, and hopefully not more than twice...
     const size_t png_compressed_size = (4 * width * height) * 2;
-    const int encoded_base64_size = png_compressed_size * 4 / 3;
+    const int encoded_base64_size    = png_compressed_size * 4 / 3;
     const size_t content_size =
-        strlen(SCREEN_CURSOR_UP_FORMAT) + strlen(SCREEN_CURSOR_RIGHT_FORMAT)
-        + encoded_base64_size
-        + strlen("\e\1337;File=width=9999px;height=9999px;inline=1:\007")
-        + 4 + 1;  /* digit space for cursor up/right; \n */
+        strlen(SCREEN_CURSOR_UP_FORMAT) + strlen(SCREEN_CURSOR_RIGHT_FORMAT) +
+        encoded_base64_size  //
+        + strlen("\e\1337;File=width=9999px;height=9999px;inline=1:\007") + 4 +
+        1; /* digit space for cursor up/right; \n */
 
     if (png_compressed_size > png_buf_size_) {
-        png_buf_ = (char*)realloc(png_buf_, png_compressed_size);
+        png_buf_      = (char *)realloc(png_buf_, png_compressed_size);
         png_buf_size_ = png_compressed_size;
     }
 

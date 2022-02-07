@@ -16,12 +16,6 @@
 #include "image-source.h"
 
 // Various implementations we try in the constructor
-#include "image-display.h"
-#include "jpeg-source.h"
-#include "openslide-source.h"
-#include "video-display.h"
-#include "stb-image-source.h"
-
 #include <errno.h>
 #include <math.h>
 #include <string.h>
@@ -33,13 +27,19 @@
 #include <sstream>
 #include <utility>
 
+#include "image-display.h"
+#include "jpeg-source.h"
+#include "openslide-source.h"
+#include "stb-image-source.h"
+#include "video-display.h"
+
 namespace timg {
 
 // Returns 'true' if image needs scaling.
 bool ImageSource::CalcScaleToFitDisplay(int img_width, int img_height,
                                         const DisplayOptions &orig_options,
-                                        bool fit_in_rotated,
-                                        int *target_width, int *target_height) {
+                                        bool fit_in_rotated, int *target_width,
+                                        int *target_height) {
     DisplayOptions options = orig_options;
     if (fit_in_rotated) {
         std::swap(options.width, options.height);
@@ -48,24 +48,25 @@ bool ImageSource::CalcScaleToFitDisplay(int img_width, int img_height,
     }
 
     // Clamp stretch to reasonable values.
-    float width_stretch = options.width_stretch;
+    float width_stretch          = options.width_stretch;
     const float kMaxAcceptFactor = 5.0;  // Clamp to reasonable factor.
-    if (width_stretch > kMaxAcceptFactor)   width_stretch = kMaxAcceptFactor;
-    if (width_stretch < 1/kMaxAcceptFactor) width_stretch = 1/kMaxAcceptFactor;
+    if (width_stretch > kMaxAcceptFactor) width_stretch = kMaxAcceptFactor;
+    if (width_stretch < 1 / kMaxAcceptFactor)
+        width_stretch = 1 / kMaxAcceptFactor;
 
     if (width_stretch > 1.0f) {
         options.width /= width_stretch;  // pretend to have less space
-    } else {
+    }
+    else {
         options.height *= width_stretch;
     }
-    const float width_fraction = (float)options.width / img_width;
+    const float width_fraction  = (float)options.width / img_width;
     const float height_fraction = (float)options.height / img_height;
 
     // If the image < screen, only upscale if do_upscale requested
-    if (!options.upscale &&
-        (options.fill_height || width_fraction > 1.0) &&
+    if (!options.upscale && (options.fill_height || width_fraction > 1.0) &&
         (options.fill_width || height_fraction > 1.0)) {
-        *target_width = img_width;
+        *target_width  = img_width;
         *target_height = img_height;
         if (options.cell_x_px == 2) {
             // The quarter block feels a bit like good old EGA graphics
@@ -76,7 +77,7 @@ bool ImageSource::CalcScaleToFitDisplay(int img_width, int img_height,
         return false;
     }
 
-    *target_width = options.width;
+    *target_width  = options.width;
     *target_height = options.height;
 
     if (options.fill_width && options.fill_height) {
@@ -84,33 +85,32 @@ bool ImageSource::CalcScaleToFitDisplay(int img_width, int img_height,
         // Largest scale fraction determines that. This is for some diagonal
         // scroll modes.
         const float larger_fraction = (width_fraction > height_fraction)
-            ? width_fraction
-            : height_fraction;
-        *target_width = (int) roundf(larger_fraction * img_width);
-        *target_height = (int) roundf(larger_fraction * img_height);
+                                          ? width_fraction
+                                          : height_fraction;
+        *target_width               = (int)roundf(larger_fraction * img_width);
+        *target_height              = (int)roundf(larger_fraction * img_height);
     }
     else if (options.fill_height) {
         // Make things fit in vertical space.
         // While the height constraint stays the same, we can expand width to
         // wider than screen.
-        *target_width = (int) roundf(height_fraction * img_width);
+        *target_width = (int)roundf(height_fraction * img_width);
     }
     else if (options.fill_width) {
         // dito, vertical. Make things fit in horizontal, overflow vertical.
-        *target_height = (int) roundf(width_fraction * img_height);
+        *target_height = (int)roundf(width_fraction * img_height);
     }
     else {
         // Typical situation: whatever limits first
         const float smaller_fraction = (width_fraction < height_fraction)
-            ? width_fraction
-            : height_fraction;
-        *target_width = (int) roundf(smaller_fraction * img_width);
-        *target_height = (int) roundf(smaller_fraction * img_height);
+                                           ? width_fraction
+                                           : height_fraction;
+        *target_width  = (int)roundf(smaller_fraction * img_width);
+        *target_height = (int)roundf(smaller_fraction * img_height);
     }
 
-    if (width_stretch > 1.0f) {
-        *target_width *= width_stretch;
-    } else {
+    if (width_stretch > 1.0f) { *target_width *= width_stretch; }
+    else {
         *target_height /= width_stretch;
     }
 
@@ -123,18 +123,18 @@ bool ImageSource::CalcScaleToFitDisplay(int img_width, int img_height,
     }
 
     // Don't scale down to nothing...
-    if (*target_width <= 0)  *target_width = 1;
+    if (*target_width <= 0) *target_width = 1;
     if (*target_height <= 0) *target_height = 1;
 
-    if (options.upscale_integer &&
-        *target_width > img_width && *target_height > img_height) {
+    if (options.upscale_integer && *target_width > img_width &&
+        *target_height > img_height) {
         // Correct for aspect ratio mismatch of quarter rendering.
         const float aspect_correct = options.cell_x_px == 2 ? 2 : 1;
-        const float wf = 1.0f* *target_width / aspect_correct / img_width;
-        const float hf = 1.0f* *target_height / img_height;
+        const float wf = 1.0f * *target_width / aspect_correct / img_width;
+        const float hf = 1.0f * *target_height / img_height;
         const float smaller_factor = wf < hf ? wf : hf;
         if (smaller_factor > 1.0f) {
-            *target_width = aspect_correct * floor(smaller_factor) * img_width;
+            *target_width  = aspect_correct * floor(smaller_factor) * img_width;
             *target_height = floor(smaller_factor) * img_height;
         }
     }
@@ -194,30 +194,33 @@ ImageSource *ImageSource::Create(const std::string &filename,
         struct stat statresult;
         if (stat(filename.c_str(), &statresult) < 0) {
             fprintf(stderr, "%s: %s\n", filename.c_str(), strerror(errno));
-        } else if (S_ISDIR(statresult.st_mode)) {
+        }
+        else if (S_ISDIR(statresult.st_mode)) {
             fprintf(stderr, "%s: is a directory\n", filename.c_str());
-        } else if (access(filename.c_str(), R_OK) < 0) {
+        }
+        else if (access(filename.c_str(), R_OK) < 0) {
             fprintf(stderr, "%s: %s\n", filename.c_str(), strerror(errno));
         }
     }
 
     // We either loaded, played and continue'ed, or we end up here.
-    //fprintf(stderr, "%s: couldn't load\n", filename);
+    // fprintf(stderr, "%s: couldn't load\n", filename);
 #ifdef WITH_TIMG_VIDEO
     if (filename == "-" || filename == "/dev/stdin") {
-        fprintf(stderr, "If this is a video on stdin, use '-V' to "
+        fprintf(stderr,
+                "If this is a video on stdin, use '-V' to "
                 "skip image probing\n");
     }
 #endif
     return nullptr;
 }
 
-static std::string Basename(const std::string& filename) {
+static std::string Basename(const std::string &filename) {
     size_t last_slash_pos = filename.find_last_of("/\\");
 
     return last_slash_pos == std::string::npos
-        ? filename
-        : filename.substr(last_slash_pos + 1);
+               ? filename
+               : filename.substr(last_slash_pos + 1);
 }
 
 std::string ImageSource::FormatFromParameters(const std::string &fmt_string,

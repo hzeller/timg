@@ -33,17 +33,16 @@ namespace timg {
 class STBImageSource::PreprocessedFrame {
 public:
     PreprocessedFrame(const uint8_t *image_data, int source_w, int source_h,
-                      int target_w, int target_h,
-                      Duration delay,
+                      int target_w, int target_h, Duration delay,
                       const DisplayOptions &opt)
         : delay_(delay), framebuffer_(target_w, target_h) {
         stbir_resize_uint8(image_data, source_w, source_h, 0,
-                           (uint8_t*) framebuffer_.begin(),
-                           target_w, target_h, 0, kDesiredChannels /*RGBA*/);
-        framebuffer_.AlphaComposeBackground(opt.bgcolor_getter,
-                                            opt.bg_pattern_color,
-                                            opt.pattern_size * opt.cell_x_px,
-                                            opt.pattern_size * opt.cell_y_px/2);
+                           (uint8_t *)framebuffer_.begin(), target_w, target_h,
+                           0, kDesiredChannels /*RGBA*/);
+        framebuffer_.AlphaComposeBackground(
+            opt.bgcolor_getter, opt.bg_pattern_color,
+            opt.pattern_size * opt.cell_x_px,
+            opt.pattern_size * opt.cell_y_px / 2);
     }
     Duration delay() const { return delay_; }
     const timg::Framebuffer &framebuffer() const { return framebuffer_; }
@@ -54,15 +53,14 @@ private:
 };
 
 STBImageSource::STBImageSource(const std::string &filename)
-    : ImageSource(filename) {
-}
+    : ImageSource(filename) {}
 
 STBImageSource::~STBImageSource() {
     for (PreprocessedFrame *f : frames_) delete f;
 }
 
 std::string STBImageSource::FormatTitle(
-  const std::string &format_string) const {
+    const std::string &format_string) const {
     return FormatFromParameters(format_string, filename_, orig_width_,
                                 orig_height_, "stb");
 }
@@ -87,49 +85,44 @@ bool STBImageSource::LoadAndScale(const DisplayOptions &options,
         stbi__gif gdata;
         memset(&gdata, 0, sizeof(gdata));
         uint8_t *data;
-        while ((data = stbi__gif_load_next(&context, &gdata,
-                                           &channels, kDesiredChannels, 0))) {
-            if (data == (const uint8_t*)&context)
-                break;
-            orig_width_ = gdata.w;
+        while ((data = stbi__gif_load_next(&context, &gdata, &channels,
+                                           kDesiredChannels, 0))) {
+            if (data == (const uint8_t *)&context) break;
+            orig_width_  = gdata.w;
             orig_height_ = gdata.h;
 
             CalcScaleToFitDisplay(gdata.w, gdata.h, options, false,
                                   &target_width, &target_height);
             frames_.push_back(new PreprocessedFrame(
-                                  data, gdata.w, gdata.h,
-                                  target_width, target_height,
-                                  Duration::Millis(gdata.delay),
-                                  options));
+                data, gdata.w, gdata.h, target_width, target_height,
+                Duration::Millis(gdata.delay), options));
         }
         STBI_FREE(gdata.out);
         STBI_FREE(gdata.history);
         STBI_FREE(gdata.background);
-    } else {
+    }
+    else {
         int w, h;
-        uint8_t *data = stbi__load_and_postprocess_8bit(&context,
-                                                        &w, &h, &channels,
-                                                        kDesiredChannels);
+        uint8_t *data = stbi__load_and_postprocess_8bit(
+            &context, &w, &h, &channels, kDesiredChannels);
         if (!data) return false;
 
-        orig_width_ = w;
+        orig_width_  = w;
         orig_height_ = h;
 
-        CalcScaleToFitDisplay(w, h, options, false,
-                              &target_width, &target_height);
-        frames_.push_back(new PreprocessedFrame(data, w, h,
-                                                target_width, target_height,
-                                                Duration(), options));
+        CalcScaleToFitDisplay(w, h, options, false, &target_width,
+                              &target_height);
+        frames_.push_back(new PreprocessedFrame(
+            data, w, h, target_width, target_height, Duration(), options));
         stbi_image_free(data);
     }
 
-    indentation_ = options.center_horizontally
-        ? (options.width - target_width) / 2
-        : 0;
+    indentation_ =
+        options.center_horizontally ? (options.width - target_width) / 2 : 0;
 
     max_frames_ = (frame_count < 0)
-        ? (int)frames_.size()
-        : std::min(frame_count, (int)frames_.size());
+                      ? (int)frames_.size()
+                      : std::min(frame_count, (int)frames_.size());
 
     return !frames_.empty();
 }
@@ -137,10 +130,10 @@ bool STBImageSource::LoadAndScale(const DisplayOptions &options,
 void STBImageSource::SendFrames(Duration duration, int loops,
                                 const volatile sig_atomic_t &interrupt_received,
                                 const Renderer::WriteFramebufferFun &sink) {
-    int last_height = -1;  // First image emit will not have a height.
+    int last_height         = -1;  // First image emit will not have a height.
     const bool is_animation = frames_.size() > 1;
     if (frames_.size() == 1 || !is_animation)
-        loops = 1;   // If there is no animation, nothing to repeat.
+        loops = 1;  // If there is no animation, nothing to repeat.
 
     // Not initialized or negative value wants us to loop forever.
     // (note, kNotInitialized is actually negative, but here for clarity
@@ -148,10 +141,8 @@ void STBImageSource::SendFrames(Duration duration, int loops,
 
     timg::Duration time_from_first_frame;
     bool is_first = true;
-    for (int k = 0;
-         (loop_forever || k < loops)
-             && !interrupt_received
-             && time_from_first_frame < duration;
+    for (int k = 0; (loop_forever || k < loops) && !interrupt_received &&
+                    time_from_first_frame < duration;
          ++k) {
         for (int f = 0; f < max_frames_ && !interrupt_received; ++f) {
             const auto &frame = frames_[f];
@@ -160,9 +151,8 @@ void STBImageSource::SendFrames(Duration duration, int loops,
             const int dy = is_animation && last_height > 0 ? -last_height : 0;
             SeqType seq_type = SeqType::FrameImmediate;
             if (is_animation) {
-                seq_type = is_first
-                    ? SeqType::StartOfAnimation
-                    : SeqType::AnimationFrame;
+                seq_type = is_first ? SeqType::StartOfAnimation
+                                    : SeqType::AnimationFrame;
             }
             sink(dx, dy, frame->framebuffer(), seq_type,
                  std::min(time_from_first_frame, duration));

@@ -16,10 +16,10 @@
 #ifndef TIMG_STB_IMAGE_SOURCE_H
 #define TIMG_STB_IMAGE_SOURCE_H
 
+#include <memory>
+
 #include "display-options.h"
 #include "image-source.h"
-
-#include <memory>
 
 namespace timg {
 // STB image loader fallback. Not pretty and should only be used as fallback.
@@ -30,8 +30,8 @@ public:
 
     // Attempt to load given filename as video, open stream and set-up scaling.
     // Returns true on success.
-    bool LoadAndScale(const DisplayOptions &options,
-                      int frame_offset, int frame_count) final;
+    bool LoadAndScale(const DisplayOptions &options, int frame_offset,
+                      int frame_count) final;
 
     // Play video up to given duration.
     //
@@ -41,13 +41,13 @@ public:
                     const volatile sig_atomic_t &interrupt_received,
                     const Renderer::WriteFramebufferFun &sink) final;
 
-    std::string FormatTitle(const std::string& format_string) const final;
+    std::string FormatTitle(const std::string &format_string) const final;
 
 private:
     class PreprocessedFrame;
-    std::vector<PreprocessedFrame*> frames_;
+    std::vector<PreprocessedFrame *> frames_;
     int orig_width_, orig_height_;
-    int max_frames_ = 1;
+    int max_frames_  = 1;
     int indentation_ = 0;
 };
 }  // namespace timg
