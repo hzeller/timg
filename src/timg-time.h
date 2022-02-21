@@ -51,7 +51,7 @@ public:
         return duration_.tv_nsec > other.duration_.tv_nsec;
     }
 
-    static constexpr Duration Millis(long ms) {
+    static constexpr Duration Millis(int64_t ms) {
         return Duration(ms / 1000, (ms % 1000) * 1000000);
     }
     static constexpr Duration Micros(int64_t usec) {
@@ -79,7 +79,7 @@ public:
         return duration_.tv_sec <= 0 && duration_.tv_nsec == 0;
     }
 
-    void Add(Duration d) {
+    void Add(const Duration &d) {
         duration_.tv_sec += d.duration_.tv_sec;
         duration_.tv_nsec += d.duration_.tv_nsec;
         while (duration_.tv_nsec > 1000000000) {
@@ -89,12 +89,12 @@ public:
     }
 
 private:
-    constexpr Duration(long sec, long ns) : duration_({sec, ns}) {}
+    constexpr Duration(time_t sec, long ns) : duration_({sec, ns}) {}  // NOLINT
     struct timespec duration_;
 };
 
 // Calculate a value per second.
-inline float operator/(float value, Duration d) {
+inline float operator/(float value, const Duration &d) {
     return 1e9 * value / d.nanoseconds();
 }
 
@@ -136,7 +136,7 @@ public:
 
     bool operator>=(const Time &other) const { return !(*this < other); }
 
-    void Add(Duration d) {
+    void Add(const Duration &d) {
         time_.tv_sec += d.AsTimespec().tv_sec;
         time_.tv_nsec += d.AsTimespec().tv_nsec;
         while (time_.tv_nsec > 1000000000) {
@@ -159,7 +159,7 @@ private:
     struct timespec time_;
 };
 
-inline Time operator+(const Time &t, Duration d) {
+inline Time operator+(const Time &t, const Duration &d) {
     Time result = t;
     result.Add(d);
     return result;

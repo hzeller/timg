@@ -101,7 +101,7 @@ public:
     //
     // No return value: the write happens asynchronously.
     void WriteBuffer(char *buffer, size_t size, SeqType sequence_type,
-                     Duration end_of_frame = {});
+                     const Duration &end_of_frame = {});
 
     // Flush all pending writes.
     void Flush();

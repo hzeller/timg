@@ -24,13 +24,13 @@
 
 namespace timg {
 namespace {
-static constexpr uint8_t kPNGHeader[] = {0x89, 0x50, 0x4E, 0x47,
-                                         '\r', '\n', 0x1A, '\n'};
+constexpr uint8_t kPNGHeader[] = {0x89, 0x50, 0x4E, 0x47,
+                                  '\r', '\n', 0x1A, '\n'};
 
 // Writing PNG-style blocks: [4 len][4 chunk]<data>[4 CRC]
 class BlockWriter {
 public:
-    BlockWriter(uint8_t *pos) : start_block_(pos), pos_(pos) {}
+    explicit BlockWriter(uint8_t *pos) : start_block_(pos), pos_(pos) {}
 
     ~BlockWriter() { assert(finalized_); }
 

@@ -94,7 +94,7 @@ static ssize_t ReliableWrite(int fd, const char *buffer, const size_t size) {
 
 void BufferedWriteSequencer::WriteBuffer(char *buffer, size_t size,
                                          SeqType sequence_type,
-                                         Duration end_of_frame) {
+                                         const Duration &end_of_frame) {
     assert(buffer != nullptr);
 
     // Recover block from the raw data (our metadata starts a bit before that)

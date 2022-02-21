@@ -28,21 +28,22 @@ namespace timg {
 // in one go.
 class OpenSlideSource final : public ImageSource {
 public:
-    OpenSlideSource(const std::string &filename) : ImageSource(filename) {}
+    explicit OpenSlideSource(const std::string &filename)
+        : ImageSource(filename) {}
 
     static const char *VersionInfo();
 
     bool LoadAndScale(const DisplayOptions &options, int frame_offset,
                       int frame_count) final;
 
-    void SendFrames(Duration duration, int loops,
+    void SendFrames(const Duration &duration, int loops,
                     const volatile sig_atomic_t &interrupt_received,
                     const Renderer::WriteFramebufferFun &sink) final;
 
     std::string FormatTitle(const std::string &format_string) const final;
 
 private:
-    int IndentationIfCentered(timg::Framebuffer &image) const;
+    int IndentationIfCentered(const timg::Framebuffer &image) const;
 
     DisplayOptions options_;
     int orig_width_, orig_height_;

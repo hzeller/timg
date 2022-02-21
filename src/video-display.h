@@ -33,7 +33,7 @@ namespace timg {
 // Video loader, meant for one video to load, and if successful, Play().
 class VideoLoader final : public ImageSource {
 public:
-    VideoLoader(const std::string &filename);
+    explicit VideoLoader(const std::string &filename);
     ~VideoLoader() final;
 
     static const char *VersionInfo();
@@ -47,7 +47,7 @@ public:
     //
     // The reference to the "interrupt_received" can be updated by a signal
     // while the method is running and shall be checked often.
-    void SendFrames(Duration duration, int loops,
+    void SendFrames(const Duration &duration, int loops,
                     const volatile sig_atomic_t &interrupt_received,
                     const Renderer::WriteFramebufferFun &sink) final;
 

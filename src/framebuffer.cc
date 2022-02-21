@@ -87,7 +87,7 @@ uint8_t **Framebuffer::row_data() {
     return row_data_;
 }
 
-void Framebuffer::AlphaComposeBackground(bgcolor_query get_bg,
+void Framebuffer::AlphaComposeBackground(const bgcolor_query &get_bg,
                                          rgba_t pattern_col, int pwidth,
                                          int pheight) {
     if (!get_bg) return;  // -b none

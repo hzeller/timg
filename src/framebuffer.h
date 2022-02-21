@@ -93,7 +93,7 @@ public:
     //
     // This Alpha compositing merges in the linearized colors domain.
     using bgcolor_query = std::function<rgba_t()>;
-    void AlphaComposeBackground(bgcolor_query get_bg, rgba_t pattern,
+    void AlphaComposeBackground(const bgcolor_query &get_bg, rgba_t pattern,
                                 int pattern_width, int pattern_height);
 
     // The raw internal buffer containing width()*height() pixels organized
@@ -128,7 +128,8 @@ class LinearColor {
 public:
     LinearColor() : r(0), g(0), b(0), a(0) {}
     // We approximate x^2.2 with x^2
-    LinearColor(rgba_t c) : r(c.r * c.r), g(c.g * c.g), b(c.b * c.b), a(c.a) {}
+    /* implicit */ LinearColor(rgba_t c)  // NOLINT
+        : r(c.r * c.r), g(c.g * c.g), b(c.b * c.b), a(c.a) {}
 
     inline float dist(const LinearColor &other) const {
         // quadratic distance. Not bothering sqrt()ing them.

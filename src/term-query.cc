@@ -49,12 +49,13 @@ static void clean_up_terminal() {
 // Only one query can be going on in parallel (due to cleanup considerations)
 using ResponseFinder = std::function<const char *(const char *, size_t len)>;
 static const char *QueryTerminal(const char *query, char *const buffer,
-                                 const size_t buflen, Duration time_budget,
-                                 ResponseFinder response_found_p) {
+                                 const size_t buflen,
+                                 const Duration &time_budget,
+                                 const ResponseFinder &response_found_p) {
     // There might be pipes and redirects.
     // Let's see if we have at least one file descriptor that is connected
     // to our terminal. We can then open that terminal directly RD/WR.
-    const char *ttypath;
+    const char *ttypath = nullptr;
     for (int fd : {STDOUT_FILENO, STDERR_FILENO, STDIN_FILENO}) {
         if (isatty(fd) && (ttypath = ttyname(fd)) != nullptr) break;
     }

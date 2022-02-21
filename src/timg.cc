@@ -75,7 +75,6 @@
 #endif
 
 using timg::Duration;
-using timg::Framebuffer;
 using timg::ImageSource;
 using timg::ITerm2GraphicsCanvas;
 using timg::KittyGraphicsCanvas;
@@ -262,13 +261,13 @@ bool AppendToFileList(const std::string &filelist_file,
     std::string filename;
     for (std::string filename; std::getline(filelist_stream, filename); /**/) {
         if (filename.empty()) continue;
-        if (filename[0] != '/' && !prefix.empty()) filename = prefix + filename;
+        if (filename[0] != '/' && !prefix.empty()) filename.insert(0, prefix);
         filelist->push_back(filename);
     }
     return true;
 }
 
-static void PresentImages(LoadedImageSources &loaded_sources,
+static void PresentImages(LoadedImageSources *loaded_sources,
                           const timg::DisplayOptions &display_opts,
                           const timg::PresentationOptions &present,
                           timg::BufferedWriteSequencer *sequencer) {
@@ -318,7 +317,7 @@ static void PresentImages(LoadedImageSources &loaded_sources,
 
     // Showing them in order of files on the command line.
     bool is_first = true;
-    for (auto &source_future : loaded_sources) {
+    for (auto &source_future : *loaded_sources) {
         if (interrupt_received) break;
         std::unique_ptr<timg::ImageSource> source(source_future.get());
         if (!source) continue;
@@ -582,7 +581,7 @@ int main(int argc, char *argv[]) {
             }
             break;
         case 'p':
-            switch (tolower(optarg[0])) {
+            switch (tolower(optarg[0])) {  // NOLINT
             case 'h': present.pixelation = Pixelation::kHalfBlock; break;
             case 'q': present.pixelation = Pixelation::kQuarterBlock; break;
             case 'k': present.pixelation = Pixelation::kKittyGraphics; break;
@@ -706,7 +705,7 @@ int main(int argc, char *argv[]) {
         filelist.push_back(argv[imgarg]);
     }
 
-    if (filelist.size() <= 0) {
+    if (filelist.empty()) {
         fprintf(stderr,
                 "Expected image filename(s) on command line "
                 "or via -f\n");
@@ -815,7 +814,7 @@ int main(int argc, char *argv[]) {
         output_fd, buffer_allow_skipping, kAsyncWriteQueueSize,
         debug_no_frame_delay, interrupt_received);
     const Time start_show = Time::Now();
-    PresentImages(loaded_sources, display_opts, present, &sequencer);
+    PresentImages(&loaded_sources, display_opts, present, &sequencer);
     sequencer.Flush();
     const Time end_show = Time::Now();
 

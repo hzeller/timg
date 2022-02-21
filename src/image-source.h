@@ -43,7 +43,7 @@ public:
     // Send preprocessed frames for a maximum of given, max frames and loops,
     // whatever comes first. Stop loop when "interrupt_received" is true.
     // Send all frames to "sink", a callback that accepts Framebuffers.
-    virtual void SendFrames(Duration duration, int loops,
+    virtual void SendFrames(const Duration &duration, int loops,
                             const volatile sig_atomic_t &interrupt_received,
                             const Renderer::WriteFramebufferFun &sink) = 0;
 
@@ -54,7 +54,7 @@ public:
     const std::string &filename() const { return filename_; }
 
 protected:
-    ImageSource(const std::string &filename) : filename_(filename) {}
+    explicit ImageSource(const std::string &filename) : filename_(filename) {}
 
     // Attempt to load image(s) from filename and prepare for display.
     // Images are processed using the parameters in DisplayOptions.

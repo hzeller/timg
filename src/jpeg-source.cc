@@ -212,12 +212,12 @@ bool JPEGSource::LoadAndScale(const DisplayOptions &opts, int, int) {
     return true;
 }
 
-int JPEGSource::IndentationIfCentered(timg::Framebuffer &image) const {
+int JPEGSource::IndentationIfCentered(const timg::Framebuffer &image) const {
     return options_.center_horizontally ? (options_.width - image.width()) / 2
                                         : 0;
 }
 
-void JPEGSource::SendFrames(Duration duration, int loops,
+void JPEGSource::SendFrames(const Duration &duration, int loops,
                             const volatile sig_atomic_t &interrupt_received,
                             const Renderer::WriteFramebufferFun &sink) {
     sink(IndentationIfCentered(*image_), 0, *image_, SeqType::FrameImmediate,

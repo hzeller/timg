@@ -92,10 +92,10 @@ void TerminalCanvas::CursorOn() {
     // Cursor on after displaying an image should be processed ASAP, so
     // that a Ctrl-C on an image that takes forever to load will leave cursor.
     // TODO: Arguably, Send() should do that at end. AddPostfixNextSend() ?
-    char *buf = write_sequencer_->RequestBuffer(strlen(CURSOR_ON));
-    memcpy(buf, CURSOR_ON, strlen(CURSOR_ON));
-    write_sequencer_->WriteBuffer(buf, strlen(CURSOR_ON),
-                                  SeqType::ControlWrite);
+    const size_t kCursorOnSize = strlen(CURSOR_ON);
+    char *buf                  = write_sequencer_->RequestBuffer(kCursorOnSize);
+    memcpy(buf, CURSOR_ON, kCursorOnSize);  // NOLINT
+    write_sequencer_->WriteBuffer(buf, kCursorOnSize, SeqType::ControlWrite);
 }
 
 }  // namespace timg

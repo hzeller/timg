@@ -162,7 +162,7 @@ bool VideoLoader::LoadAndScale(const DisplayOptions &display_options,
             break;
         }
     }
-    if (video_stream_index_ == -1) return false;
+    if (!av_codec || video_stream_index_ == -1) return false;
 
     auto stream     = format_context_->streams[video_stream_index_];
     AVRational rate = av_guess_frame_rate(format_context_, stream, nullptr);
@@ -240,7 +240,7 @@ void VideoLoader::AlphaBlendFramebuffer() {
         options_.pattern_size * options_.cell_y_px / 2);
 }
 
-void VideoLoader::SendFrames(Duration duration, int loops,
+void VideoLoader::SendFrames(const Duration &duration, int loops,
                              const volatile sig_atomic_t &interrupt_received,
                              const Renderer::WriteFramebufferFun &sink) {
     const bool frame_limit = (frame_count_ > 0);

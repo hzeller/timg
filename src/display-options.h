@@ -98,7 +98,7 @@ struct DisplayOptions {
 
     // In case of background color alpha merging, this is the optional
     // 'checkerboard' color if alpha=0xff, or no checkerboard if alpha=0x00.
-    rgba_t bg_pattern_color;
+    rgba_t bg_pattern_color = {0x00, 0x00, 0x00, 0x00};
 
     // Factor of pattern-size from the default
     int pattern_size = 1;

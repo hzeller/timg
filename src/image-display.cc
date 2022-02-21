@@ -102,7 +102,8 @@ struct ExifImageOp {
     int angle = 0;
     bool flip = false;
 };
-static ExifImageOp GetExifOp(Magick::Image &img) {
+// Parameter const in spirit, but img.attribute() is unfortunately non-const.
+static ExifImageOp GetExifOp(Magick::Image &img) {  // NOLINT
     const std::string rotation_tag = img.attribute("EXIF:Orientation");
     if (rotation_tag.empty() || rotation_tag.size() != 1)
         return {};  // Nothing to do or broken tag.
@@ -163,7 +164,7 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts, int frame_offset,
         return false;
     }
 
-    if (frames.size() == 0) {
+    if (frames.empty()) {
         if (kDebug) fprintf(stderr, "No image found.");
         return false;
     }
@@ -258,7 +259,7 @@ int ImageLoader::IndentationIfCentered(const PreprocessedFrame *frame) const {
                : 0;
 }
 
-void ImageLoader::SendFrames(Duration duration, int loops,
+void ImageLoader::SendFrames(const Duration &duration, int loops,
                              const volatile sig_atomic_t &interrupt_received,
                              const Renderer::WriteFramebufferFun &sink) {
     if (options_.scroll_animation) {
@@ -301,9 +302,9 @@ void ImageLoader::SendFrames(Duration duration, int loops,
 
 static int gcd(int a, int b) { return b == 0 ? a : gcd(b, a % b); }
 
-void ImageLoader::Scroll(Duration duration, int loops,
+void ImageLoader::Scroll(const Duration &duration, int loops,
                          const volatile sig_atomic_t &interrupt_received,
-                         int dx, int dy, Duration scroll_delay,
+                         int dx, int dy, const Duration &scroll_delay,
                          const Renderer::WriteFramebufferFun &write_fb) {
     if (frames_.size() > 1) {
         if (kDebug)

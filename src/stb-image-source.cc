@@ -127,7 +127,7 @@ bool STBImageSource::LoadAndScale(const DisplayOptions &options,
     return !frames_.empty();
 }
 
-void STBImageSource::SendFrames(Duration duration, int loops,
+void STBImageSource::SendFrames(const Duration &duration, int loops,
                                 const volatile sig_atomic_t &interrupt_received,
                                 const Renderer::WriteFramebufferFun &sink) {
     int last_height         = -1;  // First image emit will not have a height.

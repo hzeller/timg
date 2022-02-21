@@ -30,7 +30,7 @@ namespace timg {
 class TerminalCanvas {
 public:
     // Create a terminal canvas, sending to given file-descriptor.
-    TerminalCanvas(BufferedWriteSequencer *write_sequencer);
+    explicit TerminalCanvas(BufferedWriteSequencer *write_sequencer);
     TerminalCanvas(const TerminalCanvas &) = delete;
     virtual ~TerminalCanvas();
 

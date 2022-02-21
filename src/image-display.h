@@ -30,7 +30,7 @@ namespace timg {
 
 class ImageLoader final : public ImageSource {
 public:
-    ImageLoader(const std::string &filename) : ImageSource(filename) {}
+    explicit ImageLoader(const std::string &filename) : ImageSource(filename) {}
     ~ImageLoader() final;
 
     static const char *VersionInfo();
@@ -51,7 +51,7 @@ public:
     //
     // The reference to the "interrupt_received" can be updated by a signal
     // while the method is running and shall be checked often.
-    void SendFrames(Duration duration, int loops,
+    void SendFrames(const Duration &duration, int loops,
                     const volatile sig_atomic_t &interrupt_received,
                     const Renderer::WriteFramebufferFun &sink) final;
 
@@ -62,9 +62,9 @@ private:
     class PreprocessedFrame;
 
     // Provide image scrolling in dx/dy direction for up to the given time.
-    void Scroll(Duration duration, int loops,
+    void Scroll(const Duration &duration, int loops,
                 const volatile sig_atomic_t &interrupt_received, int dx, int dy,
-                Duration scroll_delay,
+                const Duration &scroll_delay,
                 const Renderer::WriteFramebufferFun &write_fb);
 
     // Return how much we should indent a frame if centering is requested.
