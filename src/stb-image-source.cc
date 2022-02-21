@@ -33,7 +33,7 @@ namespace timg {
 class STBImageSource::PreprocessedFrame {
 public:
     PreprocessedFrame(const uint8_t *image_data, int source_w, int source_h,
-                      int target_w, int target_h, Duration delay,
+                      int target_w, int target_h, const Duration &delay,
                       const DisplayOptions &opt)
         : delay_(delay), framebuffer_(target_w, target_h) {
         stbir_resize_uint8(image_data, source_w, source_h, 0,
@@ -77,8 +77,8 @@ bool STBImageSource::LoadAndScale(const DisplayOptions &options,
     stbi__start_file(&context, img_file);
 
     int channels;
-    int target_width;
-    int target_height;
+    int target_width  = 0;
+    int target_height = 0;
 
     // There is no public API yet for accessing gif, so use some internals.
     if (stbi__gif_test(&context)) {

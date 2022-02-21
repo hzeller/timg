@@ -25,8 +25,8 @@ namespace timg {
 // STB image loader fallback. Not pretty and should only be used as fallback.
 class STBImageSource final : public ImageSource {
 public:
-    STBImageSource(const std::string &filename);
-    ~STBImageSource();
+    explicit STBImageSource(const std::string &filename);
+    ~STBImageSource() final;
 
     // Attempt to load given filename as video, open stream and set-up scaling.
     // Returns true on success.
