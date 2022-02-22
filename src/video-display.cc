@@ -164,7 +164,7 @@ bool VideoLoader::LoadAndScale(const DisplayOptions &display_options,
     }
     if (!av_codec || video_stream_index_ == -1) return false;
 
-    auto stream     = format_context_->streams[video_stream_index_];
+    auto *stream    = format_context_->streams[video_stream_index_];
     AVRational rate = av_guess_frame_rate(format_context_, stream, nullptr);
     frame_duration_ = Duration::Nanos(1e9 * rate.den / rate.num);
 

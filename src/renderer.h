@@ -54,7 +54,7 @@ protected:
 
     // Trim and potentially title for rendering, obeying the column-width
     // and centering constraints. Adds a newline as this needs to be printed.
-    std::string TrimTitle(const std::string &title, int width);
+    std::string TrimTitle(const std::string &title, int width) const;
 
     timg::TerminalCanvas *const canvas_;
     const DisplayOptions &options_;

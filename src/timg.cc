@@ -752,7 +752,7 @@ int main(int argc, char *argv[]) {
 
     // Asynconrous image loading (filelist.size()) and terminal query (+1)
     thread_count = (thread_count > 0 ? thread_count : kDefaultThreadCount);
-    auto pool =
+    timg::ThreadPool *const pool =
         new timg::ThreadPool(std::min(thread_count, (int)filelist.size() + 1));
 
     std::future<rgba_t> background_color_future;
@@ -797,7 +797,7 @@ int main(int argc, char *argv[]) {
             [filename, frame_offset, max_frames, do_img_loading, do_vid_loading,
              print_errors, &display_opts, &exit_code]() -> timg::ImageSource * {
             if (interrupt_received) return nullptr;
-            auto result = ImageSource::Create(
+            ImageSource *result = ImageSource::Create(
                 filename, display_opts, frame_offset, max_frames,
                 do_img_loading, do_vid_loading, print_errors);
             if (!result) exit_code = ExitCode::kImageReadError;

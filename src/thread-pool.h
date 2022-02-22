@@ -36,7 +36,7 @@ public:
 
     ~ThreadPool() {
         CancelAllWork();
-        for (auto t : threads_) {
+        for (std::thread *t : threads_) {
             t->join();
             delete t;
         }

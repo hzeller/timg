@@ -87,8 +87,8 @@ bool OpenSlideSource::LoadAndScale(const DisplayOptions &opts, int, int) {
                           &target_width, &target_height);
 
     // First check if there's a thumbnail with enough resolution.
-    for (auto it = openslide_get_associated_image_names(osr); *it; ++it) {
-        const char *name = *it;
+    for (const auto *n = openslide_get_associated_image_names(osr); *n; ++n) {
+        const char *const name = *n;
         if (strcmp(name, "thumbnail") != 0)
             continue;  // Only interested in thumbnail.
 

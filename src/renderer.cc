@@ -19,7 +19,8 @@
 #include <unistd.h>
 
 namespace timg {
-std::string Renderer::TrimTitle(const std::string &title, int requested_width) {
+std::string Renderer::TrimTitle(const std::string &title,
+                                int requested_width) const {
     std::string result = title;
     // Columns can be too narrow. We might need to trim what we print.
     if ((int)result.length() > requested_width) {
