@@ -46,11 +46,11 @@ jobs:
           sudo apt install libopenslide-dev
           sudo apt install pandoc
 
-      - name: Build Full timg
+      - name: Build timg with all options enabled
         run: |
           mkdir build
           cd build
-          cmake .. -DWITH_VIDEO_DECODING=On -DWITH_VIDEO_DEVICE=On -DWITH_OPENSLIDE_SUPPORT=On
+          cmake .. -DWITH_VIDEO_DECODING=On -DWITH_VIDEO_DEVICE=On -DWITH_OPENSLIDE_SUPPORT=On -DWITH_STB_IMAGE=On
           make -k
 
   CodeFormatting:
