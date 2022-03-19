@@ -176,9 +176,10 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts, int frame_offset,
     // got back (or is there ?), so we use a blacklist approach here: filenames
     // that are known to be containers for multiple independent images are
     // considered not an animation.
-    const bool could_be_animation = !EndsWith(filename(), "ico") &&
-                                    !EndsWith(filename(), "pdf") &&
-                                    !EndsWith(filename(), "txt");
+    const bool could_be_animation = !EndsWith(filename(), ".ico") &&
+                                    !EndsWith(filename(), ".pdf") &&
+                                    !EndsWith(filename(), ".ps") &&
+                                    !EndsWith(filename(), ".txt");
 
     // We can't remove the offset yet as the coalesceImages() might need images
     // prior to our desired set.
