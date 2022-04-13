@@ -757,25 +757,11 @@ int main(int argc, char *argv[]) {
 
     std::future<rgba_t> background_color_future;
     if (bg_color) {
-        if (strcasecmp(bg_color, "auto") == 0) {
-#ifdef WITH_TIMG_TERMINAL_QUERY
-            std::function<rgba_t()> query_terminal = []() {
-                return rgba_t::ParseColor(timg::QueryBackgroundColor());
-            };
-            background_color_future     = pool->ExecAsync(query_terminal);
-            display_opts.bgcolor_getter = [&background_color_future]() {
-                static rgba_t value = background_color_future.get();  // once
-                return value;
-            };
-#else
-            const rgba_t bg             = rgba_t::ParseColor("#000000");
-            display_opts.bgcolor_getter = [bg]() { return bg; };
-#endif
+        rgba_t bg = rgba_t::ParseColor("none");
+        if (strcasecmp(bg_color, "auto") != 0) {
+            bg = rgba_t::ParseColor(bg_color);
         }
-        else {
-            const rgba_t bg             = rgba_t::ParseColor(bg_color);
-            display_opts.bgcolor_getter = [bg]() { return bg; };
-        }
+        display_opts.bgcolor_getter = [bg]() { return bg; };
     }
 
     display_opts.bg_pattern_color = rgba_t::ParseColor(bg_pattern_color);
