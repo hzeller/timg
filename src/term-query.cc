@@ -115,68 +115,6 @@ static const char *QueryTerminal(const char *query, char *const buffer,
     return found_pos;
 }
 
-// Read and allocate background color queried from terminal emulator.
-// Might leak a file-descriptor when bailing out early. Accepted for brevity.
-char *QueryBackgroundColor() {
-    // The response might take a while. Typically, this should be only a
-    // few milliseconds, but there can be situations over slow ssh
-    // connections or very slow machines where it takes a little.
-    // Allocate some overall budget of time we allow for this to finish.
-    // We're running this asynchronously, so we already can start decoding
-    // images while this query is still running. Only the first image that
-    // actually needs transparency alpha blending would have to wait for the
-    // result if it is not there already. No impact on other images.
-    //
-    // Budget relatively high to accomodate for slow machine/flaky
-    // network (testing on a Raspberry Pi Zero W over flaky wireless
-    // connection resulted in up to 1.2ish seconds).
-    const Duration kTimeBudget = Duration::Millis(1500);
-
-    constexpr char query_background_color[] = "\033]11;?\033\\";
-    constexpr size_t kColorLen = 18;  // strlen("rgb:1234/1234/1234")
-
-    // Query and testing the response. It is the query-string with the
-    // question mark replaced with the requested information.
-    //
-    // We have to deal with two situations
-    //  * The response might take a while (see above in kTimeBudget)
-    //    and have to wait for the full time budget.
-    //  * Unfortunately, we can't shorten that time with the trick we do
-    //    below with a DSR 5 dummy query: turns out that alacritty answers
-    //    these out-of-order https://github.com/alacritty/alacritty/issues/4872
-    //  * The terminal outputs the response as if it was 'typed in', so we
-    //    might not only get the response from the terminal itself, but also
-    //    characters from user pressing a key while we do our query.
-    //    So we might get random bytes before the actual response, possibly
-    //    in multiple read calls until we actually get something we expect.
-    //    Make sure to accumulate reads in a more spacious buffer than the
-    //    expected response and finish once we found what we're looking for.
-    char buffer[512];
-    const char *const start_color = QueryTerminal(
-        query_background_color, buffer, sizeof(buffer), kTimeBudget,
-        [](const char *data, size_t len) -> const char * {
-            // We might've gotten some spurious bytes in the beginning from
-            // keypresses, so find where the color starts.
-            const char *found = (const char *)memmem(data, len, "rgb:", 4);
-            if (found && len - (found - data) > kColorLen)  // at least 1 more
-                return found;  // Found start of color sequence and enough
-                               // bytes.
-            return nullptr;
-        });
-
-    if (!start_color) return nullptr;
-
-    // Assemble a standard #rrggbb string into our existing buffer.
-    // NB, save, as this is not overlapping buffer areas
-    buffer[0] = '#';
-    memcpy(&buffer[1], &start_color[4], 2);
-    memcpy(&buffer[3], &start_color[9], 2);
-    memcpy(&buffer[5], &start_color[14], 2);
-    buffer[7] = '\0';
-
-    return strdup(buffer);
-}
-
 bool QueryHasKittyGraphics() {
     const char *term = getenv("TERM");
     return term && (strcmp(term, "xterm-kitty") == 0);
