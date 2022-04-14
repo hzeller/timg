@@ -175,8 +175,8 @@ static int usage(const char *progname, ExitCode exit_code, int width,
         "\t-a             : Switch off anti aliasing (default: on).\n"
         "\t-b<str>        : Background color to use behind alpha channel. "
         "Format\n"
-        "\t                 'yellow', '#rrggbb', 'auto' or 'none' (default "
-        "'auto').\n"
+        "\t                 'yellow', '#rrggbb', or 'none' (default "
+        "'none').\n"
         "\t-B<str>        : Checkerboard pattern color to use on alpha.\n"
         "\t--pattern-size=<n> : Integer factor scale of the checkerboard "
         "pattern.\n"
@@ -347,7 +347,7 @@ int main(int argc, char *argv[]) {
     present.terminal_use_upper_block =
         timg::GetBoolenEnv("TIMG_USE_UPPER_BLOCK");
 
-    const char *bg_color         = "auto";
+    const char *bg_color         = "none";
     const char *bg_pattern_color = nullptr;
     display_opts.allow_frame_skipping =
         timg::GetBoolenEnv("TIMG_ALLOW_FRAME_SKIP");
@@ -757,10 +757,7 @@ int main(int argc, char *argv[]) {
 
     std::future<rgba_t> background_color_future;
     if (bg_color) {
-        rgba_t bg = rgba_t::ParseColor("none");
-        if (strcasecmp(bg_color, "auto") != 0) {
-            bg = rgba_t::ParseColor(bg_color);
-        }
+        const rgba_t bg = rgba_t::ParseColor(bg_color);
         display_opts.bgcolor_getter = [bg]() { return bg; };
     }
 
