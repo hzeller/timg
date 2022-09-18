@@ -553,7 +553,7 @@ int main(int argc, char *argv[]) {
             fprintf(stderr,
                     "timg " TIMG_VERSION
                     " <https://timg.sh/>\n"
-                    "Copyright (c) 2016..2021 Henner Zeller. "
+                    "Copyright (c) 2016..2022 Henner Zeller. "
                     "This program is free software; license GPL 2.0.\n\n");
 #ifdef WITH_TIMG_GRPAPHICSMAGICK
             fprintf(stderr, "Image decoding %s\n",
