@@ -17,7 +17,6 @@
 
 #include <Magick++.h>
 #include <assert.h>
-#include <fcntl.h>
 #include <math.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -121,31 +120,15 @@ static ExifImageOp GetExifOp(Magick::Image &img) {  // NOLINT
     return {};
 }
 
-static bool LooksLikeApng(const std::string &filename) {
-    // Somewhat handwavy: the "acTL" chunk could of course be at other places as
-    // well, let's assume it is just after IHDR.
-    int fd = open(filename.c_str(), O_RDONLY);
-    if (fd < 0) return false;
-    char actl_sig[4]                   = {};
-    static constexpr int kPngHeaderLen = 8;
-    static constexpr int kPngIHDRLen   = 8 + 13 + 4;
-    const ssize_t len = pread(fd, actl_sig, 4, kPngHeaderLen + kPngIHDRLen + 4);
-    close(fd);
-    return len == 4 && memcmp(actl_sig, "acTL", 4) == 0;
-}
-
 bool ImageLoader::LoadAndScale(const DisplayOptions &opts, int frame_offset,
                                int frame_count) {
     options_ = opts;
 
-    const char *const file = filename().c_str();
-    for (const char *ending : {".png", ".apng"}) {
-        if (strcasecmp(file + strlen(file) - strlen(ending), ending) == 0 &&
-            LooksLikeApng(filename())) {
-            return false;  // ImageMagick does not deal with apng. Let Video
-                           // deal with it
-        }
+#ifdef WITH_TIMG_VIDEO
+    if (LooksLikeAPNG(filename())) {
+        return false;  // ImageMagick can't apng animate. Let Video do it.
     }
+#endif
 
     std::vector<Magick::Image> frames;
     try {

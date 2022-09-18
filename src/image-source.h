@@ -91,6 +91,10 @@ protected:
                                             int orig_width, int orig_height,
                                             const char *decoder);
 
+    // Utility function to determine if a file is an APNG picture. Used
+    // by various sources to choose to pass it on to the video subsystem.
+    static bool LooksLikeAPNG(const std::string &filename);
+
 protected:
     const std::string filename_;
 };

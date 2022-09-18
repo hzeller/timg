@@ -17,8 +17,10 @@
 
 // Various implementations we try in the constructor
 #include <errno.h>
+#include <fcntl.h>
 #include <math.h>
 #include <string.h>
+#include <strings.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -246,6 +248,30 @@ std::string ImageSource::FormatFromParameters(const std::string &fmt_string,
     }
 
     return result.str();
+}
+
+static bool HasAPNGHeader(const std::string &filename) {
+    // Somewhat handwavy: the "acTL" chunk could of course be at other places as
+    // well, let's assume it is just after IHDR.
+    int fd = open(filename.c_str(), O_RDONLY);
+    if (fd < 0) return false;
+    char actl_sig[4]                   = {};
+    static constexpr int kPngHeaderLen = 8;
+    static constexpr int kPngIHDRLen   = 8 + 13 + 4;
+    const ssize_t len = pread(fd, actl_sig, 4, kPngHeaderLen + kPngIHDRLen + 4);
+    close(fd);
+    return len == 4 && memcmp(actl_sig, "acTL", 4) == 0;
+}
+
+bool ImageSource::LooksLikeAPNG(const std::string &filename) {
+    const char *const file = filename.c_str();
+    for (const char *ending : {".png", ".apng"}) {
+        if (strcasecmp(file + strlen(file) - strlen(ending), ending) == 0 &&
+            HasAPNGHeader(filename)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 }  // namespace timg

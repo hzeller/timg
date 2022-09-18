@@ -70,6 +70,12 @@ std::string STBImageSource::FormatTitle(
 // this is not an issue.
 bool STBImageSource::LoadAndScale(const DisplayOptions &options,
                                   int frame_offset, int frame_count) {
+#ifdef WITH_TIMG_VIDEO
+    if (LooksLikeAPNG(filename())) {
+        return false;  // STB can't apng animate. Let Video do it.
+    }
+#endif
+
     FILE *img_file = stbi__fopen(filename().c_str(), "rb");
     if (!img_file) return false;
 
