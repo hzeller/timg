@@ -53,6 +53,11 @@ public:
     // Return filename, this ImageSource has loaded.
     const std::string &filename() const { return filename_; }
 
+    // FYI if this image source is a multi-frame animation, e.g. if it
+    // would require to skip up to the beginning, independent if this was
+    // limited by frames_count (Context: Issue #86)
+    virtual bool IsAnimationBeforeFrameLimit() const { return false; }
+
 protected:
     explicit ImageSource(const std::string &filename) : filename_(filename) {}
 

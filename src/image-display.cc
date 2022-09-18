@@ -181,6 +181,8 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts, int frame_offset,
                                     !EndsWith(filename(), ".ps") &&
                                     !EndsWith(filename(), ".txt");
 
+    is_animation_before_frame_limit_ = could_be_animation && frames.size() > 1;
+
     // We can't remove the offset yet as the coalesceImages() might need images
     // prior to our desired set.
     if (frame_count > 0 && frame_offset + frame_count < (int)frames.size()) {

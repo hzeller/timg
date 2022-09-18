@@ -270,7 +270,8 @@ bool AppendToFileList(const std::string &filelist_file,
 static void PresentImages(LoadedImageSources *loaded_sources,
                           const timg::DisplayOptions &display_opts,
                           const timg::PresentationOptions &present,
-                          timg::BufferedWriteSequencer *sequencer) {
+                          timg::BufferedWriteSequencer *sequencer,
+                          bool *any_animations_seen) {
     std::unique_ptr<TerminalCanvas> canvas;
     switch (present.pixelation) {
     case Pixelation::kKittyGraphics:
@@ -321,6 +322,7 @@ static void PresentImages(LoadedImageSources *loaded_sources,
         if (interrupt_received) break;
         std::unique_ptr<timg::ImageSource> source(source_future.get());
         if (!source) continue;
+        *any_animations_seen |= source->IsAnimationBeforeFrameLimit();
         before_image_show(is_first);
         source->SendFrames(present.duration_per_image, present.loops,
                            interrupt_received,
@@ -619,8 +621,11 @@ int main(int argc, char *argv[]) {
                      geometry_height);
     }
 
-    if ((term.font_width_px < 0 || term.font_height_px < 0) &&
-        is_pixel_direct_p(present.pixelation)) {
+    bool cell_size_warning_needed = false;
+    const bool cell_size_unknown_in_pixel_mode =
+        ((term.font_width_px < 0 || term.font_height_px < 0) &&
+         is_pixel_direct_p(present.pixelation));
+    if (cell_size_unknown_in_pixel_mode) {
         // Best effort mode if someone requests graphics protocol, but
         // we don't know cell size in pixels.
         //
@@ -630,10 +635,8 @@ int main(int argc, char *argv[]) {
         //
         // For instance, Chromium Secure Shell (hterm) extension supports
         // iTerm2 graphics, but unfortunately does not report size :(
-        fprintf(stderr,
-                "Terminal does not support pixel size query, "
-                "but graphics protocol requested.\n"
-                "Can't show animations or have columns in grid.\n");
+        // Also apparently termux (Issue #86)
+        cell_size_warning_needed = (present.grid_cols > 1);
         max_frames = 1;  // Since don't know how many cells move up next frame
         // We need a cell size to have something to scale the image into.
         display_opts.cell_x_px = 9;  // Make up some typical values.
@@ -808,13 +811,15 @@ int main(int argc, char *argv[]) {
 
     static constexpr int kAsyncWriteQueueSize = 3;
     // Since Unicode blocks emit differences, we can't skip frames in output.
+    // TODO: should probably better ask the canvas directly instead.
     const bool buffer_allow_skipping = (display_opts.allow_frame_skipping &&
                                         is_pixel_direct_p(present.pixelation));
     timg::BufferedWriteSequencer sequencer(
         output_fd, buffer_allow_skipping, kAsyncWriteQueueSize,
         debug_no_frame_delay, interrupt_received);
     const Time start_show = Time::Now();
-    PresentImages(&loaded_sources, display_opts, present, &sequencer);
+    PresentImages(&loaded_sources, display_opts, present, &sequencer,
+                  &cell_size_warning_needed);
     sequencer.Flush();
     const Time end_show = Time::Now();
 
@@ -853,6 +858,14 @@ int main(int argc, char *argv[]) {
                 100.0 * sequencer.frames_skipped() / sequencer.frames_total());
         }
         fprintf(stderr, "\n");
+    }
+
+    if (cell_size_unknown_in_pixel_mode && cell_size_warning_needed) {
+        fprintf(stderr,
+                "Terminal does not support pixel size query, "
+                "but graphics protocol requested that needs that info.\n"
+                "File an issue with your terminal implementation to implement ws_xpixel, ws_ypixel on TIOCGWINSZ\n"
+                "Can't show animations or have columns in grid.\n");
     }
 
     // If we were super-fast decoding and showing images that didn't need

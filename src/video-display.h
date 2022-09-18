@@ -54,6 +54,8 @@ public:
     // Format title according to the format-string.
     std::string FormatTitle(const std::string &format_string) const final;
 
+    bool IsAnimationBeforeFrameLimit() const override { return true; }
+
 private:
     void AlphaBlendFramebuffer();
 

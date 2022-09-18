@@ -58,6 +58,10 @@ public:
     // Format title according to the format-string.
     std::string FormatTitle(const std::string &format_string) const final;
 
+    bool IsAnimationBeforeFrameLimit() const override {
+        return is_animation_before_frame_limit_;
+    }
+
 private:
     class PreprocessedFrame;
 
@@ -74,6 +78,7 @@ private:
     std::vector<PreprocessedFrame *> frames_;
     int orig_width_, orig_height_;
     int max_frames_;
+    bool is_animation_before_frame_limit_ = false;
     bool is_animation_ = false;
 };
 
