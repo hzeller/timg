@@ -864,7 +864,8 @@ int main(int argc, char *argv[]) {
         fprintf(stderr,
                 "Terminal does not support pixel size query, "
                 "but graphics protocol requested that needs that info.\n"
-                "File an issue with your terminal implementation to implement ws_xpixel, ws_ypixel on TIOCGWINSZ\n"
+                "File an issue with your terminal implementation to implement "
+                "ws_xpixel, ws_ypixel on TIOCGWINSZ\n"
                 "Can't show animations or have columns in grid.\n");
     }
 

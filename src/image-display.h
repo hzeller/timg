@@ -79,7 +79,7 @@ private:
     int orig_width_, orig_height_;
     int max_frames_;
     bool is_animation_before_frame_limit_ = false;
-    bool is_animation_ = false;
+    bool is_animation_                    = false;
 };
 
 }  // namespace timg
