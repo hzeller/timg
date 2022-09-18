@@ -563,6 +563,12 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "Openslide %s\n",
                     timg::OpenSlideSource::VersionInfo());
 #endif
+#ifdef WITH_TIMG_JPEG
+            fprintf(stderr, "Turbo JPEG\n");
+#endif
+#ifdef WITH_TIMG_STB
+            fprintf(stderr, "STB image loading fallback\n");
+#endif
 #ifdef WITH_TIMG_VIDEO
             fprintf(stderr, "Video decoding %s\n",
                     timg::VideoLoader::VersionInfo());
