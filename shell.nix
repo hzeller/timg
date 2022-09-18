@@ -16,5 +16,6 @@ pkgs.mkShell {
        libexif
        openslide
        pandoc
+       clang-tools_13  # clang-format
     ];
 }
