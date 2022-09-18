@@ -515,11 +515,13 @@ compile-time choices:
   * **`WITH_TURBOJPEG`** If enabled, uses this for faster jpeg file loading.
      You typically want this **ON** (default).
   * **`WITH_OPENSLIDE_SUPPORT`** Openslide is an image format used in scientific
-    applications. Default off, switch ON if needed.
+    applications. Rarely used, so default off, switch ON if needed.
   * **`WITH_STB_IMAGE`** Compile the simpler STB image library directly into
     the timg binary in cases where Graphicsmagick is not suitable for
     dependency pruning reasons; output can be slower and of less quality.
-    You typically want this **OFF** (default) if you can use Graphicsmagick.
+    It is default **ON** (default) but will always only attempted
+    after other image loading fails. Turn off if you can use GraphicsMagick and
+    want to reduce potential security vectors.
 
 You can choose these options by providing `-D<option>=ON` on the cmake command
 line, see below.
