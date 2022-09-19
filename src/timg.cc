@@ -843,6 +843,10 @@ int main(int argc, char *argv[]) {
                 term.cols, term.rows, term.font_width_px, term.font_height_px);
         fprintf(stderr, "Active Geometry: %dx%d\n", geometry_width,
                 geometry_height);
+        const rgba_t bg = display_opts.bgcolor_getter();
+        fprintf(stderr, "Background color for transparency '%s', effective "
+                "RGBA #%02x%02x%02x%02x\n", bg_color, bg.r, bg.g, bg.b, bg.a);
+
         const Duration d = end_show - start_show;
         const uint64_t written_bytes =
             sequencer.bytes_total() - sequencer.bytes_skipped();
