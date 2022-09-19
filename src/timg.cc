@@ -841,11 +841,21 @@ int main(int argc, char *argv[]) {
     if (verbose) {
         fprintf(stderr, "Terminal cells: %dx%d  cell-pixels: %dx%d\n",
                 term.cols, term.rows, term.font_width_px, term.font_height_px);
+        if (term.font_width_px < 0 || term.font_height_px < 0) {
+            fprintf(stderr,
+                    "Note: Terminal does not return ws_xpixel and ws_ypixel "
+                    "in TIOCGWINSZ ioctl.\n"
+                    "\t->Aspect ratio might be off.\n"
+                    "\t->File a feature request with the terminal "
+                    "emulator program you use\n");
+        }
         fprintf(stderr, "Active Geometry: %dx%d\n", geometry_width,
                 geometry_height);
         const rgba_t bg = display_opts.bgcolor_getter();
-        fprintf(stderr, "Background color for transparency '%s', effective "
-                "RGBA #%02x%02x%02x%02x\n", bg_color, bg.r, bg.g, bg.b, bg.a);
+        fprintf(stderr,
+                "Background color for transparency '%s', effective "
+                "RGBA #%02x%02x%02x%02x\n",
+                bg_color, bg.r, bg.g, bg.b, bg.a);
 
         const Duration d = end_show - start_show;
         const uint64_t written_bytes =
