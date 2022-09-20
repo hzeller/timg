@@ -17,6 +17,7 @@
 
 #include <Magick++.h>
 #include <assert.h>
+#include <magick/image.h>
 #include <math.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -120,6 +121,29 @@ static ExifImageOp GetExifOp(Magick::Image &img) {  // NOLINT
     return {};
 }
 
+// An extended version of Magick::readImages that requests a
+// decoding/raster with a transparent background by priming
+// the opacity in the image info.
+static void readImagesWithTransparentBackground(
+    std::vector<Magick::Image> *sequence, const std::string &filename) {
+    MagickLib::ImageInfo *image_info = MagickLib::CloneImageInfo(nullptr);
+
+    // ScaleCharToQuantum resolves to ((Quantum)(257U * (value)))
+    // but Quantum is undefined...
+    using Quantum = MagickLib::Quantum;
+
+    // Set the opacity quantum to maximum value for transparent background.
+    image_info->background_color.opacity = ScaleCharToQuantum(255);
+    filename.copy(image_info->filename, MaxTextExtent - 1);
+    image_info->filename[filename.length()] = 0;
+    MagickLib::ExceptionInfo exception_info;
+    MagickLib::GetExceptionInfo(&exception_info);
+    MagickLib::Image *images = MagickLib::ReadImage(image_info, &exception_info);
+    MagickLib::DestroyImageInfo(image_info);
+    insertImages(sequence, images);
+    Magick::throwException(exception_info);
+}
+
 bool ImageLoader::LoadAndScale(const DisplayOptions &opts, int frame_offset,
                                int frame_count) {
     options_ = opts;
@@ -132,7 +156,7 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts, int frame_offset,
 
     std::vector<Magick::Image> frames;
     try {
-        readImages(&frames, filename());  // ideally, we could set max_frames
+        readImagesWithTransparentBackground(&frames, filename());  // ideally, we could set max_frames
     }
     catch (Magick::Warning &warning) {
         if (kDebug)
