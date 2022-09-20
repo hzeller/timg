@@ -99,9 +99,7 @@ public:
                 // Unless we're in the first column, we've to move up from last
                 y_offset = current_column_ > 0 ? -last_fb_height_ : 0;
             }
-            else {
-                y_offset = dy;
-            }
+            else { y_offset = dy; }
             if (options_.show_title && first_render_call_) {
                 // If we have to show the headline, we've to do the move up
                 // before Send() would do it.

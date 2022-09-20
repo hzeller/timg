@@ -246,9 +246,7 @@ char *UnicodeBlockCanvas::AppendDoubleRow(char *pos, int indent, int width,
                 memset(pos, '\n', *y_skip);
                 pos += *y_skip;
             }
-            else {
-                pos += sprintf(pos, SCREEN_CURSOR_DN_FORMAT, *y_skip);
-            }
+            else { pos += sprintf(pos, SCREEN_CURSOR_DN_FORMAT, *y_skip); }
             *y_skip = 0;
         }
 
@@ -308,9 +306,7 @@ char *UnicodeBlockCanvas::AppendDoubleRow(char *pos, int indent, int width,
     if (pos == start) {  // Nothing emitted for whole line
         (*y_skip)++;
     }
-    else {
-        pos = str_append(pos, SCREEN_END_OF_LINE, SCREEN_END_OF_LINE_LEN);
-    }
+    else { pos = str_append(pos, SCREEN_END_OF_LINE, SCREEN_END_OF_LINE_LEN); }
 
     return pos;
 }

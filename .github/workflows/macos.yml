@@ -17,7 +17,6 @@ jobs:
           brew install ffmpeg jpeg-turbo libexif libpng
           brew install openslide
           brew install pandoc
-          brew unlink jpeg
           brew link --force jpeg-turbo
       - name: Get the Source
         uses: actions/checkout@v2

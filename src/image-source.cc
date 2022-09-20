@@ -60,9 +60,7 @@ bool ImageSource::CalcScaleToFitDisplay(int img_width, int img_height,
     if (width_stretch > 1.0f) {
         options.width /= width_stretch;  // pretend to have less space
     }
-    else {
-        options.height *= width_stretch;
-    }
+    else { options.height *= width_stretch; }
     const float width_fraction  = (float)options.width / img_width;
     const float height_fraction = (float)options.height / img_height;
 
@@ -113,9 +111,7 @@ bool ImageSource::CalcScaleToFitDisplay(int img_width, int img_height,
     }
 
     if (width_stretch > 1.0f) { *target_width *= width_stretch; }
-    else {
-        *target_height /= width_stretch;
-    }
+    else { *target_height /= width_stretch; }
 
     // floor() to next full character cell size but only if we in one of
     // the block modes.

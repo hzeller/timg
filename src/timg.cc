@@ -467,9 +467,7 @@ int main(int argc, char *argv[]) {
                                  geometry_width, geometry_height);
                 }
             }
-            else {
-                present.clear_screen = ClearScreen::kBeforeFirstImage;
-            }
+            else { present.clear_screen = ClearScreen::kBeforeFirstImage; }
             break;
         case OPT_FRAME_OFFSET: frame_offset = atoi(optarg); break;
         case OPT_FRAME_COUNT: max_frames = atoi(optarg); break;

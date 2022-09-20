@@ -84,6 +84,10 @@ endif()
 if(WITH_QOI_IMAGE)
   target_sources(timg PUBLIC qoi-image-source.h qoi-image-source.cc)
   target_compile_definitions(timg PUBLIC WITH_TIMG_QOI)
+  target_link_libraries(timg
+    PkgConfig::LIBAV
+    PkgConfig::AVUTIL
+    PkgConfig::SWSCALE)
 endif()
 
 install(TARGETS timg
