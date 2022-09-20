@@ -74,7 +74,9 @@ public:
     ~MultiColumnRenderer() final {
         if (current_column_ != 0) {
             const int down = highest_fb_column_height_ - last_fb_height_;
-            if (down > 0) { canvas_->MoveCursorDY(down / options_.cell_y_px); }
+            if (down > 0) {
+                canvas_->MoveCursorDY(down / options_.cell_y_px);
+            }
         }
     }
 

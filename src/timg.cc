@@ -541,7 +541,9 @@ int main(int argc, char *argv[]) {
             break;
         case 'T':
             display_opts.auto_crop = true;
-            if (optarg) { display_opts.crop_border = atoi(optarg); }
+            if (optarg) {
+                display_opts.crop_border = atoi(optarg);
+            }
             break;
         case 'F':
             display_opts.show_title = !display_opts.show_title;
@@ -748,7 +750,9 @@ int main(int argc, char *argv[]) {
                                display_opts.scroll_dx != 0;  // scroll h, fill v
 
     // Showing exactly one frame implies animation behaves as static image
-    if (max_frames == 1) { present.loops = 1; }
+    if (max_frames == 1) {
+        present.loops = 1;
+    }
 
     // If nothing is set to limit animations but we have multiple images,
     // set some sensible limit.

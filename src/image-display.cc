@@ -201,7 +201,9 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts, int frame_offset,
                 const int h = std::max(1, (int)img.rows() - 2 * c);
                 img.crop(Magick::Geometry(w, h, c, c));
             }
-            if (opts.auto_crop) { img.trim(); }
+            if (opts.auto_crop) {
+                img.trim();
+            }
         }
 
         // Figure out scaling for the image.

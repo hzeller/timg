@@ -176,7 +176,9 @@ inline float avd(LinearColor *res, std::initializer_list<LinearColor> values) {
     res->b /= n;
     res->a /= n;
     float sum = 0;
-    for (const LinearColor &c : values) { sum += res->dist(c); }
+    for (const LinearColor &c : values) {
+        sum += res->dist(c);
+    }
     return sum;
 }
 

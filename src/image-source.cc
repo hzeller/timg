@@ -112,7 +112,9 @@ bool ImageSource::CalcScaleToFitDisplay(int img_width, int img_height,
         *target_height = (int)roundf(smaller_fraction * img_height);
     }
 
-    if (width_stretch > 1.0f) { *target_width *= width_stretch; }
+    if (width_stretch > 1.0f) {
+        *target_width *= width_stretch;
+    }
     else {
         *target_height /= width_stretch;
     }

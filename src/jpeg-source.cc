@@ -81,7 +81,9 @@ static timg::Framebuffer *ApplyExifOp(timg::Framebuffer *orig,
         for (int y = 0; y < h; ++y) {
             Framebuffer::iterator left  = &orig->begin()[y * w];
             Framebuffer::iterator right = &orig->begin()[(y + 1) * w - 1];
-            while (left < right) { std::swap(*left++, *right--); }
+            while (left < right) {
+                std::swap(*left++, *right--);
+            }
         }
     }
     if (op.angle == 180) {

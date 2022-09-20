@@ -388,7 +388,9 @@ void UnicodeBlockCanvas::Send(int x, int dy, const Framebuffer &framebuffer,
         return;
     }
 
-    if (y_skip) { pos += sprintf(pos, SCREEN_CURSOR_DN_FORMAT, y_skip); }
+    if (y_skip) {
+        pos += sprintf(pos, SCREEN_CURSOR_DN_FORMAT, y_skip);
+    }
     write_sequencer_->WriteBuffer(start_buffer, pos - start_buffer, seq_type,
                                   end_of_frame);
 }
