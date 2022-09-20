@@ -138,7 +138,8 @@ static void readImagesWithTransparentBackground(
     image_info->filename[filename.length()] = 0;
     MagickLib::ExceptionInfo exception_info;
     MagickLib::GetExceptionInfo(&exception_info);
-    MagickLib::Image *images = MagickLib::ReadImage(image_info, &exception_info);
+    MagickLib::Image *images =
+        MagickLib::ReadImage(image_info, &exception_info);
     MagickLib::DestroyImageInfo(image_info);
     insertImages(sequence, images);
     Magick::throwException(exception_info);
@@ -156,7 +157,8 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts, int frame_offset,
 
     std::vector<Magick::Image> frames;
     try {
-        readImagesWithTransparentBackground(&frames, filename());  // ideally, we could set max_frames
+        readImagesWithTransparentBackground(
+            &frames, filename());  // ideally, we could set max_frames
     }
     catch (Magick::Warning &warning) {
         if (kDebug)
