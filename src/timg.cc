@@ -385,12 +385,14 @@ int main(int argc, char *argv[]) {
         OPT_THREADS,
         OPT_VERBOSE,
         OPT_VERSION,
+        OPT_AUTO_CROP,
+        OPT_SCROLL,
     };
 
     // Flags with optional parameters need to be long-options, as on MacOS,
     // there is no way to have single-character options with
     static constexpr struct option long_options[] = {
-        {"auto-crop",            optional_argument, NULL, 'T'               },
+        {"auto-crop",            optional_argument, NULL, OPT_AUTO_CROP     },
         {"center",               no_argument,       NULL, 'C'               },
         {"clear",                optional_argument, NULL, OPT_CLEAR_SCREEN  },
         {"color8",               no_argument,       NULL, OPT_COLOR_256     },
@@ -406,7 +408,7 @@ int main(int argc, char *argv[]) {
         {"pattern-size",         required_argument, NULL, OPT_PATTERN_SIZE  },
         {"pixelation",           required_argument, NULL, 'p'               },
         {"rotate",               required_argument, NULL, OPT_ROTATE        },
-        {"scroll",               optional_argument, NULL, 's'               },
+        {"scroll",               optional_argument, NULL, OPT_SCROLL        },
         {"threads",              required_argument, NULL, OPT_THREADS       },
         {"title",                optional_argument, NULL, 'F'               },
         {"upscale",              optional_argument, NULL, 'U'               },
@@ -414,17 +416,11 @@ int main(int argc, char *argv[]) {
         {"version",              no_argument,       NULL, OPT_VERSION       },
         {0,                      0,                 0,    0                 }
     };
-    // BSD's don't have a getopt() that has the GNU extension to allow
-    // optional parameters on single-character flags, so we now only document
-    // the new --trim and --scroll but, for a while, will also silently
-    // support these old options.
-#define OLD_COMPAT_FLAGS "T::s::"
 
     int opt;
     int option_index = 0;
-    while ((opt = getopt_long(
-                argc, argv, "vg:w:t:c:f:b:B:hCFEd:UWaVIo:f:p:" OLD_COMPAT_FLAGS,
-                long_options, &option_index)) != -1) {
+    while ((opt = getopt_long(argc, argv, "vg:w:t:c:f:b:B:hCFEd:UWaVIo:f:p:",
+                              long_options, &option_index)) != -1) {
         switch (opt) {
         case 'g':
             // Parse xHEIGHT, WIDTHx, WIDTHxHEIGHT
@@ -477,7 +473,7 @@ int main(int argc, char *argv[]) {
         case 'b': bg_color = strdup(optarg); break;
         case 'B': bg_pattern_color = strdup(optarg); break;
         case OPT_PATTERN_SIZE: display_opts.pattern_size = atoi(optarg); break;
-        case 's':
+        case OPT_SCROLL:
             display_opts.scroll_animation = true;
             if (optarg != NULL) {
                 display_opts.scroll_delay = Duration::Millis(atoi(optarg));
@@ -539,7 +535,7 @@ int main(int argc, char *argv[]) {
             display_opts.upscale         = !display_opts.upscale;
             display_opts.upscale_integer = (optarg && optarg[0] == 'i');
             break;
-        case 'T':
+        case OPT_AUTO_CROP:
             display_opts.auto_crop = true;
             if (optarg) {
                 display_opts.crop_border = atoi(optarg);
