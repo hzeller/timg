@@ -58,6 +58,12 @@ if(WITH_VIDEO_DECODING)
   endif()
 endif()
 
+# TODO: allow for fallback if that is not available.
+if(WITH_QOI_IMAGE)
+  pkg_check_modules(AVUTIL REQUIRED IMPORTED_TARGET libavutil)
+  pkg_check_modules(SWSCALE IMPORTED_TARGET REQUIRED libswscale)
+endif()
+
 find_package(Threads)
 
 add_subdirectory(src)
