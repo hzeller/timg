@@ -857,9 +857,15 @@ int main(int argc, char *argv[]) {
         const rgba_t bg = display_opts.bgcolor_getter();
         fprintf(stderr,
                 "Background color for transparency '%s', effective "
-                "RGBA #%02x%02x%02x%02x\n",
-                bg_color, bg.r, bg.g, bg.b, bg.a);
-
+                "RGB #%02x%02x%02x\n",
+                bg_color, bg.r, bg.g, bg.b);
+        const rgba_t checker_bg = display_opts.bg_pattern_color;
+        if (checker_bg.a == 0xff) {
+            fprintf(stderr,
+                    "\t-> Checker pattern color  '%s', "
+                    "RGB #%02x%02x%02x\n",
+                    bg_pattern_color, checker_bg.r, checker_bg.g, checker_bg.b);
+        }
         const Duration d = end_show - start_show;
         const uint64_t written_bytes =
             sequencer.bytes_total() - sequencer.bytes_skipped();
