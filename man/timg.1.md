@@ -249,6 +249,9 @@ limit infinity.
 :    Only render the first *frame-count* frames in an animation or video.
     If frame-count is set to 1, the output behaves like a static image.
 
+**-\-frame-offset**=&lt;*offset*&gt;
+:    For animations or videos, start at this frame.
+
 ## Scrolling
 
 **-\-scroll**[=&lt;*ms*&gt;]
