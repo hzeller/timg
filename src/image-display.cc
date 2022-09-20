@@ -120,6 +120,23 @@ static ExifImageOp GetExifOp(Magick::Image &img) {  // NOLINT
     return {};
 }
 
+// An extended version of Magick::readImages that requests a
+// decoding/raster with a transparent background.
+static void readImagesWithTransparentBackground(
+    std::vector<Magick::Image> *sequence, const std::string &image_spec) {
+    MagickLib::ImageInfo *image_info = MagickLib::CloneImageInfo(0);
+    // Set the opacity quantum to maximum value for transparent background.
+    image_info->background_color.opacity = ((Magick::Quantum)(257U * (255)));
+    image_spec.copy(image_info->filename, MaxTextExtent - 1);
+    image_info->filename[image_spec.length()] = 0;
+    MagickLib::ExceptionInfo exceptionInfo;
+    MagickLib::GetExceptionInfo(&exceptionInfo);
+    MagickLib::Image *images = MagickLib::ReadImage(image_info, &exceptionInfo);
+    MagickLib::DestroyImageInfo(image_info);
+    insertImages(sequence, images);
+    Magick::throwException(exceptionInfo);
+}
+
 bool ImageLoader::LoadAndScale(const DisplayOptions &opts, int frame_offset,
                                int frame_count) {
     options_ = opts;
@@ -132,7 +149,7 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts, int frame_offset,
 
     std::vector<Magick::Image> frames;
     try {
-        readImages(&frames, filename());  // ideally, we could set max_frames
+        readImagesWithTransparentBackground(&frames, filename());  // ideally, we could set max_frames
     }
     catch (Magick::Warning &warning) {
         if (kDebug)
