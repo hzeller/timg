@@ -516,6 +516,8 @@ compile-time choices:
      You typically want this **ON** (default).
   * **`WITH_OPENSLIDE_SUPPORT`** Openslide is an image format used in scientific
     applications. Rarely used, so default off, switch ON if needed.
+  * **`WITH_QOI_IMAGE`** Allow decoding of Quite Ok Image format [QOI]. Small
+     and simple, default **ON**.
   * **`WITH_STB_IMAGE`** Compile the simpler STB image library directly into
     the timg binary in cases where Graphicsmagick is not suitable for
     dependency pruning reasons; output can be slower and of less quality.
@@ -555,3 +557,4 @@ sudo make install
 [iTerm2]: https://iterm2.com/
 [iTerm2 Graphics Protocol]: https://iterm2.com/documentation-images.html
 [wezterm]: https://wezfurlong.org/wezterm/
+[QOI]: https://qoiformat.org/

@@ -121,7 +121,7 @@ bool VideoLoader::LoadAndScale(const DisplayOptions &display_options,
     const char *file = (filename() == "-") ? "/dev/stdin" : filename().c_str();
     // Only consider applying transparency for certain file types we know
     // it might happen.
-    for (const char *ending : {".png", ".gif", "/dev/stdin"}) {
+    for (const char *ending : {".png", ".gif", ".qoi", ".apng", "/dev/stdin"}) {
         if (strcasecmp(file + strlen(file) - strlen(ending), ending) == 0) {
             maybe_transparent_ = true;
             break;

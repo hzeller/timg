@@ -81,6 +81,11 @@ if(WITH_STB_IMAGE)
   target_compile_definitions(timg PUBLIC WITH_TIMG_STB)
 endif()
 
+if(WITH_QOI_IMAGE)
+  target_sources(timg PUBLIC qoi-image-source.h qoi-image-source.cc)
+  target_compile_definitions(timg PUBLIC WITH_TIMG_QOI)
+endif()
+
 install(TARGETS timg
   RUNTIME DESTINATION bin
 )

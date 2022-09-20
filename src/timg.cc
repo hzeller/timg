@@ -566,6 +566,9 @@ int main(int argc, char *argv[]) {
 #ifdef WITH_TIMG_JPEG
             fprintf(stderr, "Turbo JPEG\n");
 #endif
+#ifdef WITH_TIMG_QOI
+            fprintf(stderr, "QOI Image reader\n");
+#endif
 #ifdef WITH_TIMG_STB
             fprintf(stderr, "STB image loading fallback\n");
 #endif

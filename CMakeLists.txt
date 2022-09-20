@@ -14,6 +14,8 @@ option(WITH_TERMINAL_QUERY "Query terminals for availability of kitty/iterm capa
 
 option(WITH_STB_IMAGE "Use STB image, a self-contained albeit limited image loading and lower quality. Use if WITH_GRAPHICSMAGICK is not possible and want to limit dependencies. Default on to be used as fallback." ON)
 
+option(WITH_QOI_IMAGE "QOI image format" ON)
+
 # Note: The version string can be ammended with -DDISTRIBUTION_VERSION, see src/timg-version.h.in
 option(TIMG_VERSION_FROM_GIT "Get the program version from the git repository" ON)
 

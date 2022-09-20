@@ -1,3 +1,8 @@
-Public domain header-only image loading and manipulation. Find full repo on
-https://github.com/nothings/stb
-This is from git submit 8b5f1f37b5b75829fc72d38e7b5d4bcbf8a26d55
+Header-only third_party image decoding implementations
+
+ * STB: Public domain header-only image loading and manipulation. Find
+   Full repo on https://github.com/nothings/stb
+   This is from git submit 8b5f1f37b5b75829fc72d38e7b5d4bcbf8a26d55
+ * QOI: MIT licensed header-only implementation of https://qoiformat.org/
+   Full repo on https://github.com/phoboslab/qoi
+   This is from git submit 7039fcd60c4355c5300199c730049cccd8386a34

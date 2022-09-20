@@ -32,6 +32,7 @@
 #include "image-display.h"
 #include "jpeg-source.h"
 #include "openslide-source.h"
+#include "qoi-image-source.h"
 #include "stb-image-source.h"
 #include "video-display.h"
 
@@ -154,6 +155,13 @@ ImageSource *ImageSource::Create(const std::string &filename,
     if (attempt_image_loading) {
 #ifdef WITH_TIMG_OPENSLIDE_SUPPORT
         result.reset(new OpenSlideSource(filename));
+        if (result->LoadAndScale(options, frame_offset, frame_count)) {
+            return result.release();
+        }
+#endif
+
+#ifdef WITH_TIMG_QOI
+        result.reset(new QOIImageSource(filename));
         if (result->LoadAndScale(options, frame_offset, frame_count)) {
             return result.release();
         }
