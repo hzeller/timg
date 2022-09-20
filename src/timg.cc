@@ -376,7 +376,7 @@ int main(int argc, char *argv[]) {
         OPT_CLEAR_SCREEN = 1000,
         OPT_COLOR_256,
         OPT_COMPRESS_PIXEL,
-        OPT_DEBUG_NO_FRAME_DELAY,
+        OPT_NO_FRAME_DELAY,
         OPT_FRAME_COUNT,
         OPT_FRAME_OFFSET,
         OPT_GRID,
@@ -390,29 +390,29 @@ int main(int argc, char *argv[]) {
     // Flags with optional parameters need to be long-options, as on MacOS,
     // there is no way to have single-character options with
     static constexpr struct option long_options[] = {
-        {"auto-crop",            optional_argument, NULL, 'T'                     },
-        {"center",               no_argument,       NULL, 'C'                     },
-        {"clear",                optional_argument, NULL, OPT_CLEAR_SCREEN        },
-        {"color8",               no_argument,       NULL, OPT_COLOR_256           },
-        {"compress",             no_argument,       NULL, OPT_COMPRESS_PIXEL      },
-        {"delta-move",           required_argument, NULL, 'd'                     },
-        {"debug-no-frame-delay", no_argument,       NULL, OPT_DEBUG_NO_FRAME_DELAY},
-        {"frame-offset",         required_argument, NULL, OPT_FRAME_OFFSET        },
-        {"fit-width",            no_argument,       NULL, 'W'                     },
-        {"frames",               required_argument, NULL, OPT_FRAME_COUNT         },
-        {"grid",                 required_argument, NULL, OPT_GRID                },
-        {"help",                 no_argument,       NULL, 'h'                     },
-        {"loops",                optional_argument, NULL, 'c'                     },
-        {"pattern-size",         required_argument, NULL, OPT_PATTERN_SIZE        },
-        {"pixelation",           required_argument, NULL, 'p'                     },
-        {"rotate",               required_argument, NULL, OPT_ROTATE              },
-        {"scroll",               optional_argument, NULL, 's'                     },
-        {"threads",              required_argument, NULL, OPT_THREADS             },
-        {"title",                optional_argument, NULL, 'F'                     },
-        {"upscale",              optional_argument, NULL, 'U'                     },
-        {"verbose",              no_argument,       NULL, OPT_VERBOSE             },
-        {"version",              no_argument,       NULL, OPT_VERSION             },
-        {0,                      0,                 0,    0                       }
+        {"auto-crop",            optional_argument, NULL, 'T'               },
+        {"center",               no_argument,       NULL, 'C'               },
+        {"clear",                optional_argument, NULL, OPT_CLEAR_SCREEN  },
+        {"color8",               no_argument,       NULL, OPT_COLOR_256     },
+        {"compress",             no_argument,       NULL, OPT_COMPRESS_PIXEL},
+        {"delta-move",           required_argument, NULL, 'd'               },
+        {"debug-no-frame-delay", no_argument,       NULL, OPT_NO_FRAME_DELAY},
+        {"frame-offset",         required_argument, NULL, OPT_FRAME_OFFSET  },
+        {"fit-width",            no_argument,       NULL, 'W'               },
+        {"frames",               required_argument, NULL, OPT_FRAME_COUNT   },
+        {"grid",                 required_argument, NULL, OPT_GRID          },
+        {"help",                 no_argument,       NULL, 'h'               },
+        {"loops",                optional_argument, NULL, 'c'               },
+        {"pattern-size",         required_argument, NULL, OPT_PATTERN_SIZE  },
+        {"pixelation",           required_argument, NULL, 'p'               },
+        {"rotate",               required_argument, NULL, OPT_ROTATE        },
+        {"scroll",               optional_argument, NULL, 's'               },
+        {"threads",              required_argument, NULL, OPT_THREADS       },
+        {"title",                optional_argument, NULL, 'F'               },
+        {"upscale",              optional_argument, NULL, 'U'               },
+        {"verbose",              no_argument,       NULL, OPT_VERBOSE       },
+        {"version",              no_argument,       NULL, OPT_VERSION       },
+        {0,                      0,                 0,    0                 }
     };
     // BSD's don't have a getopt() that has the GNU extension to allow
     // optional parameters on single-character flags, so we now only document
@@ -606,7 +606,7 @@ int main(int argc, char *argv[]) {
             break;
         case OPT_COLOR_256: present.use_256_color = true; break;
         case OPT_VERBOSE: verbose = true; break;
-        case OPT_DEBUG_NO_FRAME_DELAY: debug_no_frame_delay = true; break;
+        case OPT_NO_FRAME_DELAY: debug_no_frame_delay = true; break;
         case 'h':
         default:
             return usage(
