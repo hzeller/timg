@@ -115,9 +115,9 @@ static const char *QueryTerminal(const char *query, char *const buffer,
     return found_pos;
 }
 
-// Read and allocate background color queried from terminal emulator.
+// Read background color queried from terminal emulator.
 // Might leak a file-descriptor when bailing out early. Accepted for brevity.
-char *QueryBackgroundColor() {
+const char *QueryBackgroundColor() {
     // The response might take a while. Typically, this should be only a
     // few milliseconds, but there can be situations over slow ssh
     // connections or very slow machines where it takes a little.
@@ -166,15 +166,15 @@ char *QueryBackgroundColor() {
 
     if (!start_color) return nullptr;
 
-    // Assemble a standard #rrggbb string into our existing buffer.
-    // NB, save, as this is not overlapping buffer areas
-    buffer[0] = '#';
-    memcpy(&buffer[1], &start_color[4], 2);
-    memcpy(&buffer[3], &start_color[9], 2);
-    memcpy(&buffer[5], &start_color[14], 2);
-    buffer[7] = '\0';
+    // Assemble a standard #rrggbb string into global static buffer.
+    static char result[8];
+    result[0] = '#';
+    memcpy(&result[1], &start_color[4], 2);
+    memcpy(&result[3], &start_color[9], 2);
+    memcpy(&result[5], &start_color[14], 2);
+    result[7] = '\0';
 
-    return strdup(buffer);
+    return result;
 }
 
 bool QueryHasKittyGraphics() {

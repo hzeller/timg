@@ -53,6 +53,7 @@ BufferedWriteSequencer::~BufferedWriteSequencer() {
         free(mempool_.front());
         mempool_.pop();
     }
+    delete work_executor_;
 }
 
 char *BufferedWriteSequencer::RequestBuffer(size_t size) {

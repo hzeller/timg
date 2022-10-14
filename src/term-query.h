@@ -18,8 +18,8 @@
 
 namespace timg {
 // Attempt to determine the background color of current termninal.
-// Returns allocated string if successful or nullptr if not.
-char *QueryBackgroundColor();
+// Returns static string if successful or nullptr if not.
+const char* QueryBackgroundColor();
 
 // Query the terminal if it supports the Kitty graphics protocol.
 bool QueryHasKittyGraphics();
