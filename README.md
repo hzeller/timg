@@ -439,7 +439,7 @@ sudo apt install timg
 #### NixOS or Nix package manager
 
 ```bash
-nix-env -iA nixpkgs.timg
+nix-env -i timg
 ```
 
 #### macOS
@@ -455,7 +455,7 @@ If you have enabled support for snap packages in your Linux distribution, you ca
 sudo snap install timg
 ```
 
-### Build from source
+### Build and Install from source
 
 #### Get dependencies on Debian/Ubuntu
 
@@ -527,21 +527,14 @@ line, see below.
 
 ```bash
 git clone https://github.com/hzeller/timg.git  # Get repo
-cd timg  # Enter the checked out repository directory.
-mkdir build  # Generate a dedicated build directory.
+cd timg                     # Enter the checked out repository directory.
+mkdir build                 # Generate a dedicated build directory.
 cd build
-# WITH_VIDEO_DECODING enables video; WITH_VIDEO_DEVICE reading from webcam
-# WITH_OPENSLIDE_SUPPORT enables support to OpenSlide images
-cmake ../ -DWITH_VIDEO_DECODING=On -DWITH_VIDEO_DEVICE=On -DWITH_OPENSLIDE_SUPPORT=On
+# cmake with your desired options, see descriptions above
+cmake ../ -DWITH_OPENSLIDE_SUPPORT=On
 make
-```
 
-#### Install
-
-You can run timg directly in the build directory using `src/timg`. To install
-the binary and [manpage](man/timg.1.md) on your system, type in the build directory:
-
-```bash
+# After compilation, you can run from build/src/timg or install on your system with
 sudo make install
 ```
 
