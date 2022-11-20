@@ -81,29 +81,26 @@ public:
     }
 
     WriteFramebufferFun render_cb(const std::string &title) final {
-        ++current_column_;
-        if (current_column_ >= columns_) {
-            // If our current image is shorter than the previous one,
-            // we need to make up the difference to be ready for the next
-            const int down = highest_fb_column_height_ - last_fb_height_;
-            if (down > 0) canvas_->MoveCursorDY(down);
-            current_column_           = 0;
-            highest_fb_column_height_ = 0;
-        }
-
+        AdvanceColumn();
         PrepareTitle(title);
         first_render_call_ = true;
         return [this](int x, int dy, const Framebuffer &fb, SeqType seq_type,
                       const Duration &end_of_frame) {
-            const int x_offset = current_column_ * column_width_;
             int y_offset;
             if (first_render_call_) {
                 // Unless we're in the first column, we've to move up from last
                 y_offset = current_column_ > 0 ? -last_fb_height_ : 0;
             }
             else {
-                y_offset = dy;
+                if (dy != 0) {
+                    y_offset = dy;   // Some animation jumping back
+                } else {
+                    // Multi-image rendering, shown in multiple columns.
+                    y_offset = AdvanceColumn() ? 0 : -last_fb_height_;
+                }
             }
+
+            const int x_offset = current_column_ * column_width_;
             if (options_.show_title && first_render_call_) {
                 // If we have to show the headline, we've to do the move up
                 // before Send() would do it.
@@ -133,6 +130,20 @@ private:
     void PrepareTitle(const std::string &title) {
         if (!options_.show_title) return;
         title_ = TrimTitle(title, column_width_ / options_.cell_x_px);
+    }
+
+    bool AdvanceColumn() {
+        ++current_column_;
+        if (current_column_ >= columns_) {
+            // If our current image is shorter than the previous one,
+            // we need to make up the difference to be ready for the next
+            const int down = highest_fb_column_height_ - last_fb_height_;
+            if (down > 0) canvas_->MoveCursorDY(down);
+            current_column_           = 0;
+            highest_fb_column_height_ = 0;
+            return true;
+        }
+        return false;
     }
 
     const int columns_;
