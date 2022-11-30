@@ -162,6 +162,9 @@ timg --frames=1 some-document.pdf    # Show a PDF, but only first page
 # In this example generating a QR code and have timg display it:
 qrencode -s1 -m2 "http://timg.sh/" -o- | timg -
 
+# Here, using gnuplot output right in the shell
+echo "set terminal png; plot sin(x);" | gnuplot | timg -
+
 # Open an image from a URL. URLs are internally actually handled by the
 # video subsystem, so it is treated as a single-frame 'film', nevertheless,
 # many image-URLs just work. But some image-specific features, such as trimming
