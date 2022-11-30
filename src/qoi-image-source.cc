@@ -18,7 +18,7 @@
 #define QOI_IMPLEMENTATION
 #include <stdlib.h>
 
-#include "../third_party/qoi.h"
+#include "qoi.h"
 #include "framebuffer.h"
 
 extern "C" {

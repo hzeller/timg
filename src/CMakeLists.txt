@@ -83,6 +83,7 @@ endif()
 
 if(WITH_QOI_IMAGE)
   target_sources(timg PUBLIC qoi-image-source.h qoi-image-source.cc)
+  target_include_directories(timg PRIVATE ${CMAKE_SOURCE_DIR}/third_party)
   target_compile_definitions(timg PUBLIC WITH_TIMG_QOI)
   target_link_libraries(timg
     PkgConfig::AVUTIL
