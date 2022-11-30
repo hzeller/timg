@@ -82,8 +82,12 @@ if(WITH_STB_IMAGE)
 endif()
 
 if(WITH_QOI_IMAGE)
+  include(CheckIncludeFileCXX)
+  CHECK_INCLUDE_FILE_CXX(qoi.h HAVE_QOI)
   target_sources(timg PUBLIC qoi-image-source.h qoi-image-source.cc)
-  target_include_directories(timg PRIVATE ${CMAKE_SOURCE_DIR}/third_party)
+  if(NOT HAVE_QOI)
+    target_include_directories(timg PRIVATE ${CMAKE_SOURCE_DIR}/third_party/qoi)
+  endif()
   target_compile_definitions(timg PUBLIC WITH_TIMG_QOI)
   target_link_libraries(timg
     PkgConfig::AVUTIL
