@@ -16,12 +16,12 @@
 #include "stb-image-source.h"
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "../third_party/stb_image.h"
+#include "stb/stb_image.h"
 
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 // Least amount of fuzziness on upscaling
 #define STBIR_DEFAULT_FILTER_UPSAMPLE STBIR_FILTER_BOX
-#include "../third_party/stb_image_resize.h"
+#include "stb/stb_image_resize.h"
 
 // TODO: preprocessed frame and SendFrames() are similar to
 // image-display.cc. Maybe things can be consolidated.
