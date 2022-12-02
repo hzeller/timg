@@ -36,6 +36,11 @@ struct rgba_t {
 
     // Rough mapping to the 256 color modes, a 6x6x6 cube.
     inline uint8_t As256TermColor() const {
+        if (r == g && g == b) {
+            // gray scale, using the 232-255 range.
+            return 232 + (r * 23 / 255);
+        }
+
         auto v2cube = [](uint8_t v) {  // middle of cut-off points for cube.
             return v < 0x5f / 2            ? 0
                    : v < (0x5f + 0x87) / 2 ? 1
