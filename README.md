@@ -460,6 +460,17 @@ sudo snap install timg
 
 ### Build and Install from source
 
+#### Get dependencies on fedora
+
+```bash
+sudo dnf install cmake git g++ pkg-config
+sudo dnf install GraphicsMagick-c++-devel turbojpeg-devel libexif-devel libswscale-free-devel
+
+# If you want to include video decoding, also install these additional libraries
+sudo dnf install libavcodec-free-devel libavformat-free-devel libavdevice-free-devel openslide-devel
+sudo dnf install pandoc  # If you want to recreate the man page
+```
+
 #### Get dependencies on Debian/Ubuntu
 
 ```bash
