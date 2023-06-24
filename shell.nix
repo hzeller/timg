@@ -11,7 +11,7 @@ pkgs.mkShell {
        pkg-config
        graphicsmagick
        libjpeg
-       zlib
+       libdeflate
        ffmpeg
        libexif
        openslide

@@ -18,7 +18,7 @@ target_sources(timg PRIVATE
   unicode-block-canvas.h unicode-block-canvas.cc
 )
 
-target_link_libraries(timg PkgConfig::ZLIB Threads::Threads)
+target_link_libraries(timg PkgConfig::LIBDEFLATE Threads::Threads)
 target_include_directories(timg PRIVATE ${CMAKE_BINARY_DIR}/src)
 
 target_compile_features(timg PRIVATE cxx_std_14)

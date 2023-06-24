@@ -30,7 +30,7 @@ if(TIMG_VERSION_FROM_GIT)
   include(GetGitRevisionDescription)
 endif()
 
-pkg_check_modules(ZLIB REQUIRED IMPORTED_TARGET zlib)
+pkg_check_modules(LIBDEFLATE REQUIRED IMPORTED_TARGET libdeflate)
 
 if(WITH_TURBOJPEG)
   pkg_check_modules(TURBOJPEG REQUIRED IMPORTED_TARGET libturbojpeg)

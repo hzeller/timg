@@ -17,8 +17,8 @@
 
 #include <arpa/inet.h>
 #include <assert.h>
+#include <libdeflate.h>
 #include <string.h>
-#include <zlib.h>
 
 #include "framebuffer.h"
 
@@ -50,7 +50,8 @@ public:
         const uint32_t data_len = pos_ - start_block_ - 8;
         // We have access to the full buffer, so we can now run crc() over all
         // quickly.
-        const uint32_t crc        = crc32(0, start_block_ + 4, data_len + 4);
+        const uint32_t crc =
+            libdeflate_crc32(0, start_block_ + 4, data_len + 4);
         const uint32_t crc_bigint = htonl(crc);
         memcpy(pos_, &crc_bigint, 4);
         pos_ += 4;
@@ -87,13 +88,13 @@ private:
 template <int with_alpha>
 static size_t EncodePNGInternal(const Framebuffer &fb, int compression_level,
                                 char *const buffer, size_t size) {
-    static constexpr int kCompressionStrategy = Z_RLE;
-    static constexpr uint8_t kFilterType      = 0x01;
+    static constexpr uint8_t kFilterType = 0x01;
 
-    const int width            = fb.width();
-    const int height           = fb.height();
-    uint8_t *const line_buffer = new uint8_t[1 + fb.width() * sizeof(rgba_t)];
-    *line_buffer               = kFilterType;
+    const int width  = fb.width();
+    const int height = fb.height();
+    const size_t cbuffer_size =
+        width * height * sizeof(rgba_t) + height * sizeof(kFilterType);
+    uint8_t *const compress_buffer = new uint8_t[cbuffer_size];
 
     uint8_t *pos = (uint8_t *)buffer;
     memcpy(pos, kPNGHeader, sizeof(kPNGHeader));
@@ -112,20 +113,17 @@ static size_t EncodePNGInternal(const Framebuffer &fb, int compression_level,
     block.writeByte(0);                   // interlace. None.
 
     block.StartNextBlock("IDAT");
-    z_stream stream;
-    memset(&stream, 0x00, sizeof(stream));
-    deflateInit2(&stream, compression_level, Z_DEFLATED, 15 /*window bits*/,
-                 9 /* memlevel*/, kCompressionStrategy);
 
+    const int compress_avail = size - (block.writePos() - (uint8_t *)buffer);
+    libdeflate_compressor *compressor =
+        libdeflate_alloc_compressor(compression_level);
     const int bytes_per_pixel  = with_alpha ? 4 : 3;
-    const int compress_avail   = size - 13;  // IHDR size
-    stream.avail_out           = compress_avail;
-    stream.next_out            = block.writePos();
     const rgba_t *current_line = fb.begin();
 
+    uint8_t *out = compress_buffer;
     for (int y = 0; y < height; ++y, current_line += width) {
-        uint8_t *out = line_buffer + 1;  // kFilterType already there.
-        memcpy(out, current_line, 4);
+        *out++ = kFilterType;
+        memcpy(out, current_line, 4);  // First pixel
         out += bytes_per_pixel;
         for (int i = 1; i < width; ++i) {
             *out++ = current_line[i].r - current_line[i - 1].r;
@@ -133,17 +131,13 @@ static size_t EncodePNGInternal(const Framebuffer &fb, int compression_level,
             *out++ = current_line[i].b - current_line[i - 1].b;
             if (with_alpha) *out++ = current_line[i].a - current_line[i - 1].a;
         }
-
-        stream.avail_in = 1 + width * bytes_per_pixel;
-        stream.next_in  = (uint8_t *)line_buffer;
-
-        deflate(&stream, (y == height - 1) ? Z_FINISH : Z_NO_FLUSH);
     }
 
-    assert(stream.avail_in == 0);  // We expect that to be used up.
-    block.updateWritten(compress_avail - stream.avail_out);
-    deflateEnd(&stream);
-    delete[] line_buffer;
+    const size_t written_size = libdeflate_zlib_compress(
+        compressor, compress_buffer, out - compress_buffer,  //
+        block.writePos(), compress_avail);
+    block.updateWritten(written_size);
+    delete[] compress_buffer;
 
     block.StartNextBlock("IEND");
     return block.Finalize() - (uint8_t *)buffer;
