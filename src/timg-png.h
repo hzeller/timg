@@ -16,25 +16,34 @@
 #ifndef TIMG_PNG_H
 #define TIMG_PNG_H
 
+// This implements a simple and fast PNG encoder https://w3.org/TR/png/
+
 #include <stdint.h>
 #include <unistd.h>
 
 namespace timg {
 class Framebuffer;
 
-// Encode framebuffer as PNG into given buffer.
+namespace png {
+// Encode framebuffer as PNG into given buffer and return encoded size.
+//
+// Provided buffer needs to be large enough; use UpperSizeEstimate() to prepare.
+//
 // "compression_level" is the compression level; 0 means essentially plain
 // bytes without compression, 1 and more compresses. For our use-case probably
-// only 1 is ever needed (we want to be fast)
+// only 1 is ever needed (we want to be fast).
 //
-// If "do_32_bit_alpha" is enabled, then RGBA data is encoded, otherwise
-// 24 bit RGB.
+// The ColorEncoding enum requests if 24Bit RGB or full 32Bit RGBA is encoded.
 enum class ColorEncoding {
     kRGBA_32,
     kRGB_24,
 };
-size_t EncodePNG(const Framebuffer &fb, int compression_level,
-                 ColorEncoding encoding, char *buffer, size_t size);
+size_t Encode(const Framebuffer &fb, int compression_level,
+              ColorEncoding encoding, char *buffer, size_t size);
 
+// Return estimate of maximum size needed to encode image of given size.
+size_t UpperSizeEstimate(int width, int height);
+
+}  // namespace png
 }  // namespace timg
 #endif  // TIMG_PNG_H

@@ -39,11 +39,11 @@ void ITerm2GraphicsCanvas::Send(int x, int dy, const Framebuffer &fb,
 
     pos = AppendPrefixToBuffer(pos);
 
-    int png_size =
-        timg::EncodePNG(fb, options_.compress_pixel_format ? 1 : 0,
-                        options_.local_alpha_handling ? ColorEncoding::kRGB_24
-                                                      : ColorEncoding::kRGBA_32,
-                        png_buf_, png_buf_size_);
+    const int png_size = png::Encode(fb, options_.compress_pixel_format ? 1 : 0,
+                                     options_.local_alpha_handling
+                                         ? png::ColorEncoding::kRGB_24
+                                         : png::ColorEncoding::kRGBA_32,
+                                     png_buf_, png_buf_size_);
 
     if (!png_size) return;  // Error. Ignore.
 
@@ -61,9 +61,7 @@ void ITerm2GraphicsCanvas::Send(int x, int dy, const Framebuffer &fb,
 ITerm2GraphicsCanvas::~ITerm2GraphicsCanvas() { free(png_buf_); }
 
 char *ITerm2GraphicsCanvas::RequestBuffer(int width, int height) {
-    // We don't really know how much size the encoded image takes, though one
-    // would expect typically smaller, and hopefully not more than twice...
-    const size_t png_compressed_size = (4 * width * height) * 2;
+    const size_t png_compressed_size = png::UpperSizeEstimate(width, height);
     const int encoded_base64_size    = png_compressed_size * 4 / 3;
     const size_t content_size =
         strlen(SCREEN_CURSOR_UP_FORMAT) + strlen(SCREEN_CURSOR_RIGHT_FORMAT) +

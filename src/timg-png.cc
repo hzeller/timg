@@ -24,27 +24,31 @@
 
 namespace timg {
 namespace {
+// https://w3.org/TR/png/#5PNG-file-signature
 constexpr uint8_t kPNGHeader[] = {0x89, 0x50, 0x4E, 0x47,
                                   '\r', '\n', 0x1A, '\n'};
 
-// Writing PNG-style blocks: [4 len][4 chunk]<data>[4 CRC]
-class BlockWriter {
+// Writing PNG-style chunks into provided buffer.
+// [4 len][4 chunk]<data>[4 CRC]
+// https://w3.org/TR/png/#5Chunk-layout
+class ChunkWriter {
 public:
-    explicit BlockWriter(uint8_t *pos) : start_block_(pos), pos_(pos) {}
+    explicit ChunkWriter(uint8_t *pos) : start_block_(pos), pos_(pos) {}
 
-    ~BlockWriter() { assert(finalized_); }
+    ~ChunkWriter() { assert(finalized_); }
 
-    // Finish last block, start new block.
-    void StartNextBlock(const char *chunk_type) {
+    // Finish last chunk, start new chunk.
+    uint8_t *StartNextChunk(const char *chunk_type) {
         if (!finalized_) start_block_ = Finalize();
         assert(strlen(chunk_type) == 4);
         // We fix up the initial 4 bytes later once we know the length.
         memcpy(pos_ + 4, chunk_type, 4);
         pos_ += 8;
         finalized_ = false;
+        return pos_;
     }
 
-    // Finish block
+    // Finish chunk and return position of next write.
     uint8_t *Finalize() {
         assert(!finalized_);
         const uint32_t data_len = pos_ - start_block_ - 8;
@@ -72,9 +76,6 @@ public:
         pos_ += 4;
     }
 
-    // Get next position we write to.
-    uint8_t *writePos() { return pos_; }
-
     // Tell how many bytes have been written.
     void updateWritten(size_t written) { pos_ += written; }
 
@@ -83,27 +84,23 @@ private:
     uint8_t *start_block_;  // Where our block started.
     uint8_t *pos_;          // Current write position
 };
-}  // namespace
 
-template <int with_alpha>
+template <bool with_alpha>
 static size_t EncodePNGInternal(const Framebuffer &fb, int compression_level,
                                 char *const buffer, size_t size) {
-    static constexpr uint8_t kFilterType = 0x01;
+    static constexpr uint8_t kFilterType = 0x01;  // simplest substract filter
 
     const int width  = fb.width();
     const int height = fb.height();
-    const size_t cbuffer_size =
-        width * height * sizeof(rgba_t) + height * sizeof(kFilterType);
-    uint8_t *const compress_buffer = new uint8_t[cbuffer_size];
 
     uint8_t *pos = (uint8_t *)buffer;
     memcpy(pos, kPNGHeader, sizeof(kPNGHeader));
     pos += sizeof(kPNGHeader);
 
-    BlockWriter block(pos);
+    ChunkWriter block(pos);
 
     // Image header
-    block.StartNextBlock("IHDR");
+    block.StartNextChunk("IHDR");
     block.writeInt(width);                // width
     block.writeInt(height);               // height
     block.writeByte(8);                   // bith depth
@@ -112,18 +109,19 @@ static size_t EncodePNGInternal(const Framebuffer &fb, int compression_level,
     block.writeByte(0);                   // filter method.
     block.writeByte(0);                   // interlace. None.
 
-    block.StartNextBlock("IDAT");
+    // Prepare data to be compressed.
+    // TODO: to reduce allocation overhead in repeated calls, maybe ask the
+    // caller to provide a sufficiently large scratch buffer ?
+    const size_t cbuffer_size =
+        width * height * sizeof(rgba_t) + height * sizeof(kFilterType);
+    uint8_t *const compress_buffer = new uint8_t[cbuffer_size];
 
-    const int compress_avail = size - (block.writePos() - (uint8_t *)buffer);
-    libdeflate_compressor *const compressor =
-        libdeflate_alloc_compressor(compression_level);
-    const int bytes_per_pixel  = with_alpha ? 4 : 3;
-    const rgba_t *current_line = fb.begin();
-
-    uint8_t *out = compress_buffer;
+    constexpr int bytes_per_pixel = with_alpha ? 4 : 3;
+    const rgba_t *current_line    = fb.begin();
+    uint8_t *out                  = compress_buffer;
     for (int y = 0; y < height; ++y, current_line += width) {
         *out++ = kFilterType;
-        memcpy(out, current_line, 4);  // First pixel
+        memcpy(out, current_line, sizeof(rgba_t));  // First pixel
         out += bytes_per_pixel;
         for (int i = 1; i < width; ++i) {
             *out++ = current_line[i].r - current_line[i - 1].r;
@@ -133,23 +131,40 @@ static size_t EncodePNGInternal(const Framebuffer &fb, int compression_level,
         }
     }
 
+    // Write image IDAT data.
+    uint8_t *const start_data = block.StartNextChunk("IDAT");
+    const int compress_avail  = size - (start_data - (uint8_t *)buffer);
+    libdeflate_compressor *const compressor =
+        libdeflate_alloc_compressor(compression_level);
+
     const size_t written_size = libdeflate_zlib_compress(
         compressor, compress_buffer, out - compress_buffer,  //
-        block.writePos(), compress_avail);
+        start_data, compress_avail);
     block.updateWritten(written_size);
 
-    delete[] compress_buffer;
     libdeflate_free_compressor(compressor);
+    delete[] compress_buffer;
 
-    block.StartNextBlock("IEND");
+    block.StartNextChunk("IEND");
     return block.Finalize() - (uint8_t *)buffer;
 }
+}  // namespace
 
-size_t EncodePNG(const Framebuffer &fb, int compression_level,
-                 ColorEncoding encoding, char *buffer, size_t size) {
-    if (encoding == ColorEncoding::kRGBA_32)
-        return EncodePNGInternal<true>(fb, compression_level, buffer, size);
-    else
+namespace png {
+size_t Encode(const Framebuffer &fb, int compression_level,
+              ColorEncoding encoding, char *buffer, size_t size) {
+    if (encoding == ColorEncoding::kRGB_24) {
         return EncodePNGInternal<false>(fb, compression_level, buffer, size);
+    }
+    return EncodePNGInternal<true>(fb, compression_level, buffer, size);
 }
+
+size_t UpperSizeEstimate(int width, int height) {
+    static constexpr size_t kPNGHeaderOverhead = 128;  // reality about ~57
+    const size_t image_data_size =
+        width * height * sizeof(rgba_t) + height * 1 /*filter-per-row*/;
+    return libdeflate_zlib_compress_bound(nullptr, image_data_size) +
+           kPNGHeaderOverhead;
+}
+}  // namespace png
 }  // namespace timg
