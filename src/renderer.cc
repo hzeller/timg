@@ -93,8 +93,9 @@ public:
             }
             else {
                 if (dy != 0) {
-                    y_offset = dy;   // Some animation jumping back
-                } else {
+                    y_offset = dy;  // Some animation jumping back
+                }
+                else {
                     // Multi-image rendering, shown in multiple columns.
                     y_offset = AdvanceColumn() ? 0 : -last_fb_height_;
                 }

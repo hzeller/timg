@@ -18,8 +18,8 @@
 #define QOI_IMPLEMENTATION
 #include <stdlib.h>
 
-#include "qoi.h"
 #include "framebuffer.h"
+#include "qoi.h"
 
 extern "C" {
 #include <libavutil/pixfmt.h>
