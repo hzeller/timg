@@ -19,7 +19,7 @@ jobs:
     steps:
       - name: Install minimal dependencies
         run: |
-          sudo apt install cmake git g++ clang pkg-config libswscale-dev libavutil-dev libdeflate
+          sudo apt install cmake git g++ clang pkg-config libswscale-dev libavutil-dev libdeflate-dev
 
       - name: Get the Source
         uses: actions/checkout@v2

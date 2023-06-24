@@ -14,6 +14,7 @@ jobs:
         run: |
           brew update
           brew install GraphicsMagick webp cmake
+          brew install libdeflate
           brew install ffmpeg jpeg-turbo libexif libpng
           brew install openslide
           brew install pandoc

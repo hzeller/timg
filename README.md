@@ -2,9 +2,9 @@ timg - Terminal Image and Video Viewer
 ======================================
 
 [![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://github.com/hzeller/timg/blob/main/LICENSE) &nbsp;
-[![Ubuntu Build](../../workflows/CI/badge.svg)](../../actions/workflows/ubuntu.yml")
-[![macOS Build](../../workflows/macOS%20Build/badge.svg)](../../actions/workflows/macos.yml")
-[![macOS Brew Building HEAD](../../workflows/macOS%20Brew%20Building%20HEAD/badge.svg)](../../actions/workflows/macos-brew.yml")
+[![Ubuntu Build](../../workflows/CI/badge.svg)](../../actions/workflows/ubuntu.yml)
+[![macOS Build](../../workflows/macOS%20Build/badge.svg)](../../actions/workflows/macos.yml)
+[![macOS Brew Building HEAD](../../workflows/macOS%20Brew%20Building%20HEAD/badge.svg)](../../actions/workflows/macos-brew.yml)
 
 
 ### https://timg.sh/
