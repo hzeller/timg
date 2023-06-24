@@ -475,7 +475,7 @@ sudo dnf install pandoc  # If you want to recreate the man page
 
 ```bash
 sudo apt install cmake git g++ pkg-config
-sudo apt install libgraphicsmagick++-dev libturbojpeg-dev libexif-dev libswscale-dev libdeflate # needed libs
+sudo apt install libgraphicsmagick++-dev libturbojpeg-dev libexif-dev libswscale-dev libdeflate-dev # needed libs
 
 # If you want to include video decoding, also install these additional libraries
 sudo apt install libavcodec-dev libavformat-dev

@@ -115,7 +115,7 @@ static size_t EncodePNGInternal(const Framebuffer &fb, int compression_level,
     block.StartNextBlock("IDAT");
 
     const int compress_avail = size - (block.writePos() - (uint8_t *)buffer);
-    libdeflate_compressor *compressor =
+    libdeflate_compressor *const compressor =
         libdeflate_alloc_compressor(compression_level);
     const int bytes_per_pixel  = with_alpha ? 4 : 3;
     const rgba_t *current_line = fb.begin();
@@ -137,7 +137,9 @@ static size_t EncodePNGInternal(const Framebuffer &fb, int compression_level,
         compressor, compress_buffer, out - compress_buffer,  //
         block.writePos(), compress_avail);
     block.updateWritten(written_size);
+
     delete[] compress_buffer;
+    libdeflate_free_compressor(compressor);
 
     block.StartNextBlock("IEND");
     return block.Finalize() - (uint8_t *)buffer;
