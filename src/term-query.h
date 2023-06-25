@@ -21,11 +21,14 @@ namespace timg {
 // Returns static string if successful or nullptr if not.
 const char* QueryBackgroundColor();
 
-// Query the terminal if it supports the Kitty graphics protocol.
-bool QueryHasKittyGraphics();
+enum class GraphicsProtocol {
+    kNone,
+    kIterm2,
+    kKitty,
+};
+// Query the terminal if and what graphics protocol it supports.
+GraphicsProtocol QuerySupportedGraphicsProtocol();
 
-// Query if the terminal supports the iTerm2 graphics.
-bool QueryHasITerm2Graphics();
 }  // namespace timg
 
 #endif  // TIMG_TERM_QUERY_H

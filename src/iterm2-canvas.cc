@@ -39,7 +39,7 @@ void ITerm2GraphicsCanvas::Send(int x, int dy, const Framebuffer &fb,
 
     pos = AppendPrefixToBuffer(pos);
 
-    const int png_size = png::Encode(fb, options_.compress_pixel_format ? 1 : 0,
+    const int png_size = png::Encode(fb, options_.compress_pixel_level,
                                      options_.local_alpha_handling
                                          ? png::ColorEncoding::kRGB_24
                                          : png::ColorEncoding::kRGBA_32,

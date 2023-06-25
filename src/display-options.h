@@ -49,7 +49,7 @@ struct DisplayOptions {
     // useful when SSH-ed in remotely), at the expense of more CPU time
     // used by timg to re-compress (usefulness might be negative when playing
     // a video locally).
-    bool compress_pixel_format = false;
+    int compress_pixel_level = 0;
 
     float width_stretch = 1.0;  // To correct font squareness aspect ratio
 

@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://gnu.org/licenses/gpl-2.0.txt>
 
+#include "term-query.h"
+
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,7 +28,6 @@
 #include <functional>
 #include <initializer_list>
 
-#include "termutils.h"
 #include "timg-time.h"
 
 namespace timg {
@@ -177,47 +178,18 @@ const char *QueryBackgroundColor() {
     return result;
 }
 
-bool QueryHasKittyGraphics() {
-    const char *term = getenv("TERM");
-    return term && (strcmp(term, "xterm-kitty") == 0);
+GraphicsProtocol QuerySupportedGraphicsProtocol() {
+    const char *const term = getenv("TERM");
+    if (term && strcmp(term, "xterm-kitty") == 0) {
+        return GraphicsProtocol::kKitty;
+    }
 
-    // The following would be the corrct query, but the graphics query seems
-    // to disturb other terminals such as Konsole (which spits out the graphics
-    // query on the screen) or iTerm2 (in which the terminal sometimes puts
-    // the query as the window title ?
-    // Need to find a less intrusive way. Ideally with a "\033[>q"
-    // For now, the above environment variable hack is probably an ok
-    // work-around as xterm-kitty is sufficiently unique
-#if 0
-    const Duration kTimeBudget = Duration::Millis(50);
-
-    // We send out two queries: one to determine if the graphics capabilities
-    // are available, and one standard simple DSR 5. If we only get a response
-    // to the innocuous status report request, we don't have graphics
-    // capability.
-    // (Unfortunately, Konsole has a bug, in which it actually spills the
-    // query to the terminal. We work around that in main()).
-    constexpr char graphics_query[] =
-        "\033_Ga=q,i=42,s=1,v=1,t=d,f=24;AAAA\033\\"  // Graphics query
-        "\033[5n";                                    // general status report.
-    bool found_graphics_response = false;
-    char buffer[512];
-    QueryTerminal(
-        graphics_query, buffer, sizeof(buffer), kTimeBudget,
-        [&found_graphics_response](const char *data, size_t len) {
-            found_graphics_response = (memmem(data, len, "\033_G", 3) != 0);
-            // We finish once we found the response to DSR 5
-            return (const char*) memmem(data, len, "\033[0n", 3);
-        });
-    return found_graphics_response;
-#endif
-}
-
-bool QueryHasITerm2Graphics() {
     const Duration kTimeBudget = Duration::Millis(250);
 
+    GraphicsProtocol result = GraphicsProtocol::kNone;
+
     // We send out two queries: one CSI for terminal version detection that
-    // is supported at leasht by the terminals we're interested in. From the
+    // is supported at least by the terminals we're interested in. From the
     // returned string we can determine if they are in supported set.
     //
     // This is followed by DSR 5 that is always expected to work.
@@ -226,16 +198,21 @@ bool QueryHasITerm2Graphics() {
     constexpr char term_query[] =
         "\033[>q"   // terminal version query
         "\033[5n";  // general status report.
-    bool has_iterm_graphics = false;
     char buffer[512];
     QueryTerminal(
         term_query, buffer, sizeof(buffer), kTimeBudget,
-        [&has_iterm_graphics](const char *data, size_t len) {
-            has_iterm_graphics |= (memmem(data, len, "iTerm2", 6) != 0);
-            has_iterm_graphics |= (memmem(data, len, "WezTerm", 7) != 0);
+        [&result](const char *data, size_t len) {
+            if (memmem(data, len, "iTerm2", 6) != 0) {
+                result = GraphicsProtocol::kIterm2;
+            }
+            if ((memmem(data, len, "WezTerm", 7) != 0) ||
+                (memmem(data, len, "kitty", 5) != 0)) {
+                result = GraphicsProtocol::kKitty;
+            }
             // We finish once we found the response to DSR5
             return (const char *)memmem(data, len, "\033[0n", 3);
         });
-    return has_iterm_graphics;
+    return result;
 }
+
 }  // namespace timg

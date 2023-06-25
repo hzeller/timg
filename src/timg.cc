@@ -396,7 +396,7 @@ int main(int argc, char *argv[]) {
         {"center",               no_argument,       NULL, 'C'               },
         {"clear",                optional_argument, NULL, OPT_CLEAR_SCREEN  },
         {"color8",               no_argument,       NULL, OPT_COLOR_256     },
-        {"compress",             no_argument,       NULL, OPT_COMPRESS_PIXEL},
+        {"compress",             optional_argument, NULL, OPT_COMPRESS_PIXEL},
         {"delta-move",           required_argument, NULL, 'd'               },
         {"debug-no-frame-delay", no_argument,       NULL, OPT_NO_FRAME_DELAY},
         {"frame-offset",         required_argument, NULL, OPT_FRAME_OFFSET  },
@@ -598,7 +598,13 @@ int main(int argc, char *argv[]) {
             }
             break;
         case OPT_COMPRESS_PIXEL:
-            display_opts.compress_pixel_format = true;
+            if (optarg) {
+                int level = atoi(optarg);
+                level = (level >= 0 && level <= 9) ? level : 1;
+                display_opts.compress_pixel_level = level;
+            } else {
+                display_opts.compress_pixel_level = 1;
+            }
             break;
         case OPT_COLOR_256: present.use_256_color = true; break;
         case OPT_VERBOSE: verbose = true; break;
@@ -649,7 +655,7 @@ int main(int argc, char *argv[]) {
         display_opts.cell_x_px = 9;  // Make up some typical values.
         display_opts.cell_y_px = 18;
         // hterm does _not_ support PNM, always convert to PNG.
-        display_opts.compress_pixel_format = true;
+        display_opts.compress_pixel_level = 1;
         // Because we don't know how much to move up and right. Also, hterm
         // does not seem to place an image in X-direction in the first place.
         present.grid_cols = 1;
@@ -664,10 +670,16 @@ int main(int argc, char *argv[]) {
         // another bug not returning the window pixel size, so we can use that
         // to avoid the query :)
         if (term.font_width_px > 0 && term.font_height_px > 0) {
-            if (timg::QueryHasITerm2Graphics())
+            switch (timg::QuerySupportedGraphicsProtocol()) {
+            case timg::GraphicsProtocol::kIterm2:
                 present.pixelation = Pixelation::kiTerm2Graphics;
-            else if (timg::QueryHasKittyGraphics())
+                break;
+            case timg::GraphicsProtocol::kKitty:
                 present.pixelation = Pixelation::kKittyGraphics;
+                break;
+            default:
+                break;
+            }
         }
 #endif
     }
@@ -676,7 +688,6 @@ int main(int argc, char *argv[]) {
     // PNG compression with alpha channels gives us compositing on client side
     if (is_pixel_direct_p(present.pixelation) &&
         strcasecmp(bg_color, "none") == 0) {
-        display_opts.compress_pixel_format = true;
         display_opts.local_alpha_handling  = false;
     }
 
