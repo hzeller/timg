@@ -201,12 +201,12 @@ GraphicsProtocol QuerySupportedGraphicsProtocol() {
     char buffer[512];
     QueryTerminal(term_query, buffer, sizeof(buffer), kTimeBudget,
                   [&result](const char *data, size_t len) {
-                      if (memmem(data, len, "iTerm2", 6) != 0) {
+                      if ((memmem(data, len, "iTerm2", 6) != 0) ||
+                          (memmem(data, len, "Konsole 2", 9) != 0)) {
                           result = GraphicsProtocol::kIterm2;
                       }
                       if ((memmem(data, len, "WezTerm", 7) != 0) ||
-                          (memmem(data, len, "kitty", 5) != 0) ||
-                          (memmem(data, len, "Konsole 2", 9) != 0)) {
+                          (memmem(data, len, "kitty", 5) != 0)) {
                           result = GraphicsProtocol::kKitty;
                       }
                       // We finish once we found the response to DSR5
