@@ -600,9 +600,10 @@ int main(int argc, char *argv[]) {
         case OPT_COMPRESS_PIXEL:
             if (optarg) {
                 int level = atoi(optarg);
-                level = (level >= 0 && level <= 9) ? level : 1;
+                level     = (level >= 0 && level <= 9) ? level : 1;
                 display_opts.compress_pixel_level = level;
-            } else {
+            }
+            else {
                 display_opts.compress_pixel_level = 1;
             }
             break;
@@ -677,8 +678,7 @@ int main(int argc, char *argv[]) {
             case timg::GraphicsProtocol::kKitty:
                 present.pixelation = Pixelation::kKittyGraphics;
                 break;
-            default:
-                break;
+            default: break;
             }
         }
 #endif
@@ -688,7 +688,7 @@ int main(int argc, char *argv[]) {
     // PNG compression with alpha channels gives us compositing on client side
     if (is_pixel_direct_p(present.pixelation) &&
         strcasecmp(bg_color, "none") == 0) {
-        display_opts.local_alpha_handling  = false;
+        display_opts.local_alpha_handling = false;
     }
 
     // If we're using block graphics, we might need to adapt the aspect ratio
