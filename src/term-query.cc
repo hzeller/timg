@@ -206,7 +206,7 @@ GraphicsProtocol QuerySupportedGraphicsProtocol() {
                       }
                       if ((memmem(data, len, "WezTerm", 7) != 0) ||
                           (memmem(data, len, "kitty", 5) != 0) ||
-                          (memmem(data, len, "Konsole 2", 5) != 0)) {
+                          (memmem(data, len, "Konsole 2", 9) != 0)) {
                           result = GraphicsProtocol::kKitty;
                       }
                       // We finish once we found the response to DSR5
