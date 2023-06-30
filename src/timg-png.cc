@@ -159,7 +159,7 @@ size_t Encode(const Framebuffer &fb, int compression_level,
     return EncodePNGInternal<true>(fb, compression_level, buffer, size);
 }
 
-size_t UpperSizeEstimate(int width, int height) {
+size_t UpperBound(int width, int height) {
     static constexpr size_t kPNGHeaderOverhead = 128;  // reality about ~57
     const size_t image_data_size =
         width * height * sizeof(rgba_t) + height * 1 /*filter-per-row*/;

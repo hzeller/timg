@@ -42,7 +42,7 @@ size_t Encode(const Framebuffer &fb, int compression_level,
               ColorEncoding encoding, char *buffer, size_t size);
 
 // Return estimate of maximum size needed to encode image of given size.
-size_t UpperSizeEstimate(int width, int height);
+size_t UpperBound(int width, int height);
 
 }  // namespace png
 }  // namespace timg

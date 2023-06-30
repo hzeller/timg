@@ -83,7 +83,7 @@ void KittyGraphicsCanvas::Send(int x, int dy, const Framebuffer &fb,
 KittyGraphicsCanvas::~KittyGraphicsCanvas() { free(png_buf_); }
 
 char *KittyGraphicsCanvas::RequestBuffer(int width, int height) {
-    const size_t png_compressed_size = png::UpperSizeEstimate(width, height);
+    const size_t png_compressed_size = png::UpperBound(width, height);
     const int encoded_base64_size    = png_compressed_size * 4 / 3;
     const size_t content_size =
         strlen(SCREEN_CURSOR_UP_FORMAT) + strlen(SCREEN_CURSOR_RIGHT_FORMAT) +
