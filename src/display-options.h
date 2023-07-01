@@ -48,8 +48,8 @@ struct DisplayOptions {
     // the amount of data that has to be sent to the terminal (in particular
     // useful when SSH-ed in remotely), at the expense of more CPU time
     // used by timg to re-compress (usefulness might be negative when playing
-    // a video locally).
-    int compress_pixel_level = 0;
+    // a video locally). Compression is done in separate thread.
+    int compress_pixel_level = 1;
 
     float width_stretch = 1.0;  // To correct font squareness aspect ratio
 

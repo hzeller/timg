@@ -75,10 +75,11 @@ these file decoders (GraphicsMagick or libav respectively).
 
      Default is 'quarter' unless the terminal is graphics-capable.
 
-**-\-compress**
+**-\-compress**[=&lt;*level*&gt;]**
 :   For the graphics modes: this switches on compression for the transmission to
     the terminal. This uses more CPU on timg, but is desirable when connected
-    over a slow network.
+    over a slow network. Default compression level is 1, to disable, set to
+    0 (zero).
 
 **-C**, **-\-center**
 :    Center image(s) and title(s) horizontally.
