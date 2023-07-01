@@ -18,25 +18,23 @@
 
 #include "display-options.h"
 #include "terminal-canvas.h"
+#include "thread-pool.h"
 
 namespace timg {
 // Implements https://iterm2.com/documentation-images.html
 class ITerm2GraphicsCanvas final : public TerminalCanvas {
 public:
-    ITerm2GraphicsCanvas(BufferedWriteSequencer *ws,
+    ITerm2GraphicsCanvas(BufferedWriteSequencer *ws, ThreadPool *thread_pool,
                          const DisplayOptions &opts);
-    ~ITerm2GraphicsCanvas() override;
 
     void Send(int x, int dy, const Framebuffer &framebuffer,
               SeqType sequence_type, Duration end_of_frame) override;
 
 private:
     const DisplayOptions &options_;
+    ThreadPool *const executor_;
 
     char *RequestBuffer(int width, int height);
-
-    char *png_buf_       = nullptr;  // Scratch buffer to encode PNG into
-    size_t png_buf_size_ = 0;
 };
 }  // namespace timg
 #endif  // ITERM2_CANVAS_H

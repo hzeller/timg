@@ -131,11 +131,9 @@ struct PresentationOptions {
 // Image sources; as future as they are being filled while we start presenting
 typedef std::vector<std::future<timg::ImageSource *>> LoadedImageSources;
 
-// Modern processors with some sort of hyperthreading don't seem to scale
-// much beyond their physical core count when doing image processing.
-// So just keep thread count at half what we get reported.
+// Use most cores that are available.
 static const int kDefaultThreadCount =
-    std::max(1U, std::thread::hardware_concurrency() / 2);
+    std::max(1, 3 * (int)std::thread::hardware_concurrency() / 4);
 
 volatile sig_atomic_t interrupt_received = 0;
 static void InterruptHandler(int signo) { interrupt_received = 1; }
@@ -219,7 +217,7 @@ static int usage(const char *progname, ExitCode exit_code, int width,
         "\t-o<outfile>    : Write to <outfile> instead of stdout.\n"
         "\t-E             : Don't hide the cursor while showing images.\n"
         "\t--threads=<n>  : Run image decoding in parallel with n threads\n"
-        "\t                 (Default %d, half #cores on this machine)\n"
+        "\t                 (Default %d, 3/4 #cores on this machine)\n"
         "\t--color8       : Choose 8 bit color mode for -ph or -pq\n"
         "\t--version      : Print version and exit.\n"
         "\t-h, --help     : Print this help and exit.\n"
@@ -273,13 +271,19 @@ static void PresentImages(LoadedImageSources *loaded_sources,
                           const timg::PresentationOptions &present,
                           timg::BufferedWriteSequencer *sequencer,
                           bool *any_animations_seen) {
+    using timg::ThreadPool;
+    std::unique_ptr<ThreadPool> compression_pool;
     std::unique_ptr<TerminalCanvas> canvas;
     switch (present.pixelation) {
     case Pixelation::kKittyGraphics:
-        canvas.reset(new KittyGraphicsCanvas(sequencer, display_opts));
+        compression_pool.reset(new ThreadPool(sequencer->max_queue_len() + 1));
+        canvas.reset(new KittyGraphicsCanvas(sequencer, compression_pool.get(),
+                                             display_opts));
         break;
     case Pixelation::kiTerm2Graphics:
-        canvas.reset(new ITerm2GraphicsCanvas(sequencer, display_opts));
+        compression_pool.reset(new ThreadPool(sequencer->max_queue_len() + 1));
+        canvas.reset(new ITerm2GraphicsCanvas(sequencer, compression_pool.get(),
+                                              display_opts));
         break;
     case Pixelation::kHalfBlock:
     case Pixelation::kQuarterBlock:
@@ -335,6 +339,7 @@ static void PresentImages(LoadedImageSources *loaded_sources,
         }
         is_first = false;
     }
+    sequencer->Flush();
 }
 
 int main(int argc, char *argv[]) {
@@ -829,7 +834,10 @@ int main(int argc, char *argv[]) {
         loaded_sources.push_back(pool->ExecAsync(f));
     }
 
-    static constexpr int kAsyncWriteQueueSize = 3;
+    // The aync write queue (BufferedWriteSequencer) lines up the next
+    // buffers to be emitted.
+    static constexpr int kAsyncWriteQueueSize = 4;
+
     // Since Unicode blocks emit differences, we can't skip frames in output.
     // TODO: should probably better ask the canvas directly instead.
     const bool buffer_allow_skipping = (display_opts.allow_frame_skipping &&
@@ -840,7 +848,6 @@ int main(int argc, char *argv[]) {
     const Time start_show = Time::Now();
     PresentImages(&loaded_sources, display_opts, present, &sequencer,
                   &cell_size_warning_needed);
-    sequencer.Flush();
     const Time end_show = Time::Now();
 
     if (interrupt_received) {

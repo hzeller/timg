@@ -25,42 +25,46 @@
 
 namespace timg {
 ITerm2GraphicsCanvas::ITerm2GraphicsCanvas(BufferedWriteSequencer *ws,
+                                           ThreadPool *thread_pool,
                                            const DisplayOptions &opts)
-    : TerminalCanvas(ws), options_(opts) {}
+    : TerminalCanvas(ws), options_(opts), executor_(thread_pool) {}
 
-void ITerm2GraphicsCanvas::Send(int x, int dy, const Framebuffer &fb,
+void ITerm2GraphicsCanvas::Send(int x, int dy, const Framebuffer &fb_orig,
                                 SeqType seq_type, Duration end_of_frame) {
     if (dy < 0) {
         MoveCursorDY(-((-dy + options_.cell_y_px - 1) / options_.cell_y_px));
     }
     MoveCursorDX(x / options_.cell_x_px);
 
-    char *const buffer = RequestBuffer(fb.width(), fb.height());
-    char *pos          = buffer;
+    // Create copy to be used in threads.
+    const Framebuffer *const fb = new Framebuffer(fb_orig);
+    char *const buffer          = RequestBuffer(fb->width(), fb->height());
+    char *const offset          = AppendPrefixToBuffer(buffer);
 
-    pos = AppendPrefixToBuffer(pos);
+    const auto &options                   = options_;
+    std::function<OutBuffer()> encode_fun = [options, fb, buffer, offset]() {
+        std::unique_ptr<const Framebuffer> auto_delete(fb);
+        const size_t png_buf_size = png::UpperBound(fb->width(), fb->height());
+        std::unique_ptr<char[]> png_buf(new char[png_buf_size]);
 
-    const int png_size = png::Encode(fb, options_.compress_pixel_level,
-                                     options_.local_alpha_handling
-                                         ? png::ColorEncoding::kRGB_24
-                                         : png::ColorEncoding::kRGBA_32,
-                                     png_buf_, png_buf_size_);
+        const int png_size = png::Encode(*fb, options.compress_pixel_level,
+                                         options.local_alpha_handling
+                                             ? png::ColorEncoding::kRGB_24
+                                             : png::ColorEncoding::kRGBA_32,
+                                         png_buf.get(), png_buf_size);
 
-    if (!png_size) return;  // Error. Ignore.
+        char *pos = offset;
+        pos += sprintf(pos, "\e]1337;File=width=%dpx;height=%dpx;inline=1:",
+                       fb->width(), fb->height());
+        pos = timg::EncodeBase64(png_buf.get(), png_size, pos);
 
-    pos += sprintf(pos,
-                   "\e]1337;File=width=%dpx;height=%dpx;inline=1:", fb.width(),
-                   fb.height());
-    pos = timg::EncodeBase64(png_buf_, png_size, pos);
-
-    *pos++ = '\007';
-    *pos++ = '\n';  // Need one final cursor movement.
-
-    write_sequencer_->WriteBuffer(OutBuffer{buffer, (size_t)(pos - buffer)},
-                                  seq_type, end_of_frame);
+        *pos++ = '\007';
+        *pos++ = '\n';  // Need one final cursor movement.
+        return OutBuffer(buffer, pos - buffer);
+    };
+    write_sequencer_->WriteBuffer(executor_->ExecAsync(encode_fun), seq_type,
+                                  end_of_frame);
 }
-
-ITerm2GraphicsCanvas::~ITerm2GraphicsCanvas() { free(png_buf_); }
 
 char *ITerm2GraphicsCanvas::RequestBuffer(int width, int height) {
     const size_t png_compressed_size = png::UpperBound(width, height);
@@ -71,11 +75,6 @@ char *ITerm2GraphicsCanvas::RequestBuffer(int width, int height) {
         + strlen("\e\1337;File=width=9999px;height=9999px;inline=1:\007") + 4 +
         1; /* digit space for cursor up/right; \n */
 
-    if (png_compressed_size > png_buf_size_) {
-        png_buf_      = (char *)realloc(png_buf_, png_compressed_size);
-        png_buf_size_ = png_compressed_size;
-    }
-
-    return new char [content_size];
+    return new char[content_size];
 }
 }  // namespace timg

@@ -68,9 +68,10 @@ public:
     typedef const rgba_t *const_iterator;
     class rgb_iterator;
 
+    Framebuffer() = delete;
     Framebuffer(int width, int height);
-    Framebuffer()                         = delete;
-    Framebuffer(const Framebuffer &other) = delete;
+    explicit Framebuffer(const Framebuffer &other);
+
     ~Framebuffer();
 
     // Set a pixel at position X/Y with rgba_t color value. use to_rgba() to

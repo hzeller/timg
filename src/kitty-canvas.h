@@ -18,24 +18,23 @@
 
 #include "display-options.h"
 #include "terminal-canvas.h"
+#include "thread-pool.h"
 
 namespace timg {
 // Implements https://sw.kovidgoyal.net/kitty/graphics-protocol.html
 class KittyGraphicsCanvas final : public TerminalCanvas {
 public:
-    KittyGraphicsCanvas(BufferedWriteSequencer *ws, const DisplayOptions &opts);
-    ~KittyGraphicsCanvas() override;
+    KittyGraphicsCanvas(BufferedWriteSequencer *ws, ThreadPool *thread_pool,
+                        const DisplayOptions &opts);
 
     void Send(int x, int dy, const Framebuffer &framebuffer,
               SeqType sequence_type, Duration end_of_frame) override;
 
 private:
     const DisplayOptions &options_;
+    ThreadPool *const executor_;
 
     char *RequestBuffer(int width, int height);
-
-    char *png_buf_       = nullptr;  // Scratch buffer to encode PNG into
-    size_t png_buf_size_ = 0;
 };
 }  // namespace timg
 #endif  // KITTY_CANVAS_H

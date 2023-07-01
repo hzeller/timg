@@ -431,7 +431,7 @@ char *UnicodeBlockCanvas::RequestBuffers(int width, int height) {
         empty_line_size_ = new_empty;
         memset(empty_line_, 0x00, empty_line_size_);
     }
-    return new char [content_size];
+    return new char[content_size];
 }
 
 // Converting the colors requires fast uint8 -> ASCII decimal digits with

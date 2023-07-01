@@ -58,6 +58,16 @@ Framebuffer::Framebuffer(int w, int h)
     Clear();
 }
 
+Framebuffer::Framebuffer(const Framebuffer &other)
+    : width_(other.width_),
+      height_(other.height_),
+      pixels_(new rgba_t[width_ * height_]),
+      end_(pixels_ + width_ * height_) {
+    strides_[0] = (int)sizeof(rgba_t) * width_;
+    strides_[1] = 0;  // empty sentinel value.
+    memcpy(pixels_, other.pixels_, sizeof(rgba_t) * width_ * height_);
+}
+
 Framebuffer::~Framebuffer() {
     delete[] row_data_;
     delete[] pixels_;

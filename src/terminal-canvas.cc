@@ -44,7 +44,7 @@ TerminalCanvas::TerminalCanvas(BufferedWriteSequencer *write_sequencer)
 TerminalCanvas::~TerminalCanvas() {
     if (!prefix_send_.empty()) {
         // The final 'cursor on' might still be in the buffer.
-        OutBuffer buffer(new char [prefix_send_.size()], prefix_send_.size());
+        OutBuffer buffer(new char[prefix_send_.size()], prefix_send_.size());
         AppendPrefixToBuffer(buffer.data);
         write_sequencer_->WriteBuffer(std::move(buffer), SeqType::ControlWrite);
     }
