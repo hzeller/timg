@@ -870,8 +870,15 @@ int main(int argc, char *argv[]) {
                     "\t->File a feature request with the terminal "
                     "emulator program you use\n");
         }
-        fprintf(stderr, "Active Geometry: %dx%d\n", geometry_width,
+        fprintf(stderr, "Active Geometry: %dx%d", geometry_width,
                 geometry_height);
+        if (is_pixel_direct_p(present.pixelation) &&
+            term.font_width_px > 0 && term.font_height_px > 0) {
+            fprintf(stderr, "; canvas-pixels: %dx%d",
+                    geometry_width * term.font_width_px,
+                    geometry_height * term.font_height_px);
+        }
+        fprintf(stderr, "\n");
         const rgba_t bg = display_opts.bgcolor_getter();
         fprintf(stderr,
                 "Background color for transparency '%s', effective "
@@ -895,7 +902,7 @@ int main(int argc, char *argv[]) {
                 timg::HumanReadableByteValue(written_bytes / d).c_str(),
                 sequencer.frames_total());
         // Only show FPS if we have one video or animation
-        if (filelist.size() == 1 && sequencer.frames_total() > 100) {
+        if (filelist.size() == 1 && sequencer.frames_total() > 50) {
             fprintf(stderr, "; %.1ffps", sequencer.frames_total() / d);
         }
         if (display_opts.allow_frame_skipping && sequencer.frames_total() > 0) {
