@@ -872,7 +872,7 @@ int main(int argc, char *argv[]) {
         }
         fprintf(stderr, "Active Geometry: %dx%d", geometry_width,
                 geometry_height);
-        if (is_pixel_direct_p(present.pixelation) &&
+        if (is_pixel_direct_p(present.pixelation) &&  //
             term.font_width_px > 0 && term.font_height_px > 0) {
             fprintf(stderr, "; canvas-pixels: %dx%d",
                     geometry_width * term.font_width_px,

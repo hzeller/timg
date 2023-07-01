@@ -70,9 +70,9 @@ void KittyGraphicsCanvas::Send(int x, int dy, const Framebuffer &fb_orig,
 
     // Creating a new ID. Some terminals store the images in a GPU texture
     // buffer and index by the ID, so we need to be economical with IDs.
-    uint32_t id = 0;
+    uint32_t id                  = 0;
     static uint32_t animation_id = 0;
-    static uint8_t flip_buffer = 0;
+    static uint8_t flip_buffer   = 0;
     switch (seq_type) {
     case SeqType::FrameImmediate:
         // Ideally we use the content hash here. However, that means that
@@ -87,16 +87,16 @@ void KittyGraphicsCanvas::Send(int x, int dy, const Framebuffer &fb_orig,
     case SeqType::StartOfAnimation:
         // Sending a bunch of images with different IDs overwhelms some
         // terminals. So, for animations, just use two IDs back/forth.
-        id = CreateId();
+        id           = CreateId();
         animation_id = id;
         break;
     case SeqType::AnimationFrame:
         ++flip_buffer;
         id = animation_id + (flip_buffer % 2);
         break;
-    case SeqType::ControlWrite:
-        ;
+    case SeqType::ControlWrite: {
         // should not happen.
+    }
     }
 
     std::function<OutBuffer()> encode_fun = [opts, fb, id, buffer, offset]() {
