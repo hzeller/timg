@@ -44,9 +44,9 @@ TerminalCanvas::TerminalCanvas(BufferedWriteSequencer *write_sequencer)
 TerminalCanvas::~TerminalCanvas() {
     if (!prefix_send_.empty()) {
         // The final 'cursor on' might still be in the buffer.
-        char *buf = write_sequencer_->RequestBuffer(prefix_send_.size());
-        char *end = AppendPrefixToBuffer(buf);
-        write_sequencer_->WriteBuffer(buf, end - buf, SeqType::ControlWrite);
+        OutBuffer buffer(new char [prefix_send_.size()], prefix_send_.size());
+        AppendPrefixToBuffer(buffer.data);
+        write_sequencer_->WriteBuffer(std::move(buffer), SeqType::ControlWrite);
     }
 }
 void TerminalCanvas::AddPrefixNextSend(const char *data, int len) {
@@ -93,9 +93,9 @@ void TerminalCanvas::CursorOn() {
     // that a Ctrl-C on an image that takes forever to load will leave cursor.
     // TODO: Arguably, Send() should do that at end. AddPostfixNextSend() ?
     const size_t kCursorOnSize = strlen(CURSOR_ON);
-    char *buf                  = write_sequencer_->RequestBuffer(kCursorOnSize);
-    memcpy(buf, CURSOR_ON, kCursorOnSize);  // NOLINT
-    write_sequencer_->WriteBuffer(buf, kCursorOnSize, SeqType::ControlWrite);
+    OutBuffer buffer(new char[kCursorOnSize], kCursorOnSize);
+    memcpy(buffer.data, CURSOR_ON, kCursorOnSize);  // NOLINT
+    write_sequencer_->WriteBuffer(std::move(buffer), SeqType::ControlWrite);
 }
 
 }  // namespace timg

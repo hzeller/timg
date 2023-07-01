@@ -19,16 +19,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-// Allocate memory with nice round sizes
-static constexpr int kChunkSize     = 1 << 16;
-static constexpr uint32_t kSentinel = 0x5e9719e1;
-
 namespace timg {
-struct BufferedWriteSequencer::MemBlock {
-    size_t available_size;
-    uint32_t sentinel;
-    char data[];
-};
 
 BufferedWriteSequencer::BufferedWriteSequencer(
     int fd, bool allow_frame_skip, int max_queu_len, bool debug_no_frame_delay,
@@ -45,45 +36,19 @@ BufferedWriteSequencer::~BufferedWriteSequencer() {
     Flush();
     {
         std::lock_guard<std::mutex> l(work_lock_);
-        work_.push({nullptr, 0, SeqType::ControlWrite, {}});  // Exit condition
+        OutBuffer exit_condition;  // nullptr considered exit condition.
+        std::promise<OutBuffer> p;
+        p.set_value(std::move(exit_condition));
+        work_.push({p.get_future(), SeqType::ControlWrite, {}});
     }
     work_sync_.notify_all();
     work_executor_->join();
-    while (!mempool_.empty()) {
-        free(mempool_.front());
-        mempool_.pop();
-    }
     delete work_executor_;
-}
-
-char *BufferedWriteSequencer::RequestBuffer(size_t size) {
-    {
-        std::lock_guard<std::mutex> l(mempool_lock_);
-        while (!mempool_.empty()) {
-            MemBlock *const block = mempool_.front();
-            mempool_.pop();
-            if (block->available_size < size) {  // Eliminate too small blocks.
-                free(block);
-                continue;
-            }
-            return block->data;
-        }
-    }
-
-    // Nothing appropriate found. Create a new block. When it comes back, it
-    // will be added to our pool for re-use.
-    size_t alloc_size = sizeof(MemBlock) + size + kChunkSize - 1;
-    alloc_size -= alloc_size % kChunkSize;  // ceil() to multiple of kChunkSize
-    MemBlock *block       = (MemBlock *)malloc(alloc_size);
-    block->available_size = alloc_size - sizeof(MemBlock);
-    block->sentinel       = kSentinel;
-
-    return block->data;
 }
 
 static ssize_t ReliableWrite(int fd, const char *buffer, const size_t size) {
     if (size == 0) return 0;
-    int written      = 0;
+    ssize_t written  = 0;
     size_t remaining = size;
     while (remaining && (written = write(fd, buffer, remaining)) > 0) {
         remaining -= written;
@@ -93,22 +58,25 @@ static ssize_t ReliableWrite(int fd, const char *buffer, const size_t size) {
     return size;
 }
 
-void BufferedWriteSequencer::WriteBuffer(char *buffer, size_t size,
+void BufferedWriteSequencer::WriteBuffer(std::future<OutBuffer> future_block,
                                          SeqType sequence_type,
                                          const Duration &end_of_frame) {
-    assert(buffer != nullptr);
-
-    // Recover block from the raw data (our metadata starts a bit before that)
-    MemBlock *block = (MemBlock *)(buffer - offsetof(MemBlock, data));
-    assert(block->sentinel == kSentinel);   // Is that a block we allocated ?
-    assert(block->available_size >= size);  // No buffer overrun
-
     {
         std::unique_lock<std::mutex> l(work_lock_);
         work_sync_.wait(l, [this]() { return work_.size() < max_queue_len_; });
-        work_.push({block, size, sequence_type, end_of_frame});
+        work_.push({std::move(future_block), sequence_type, end_of_frame});
     }
     work_sync_.notify_all();
+}
+
+void BufferedWriteSequencer::WriteBuffer(OutBuffer &&block,
+                                         SeqType sequence_type,
+                                         const Duration &end_of_frame) {
+    assert(block.data != nullptr);
+
+    std::promise<OutBuffer> p;  // Internal queue only deals with futures
+    p.set_value(std::move(block));
+    WriteBuffer(p.get_future(), sequence_type, end_of_frame);
 }
 
 void BufferedWriteSequencer::ProcessQueue() {
@@ -120,16 +88,16 @@ void BufferedWriteSequencer::ProcessQueue() {
         {
             std::unique_lock<std::mutex> l(work_lock_);
             work_sync_.wait(l, [this]() { return !work_.empty(); });
-            work_item = work_.front();
+            work_item = std::move(work_.front());
             work_.pop();
         }
         work_sync_.notify_all();
 
-        if (work_item.block == nullptr) return;  // Exit condition.
+        OutBuffer block = work_item.block.get();
+        if (block.data == nullptr) return;  // Exit condition.
 
         if (interrupt_received_ &&
             work_item.sequence_type != SeqType::ControlWrite) {
-            free(work_item.block);  // Wrapping up. Won't need block anymore.
             continue;  // Finish quickly, discard any queued-up frames.
         }
 
@@ -152,16 +120,16 @@ void BufferedWriteSequencer::ProcessQueue() {
         }
         last_frame_end = work_item.end_of_frame;
 
-        if (!do_skip) ReliableWrite(fd_, work_item.block->data, work_item.size);
-
-        ReturnMemblock(work_item.block);
+        if (!do_skip) {
+            ReliableWrite(fd_, block.data, block.size);
+        }
 
         if (work_item.sequence_type != SeqType::ControlWrite) {
             std::lock_guard<std::mutex> l(stats_lock_);
-            stats_bytes_total_ += work_item.size;
+            stats_bytes_total_ += block.size;
             ++stats_frames_total_;
             if (do_skip) {
-                stats_bytes_skipped_ += work_item.size;
+                stats_bytes_skipped_ += block.size;
                 ++stats_frames_skipped_;
             }
         }
@@ -172,16 +140,12 @@ void BufferedWriteSequencer::Flush() {
     // Sending an empty dummy-write so that we know that this is the
     // last write-in-progress when queue is empty (as the queue is already
     // empty while the call to write() is still in progress)
-    WriteBuffer(RequestBuffer(0), 0, SeqType::ControlWrite, {});
+    OutBuffer flush_sentinel(new char[1]);
+    WriteBuffer(std::move(flush_sentinel), SeqType::ControlWrite, {});
     {
         std::unique_lock<std::mutex> l(work_lock_);
         work_sync_.wait(l, [this]() { return work_.empty(); });
     }
-}
-
-void BufferedWriteSequencer::ReturnMemblock(MemBlock *b) {
-    std::lock_guard<std::mutex> l(mempool_lock_);
-    mempool_.push(b);
 }
 
 int64_t BufferedWriteSequencer::bytes_total() const {

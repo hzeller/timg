@@ -30,12 +30,13 @@ ITerm2GraphicsCanvas::ITerm2GraphicsCanvas(BufferedWriteSequencer *ws,
 
 void ITerm2GraphicsCanvas::Send(int x, int dy, const Framebuffer &fb,
                                 SeqType seq_type, Duration end_of_frame) {
+    if (dy < 0) {
+        MoveCursorDY(-((-dy + options_.cell_y_px - 1) / options_.cell_y_px));
+    }
+    MoveCursorDX(x / options_.cell_x_px);
+
     char *const buffer = RequestBuffer(fb.width(), fb.height());
     char *pos          = buffer;
-
-    if (dy < 0)
-        MoveCursorDY(-((-dy + options_.cell_y_px - 1) / options_.cell_y_px));
-    MoveCursorDX(x / options_.cell_x_px);
 
     pos = AppendPrefixToBuffer(pos);
 
@@ -55,7 +56,8 @@ void ITerm2GraphicsCanvas::Send(int x, int dy, const Framebuffer &fb,
     *pos++ = '\007';
     *pos++ = '\n';  // Need one final cursor movement.
 
-    write_sequencer_->WriteBuffer(buffer, pos - buffer, seq_type, end_of_frame);
+    write_sequencer_->WriteBuffer(OutBuffer{buffer, (size_t)(pos - buffer)},
+                                  seq_type, end_of_frame);
 }
 
 ITerm2GraphicsCanvas::~ITerm2GraphicsCanvas() { free(png_buf_); }
@@ -74,6 +76,6 @@ char *ITerm2GraphicsCanvas::RequestBuffer(int width, int height) {
         png_buf_size_ = png_compressed_size;
     }
 
-    return write_sequencer_->RequestBuffer(content_size);
+    return new char [content_size];
 }
 }  // namespace timg

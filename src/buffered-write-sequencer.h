@@ -19,6 +19,7 @@
 #include <stddef.h>
 
 #include <condition_variable>
+#include <future>
 #include <mutex>
 #include <queue>
 #include <thread>
@@ -26,6 +27,21 @@
 #include "timg-time.h"
 
 namespace timg {
+// Allocated block of data. It can only be moved, last owner deletes.
+// Typically the frame canvas allocates such  buffer and fills with "size"
+// data, then hand it to the BufferedWriteSequencer.
+struct OutBuffer {
+    OutBuffer(char *data = nullptr, size_t size = 0) : data(data), size(size) {}
+    OutBuffer(OutBuffer &&other) : data(other.data), size(other.size) {
+        other.data = nullptr;
+    }
+    OutBuffer(const OutBuffer &other) = delete;
+    ~OutBuffer() { delete[] data; }
+
+    char *data;
+    size_t size;
+};
+
 // The last step towards writing content to the terminal.
 // The sequencer provides queueing of write calls with details about the
 // requested timings. Built-in buffer management provides buffers that are
@@ -61,16 +77,9 @@ public:
                            const volatile sig_atomic_t &interrupt_received);
     ~BufferedWriteSequencer();
 
-    // Request a buffer that provides at least the requested size.
-    // This buffer is to be used with whatever should be written, then,
-    // after filling, needs to be handed over to the WriteBuffer() function.
-    // Conceptually, the returned buffer is owned by this object;
-    // buffers received here are returned in calls to WriteBuffer().
-    char *RequestBuffer(size_t size);
-
-    // Write out "size" bytes from the "buffer".
-    // The "buffer" must be from the a previous call to RequestBuffer(); it
-    // will be pooled for re-use after the write is complete.
+    // Put block into sequence to be written out to file descriptor. Accepts
+    // a std::future of the data to allow it to be enqueued while still being
+    // generated.
     //
     // The "sequence_type" determines the kind and timing of the writes.
     //
@@ -94,17 +103,24 @@ public:
     // StartOfAnimation is 1/fps, next AnimationFrame at 2/fps and so on.
     // This allows to ...
     //   (a) be independent of upstream latencies as only when the first
-    //       frame of an animation arrives here and is emitted, the clock
+    //       frame of an animation arrives and is emitted, the clock
     //       starts ticking.
     //   (b) avoid time-skews. Even if a frame takes a little bit longer, the
-    //       next will try to finish in earlier as the frame-time is absolute.
+    //       next will try to finish in earlier as the emit time is relative
+    //       to the first.
     //
     // No return value: the write happens asynchronously.
-    void WriteBuffer(char *buffer, size_t size, SeqType sequence_type,
+    void WriteBuffer(std::future<OutBuffer> future_block, SeqType sequence_type,
+                     const Duration &end_of_frame = {});
+
+    // Convenience wrapper for when we have a block available immediately.
+    void WriteBuffer(OutBuffer &&block, SeqType sequence_type,
                      const Duration &end_of_frame = {});
 
     // Flush all pending writes.
     void Flush();
+
+    size_t max_queue_len() const { return max_queue_len_; }
 
     // -- Stats
     int64_t bytes_total() const;
@@ -113,9 +129,6 @@ public:
     int64_t frames_skipped() const;
 
 private:
-    struct MemBlock;
-
-    void ReturnMemblock(MemBlock *b);
     void ProcessQueue();  // Runs in thread.
 
     const int fd_;
@@ -124,10 +137,9 @@ private:
     const bool debug_no_frame_delay_;
     const volatile sig_atomic_t &interrupt_received_;
 
-    // Work queue
+    // Work queue. Items are stored in a FIFO.
     struct WorkItem {
-        MemBlock *block;
-        size_t size;
+        std::future<OutBuffer> block;
         SeqType sequence_type;
         Duration end_of_frame;
     };
@@ -135,10 +147,6 @@ private:
     std::queue<WorkItem> work_;
     std::condition_variable work_sync_;
     std::thread *work_executor_;
-
-    // A stash of re-usable memory blocks
-    std::mutex mempool_lock_;
-    std::queue<MemBlock *> mempool_;
 
     // Statistics.
     mutable std::mutex stats_lock_;

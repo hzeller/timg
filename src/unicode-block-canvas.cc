@@ -317,10 +317,10 @@ char *UnicodeBlockCanvas::AppendDoubleRow(char *pos, int indent, int width,
 
 void UnicodeBlockCanvas::Send(int x, int dy, const Framebuffer &framebuffer,
                               SeqType seq_type, Duration end_of_frame) {
-    const int width          = framebuffer.width();
-    const int height         = framebuffer.height();
-    char *const start_buffer = RequestBuffers(width, height);
-    char *pos                = start_buffer;
+    const int width  = framebuffer.width();
+    const int height = framebuffer.height();
+    OutBuffer out_buffer(RequestBuffers(width, height), 0);
+    char *pos = out_buffer.data;
 
     if (dy < 0) MoveCursorDY((dy - 1) / 2);
 
@@ -383,15 +383,17 @@ void UnicodeBlockCanvas::Send(int x, int dy, const Framebuffer &framebuffer,
     last_framebuffer_height_ = height;
     last_x_indent_           = x;
     if (before_image_emission == pos) {
-        // Don't even emit cursor up/dn jump, but make sure to return buffer.
-        write_sequencer_->WriteBuffer(start_buffer, 0, seq_type, end_of_frame);
+        // Don't even emit cursor up/dn jump, keep buffer size zero.
+        write_sequencer_->WriteBuffer(std::move(out_buffer), seq_type,
+                                      end_of_frame);
         return;
     }
 
     if (y_skip) {
         pos += sprintf(pos, SCREEN_CURSOR_DN_FORMAT, y_skip);
     }
-    write_sequencer_->WriteBuffer(start_buffer, pos - start_buffer, seq_type,
+    out_buffer.size = (size_t)(pos - out_buffer.data);
+    write_sequencer_->WriteBuffer(std::move(out_buffer), seq_type,
                                   end_of_frame);
 }
 
@@ -429,7 +431,7 @@ char *UnicodeBlockCanvas::RequestBuffers(int width, int height) {
         empty_line_size_ = new_empty;
         memset(empty_line_, 0x00, empty_line_size_);
     }
-    return write_sequencer_->RequestBuffer(content_size);
+    return new char [content_size];
 }
 
 // Converting the colors requires fast uint8 -> ASCII decimal digits with
