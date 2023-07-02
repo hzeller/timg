@@ -30,6 +30,9 @@
 #include "timg-time.h"
 #include "timg-version.h"
 #include "unicode-block-canvas.h"
+#ifdef WITH_TIMG_SIXEL
+#include "sixel-canvas.h"
+#endif
 
 #ifdef WITH_TIMG_TERMINAL_QUERY
 #    include "term-query.h"
@@ -99,6 +102,9 @@ enum class Pixelation {
     kQuarterBlock,
     kKittyGraphics,
     kiTerm2Graphics,
+#ifdef WITH_TIMG_SIXEL
+    kSixelGraphics,
+#endif
 };
 
 enum class ClearScreen {
@@ -161,6 +167,9 @@ static int usage(const char *progname, ExitCode exit_code, int width,
         "blocks\n"
         "\t                             'k' = kitty graphics 'i' = iTerm2 "
         "graphics\n"
+#ifdef WITH_TIMG_SIXEL
+        "\t                             's' = sixel graphics\n"
+#endif
         "\t                 Default: Auto-detect graphics, otherwise "
         "'quarter'.\n"
         "\t--compress[=level]: Only for -pk or -pi: Compress image data. More\n"
@@ -285,6 +294,13 @@ static void PresentImages(LoadedImageSources *loaded_sources,
         canvas.reset(new ITerm2GraphicsCanvas(sequencer, compression_pool.get(),
                                               display_opts));
         break;
+#ifdef WITH_TIMG_SIXEL
+    case Pixelation::kSixelGraphics:
+        compression_pool.reset(new ThreadPool(sequencer->max_queue_len() + 1));
+        canvas.reset(new timg::SixelCanvas(sequencer, compression_pool.get(),
+                                           display_opts));
+        break;
+#endif
     case Pixelation::kHalfBlock:
     case Pixelation::kQuarterBlock:
     case Pixelation::kNotChosen:  // Should not happen.
@@ -374,7 +390,11 @@ int main(int argc, char *argv[]) {
     // Convenience predicate: pixelation sending high-res images, no blocks.
     const auto is_pixel_direct_p = [](Pixelation p) {
         return p == Pixelation::kKittyGraphics ||
-               p == Pixelation::kiTerm2Graphics;
+               p == Pixelation::kiTerm2Graphics
+#ifdef WITH_TIMG_SIXEL
+            || p == Pixelation::kSixelGraphics
+#endif
+            ;
     };
 
     enum LongOptionIds {
@@ -600,6 +620,9 @@ int main(int argc, char *argv[]) {
             case 'q': present.pixelation = Pixelation::kQuarterBlock; break;
             case 'k': present.pixelation = Pixelation::kKittyGraphics; break;
             case 'i': present.pixelation = Pixelation::kiTerm2Graphics; break;
+#ifdef WITH_TIMG_SIXEL
+            case 's': present.pixelation = Pixelation::kSixelGraphics; break;
+#endif
             }
             break;
         case OPT_COMPRESS_PIXEL:
@@ -716,6 +739,9 @@ int main(int argc, char *argv[]) {
         display_opts.cell_x_px = 2;
         display_opts.cell_y_px = 2;
         break;
+#ifdef WITH_TIMG_SIXEL
+    case Pixelation::kSixelGraphics:
+#endif
     case Pixelation::kKittyGraphics:
     case Pixelation::kiTerm2Graphics:
         if (term.font_width_px > 0) display_opts.cell_x_px = term.font_width_px;

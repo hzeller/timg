@@ -39,6 +39,12 @@ if(WITH_TERMINAL_QUERY)
   target_compile_definitions(timg PUBLIC WITH_TIMG_TERMINAL_QUERY)
 endif()
 
+if(WITH_LIBSIXEL)
+  target_sources(timg PUBLIC sixel-canvas.h sixel-canvas.cc)
+  target_compile_definitions(timg PUBLIC WITH_TIMG_SIXEL)
+  target_link_libraries(timg PkgConfig::LIBSIXEL)
+endif()
+
 if(WITH_GRAPHICSMAGICK)
   target_sources(timg PUBLIC image-display.h image-display.cc)
   target_compile_definitions(timg PUBLIC WITH_TIMG_GRPAPHICSMAGICK)

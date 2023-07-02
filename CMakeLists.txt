@@ -11,6 +11,7 @@ option(WITH_OPENSLIDE_SUPPORT "Enables support to scientific OpenSlide formats" 
 option(WITH_GRAPHICSMAGICK "Enable general image loading with Graphicsmagick. You typically want this." ON)
 option(WITH_TURBOJPEG "Optimized JPEG loading. You typically want this." ON)
 option(WITH_TERMINAL_QUERY "Query terminals for availability of kitty/iterm capabilities and background color. If not compiled in, choose with -p (pixelation) and -b (background)" ON)
+option(WITH_LIBSIXEL "Provide sixel output which is supported by some older terminals such as xterm" ON)
 
 option(WITH_STB_IMAGE "Use STB image, a self-contained albeit limited image loading and lower quality. Use if WITH_GRAPHICSMAGICK is not possible and want to limit dependencies. Default on to be used as fallback." ON)
 
@@ -31,6 +32,10 @@ if(TIMG_VERSION_FROM_GIT)
 endif()
 
 pkg_check_modules(LIBDEFLATE REQUIRED IMPORTED_TARGET libdeflate)
+
+if(WITH_LIBSIXEL)
+  pkg_check_modules(LIBSIXEL REQUIRED IMPORTED_TARGET libsixel)
+endif()
 
 if(WITH_TURBOJPEG)
   pkg_check_modules(TURBOJPEG REQUIRED IMPORTED_TARGET libturbojpeg)

@@ -14,6 +14,7 @@ pkgs.mkShell {
        libdeflate
        ffmpeg
        libexif
+       libsixel
        openslide
        pandoc
        clang-tools_13  # clang-format
