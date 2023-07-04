@@ -879,6 +879,17 @@ int main(int argc, char *argv[]) {
                     geometry_height * term.font_height_px);
         }
         fprintf(stderr, "\n");
+
+        const char *pixelation = "";
+        switch (present.pixelation) {
+        case Pixelation::kHalfBlock: pixelation = "half block"; break;
+        case Pixelation::kQuarterBlock: pixelation = "quarter block"; break;
+        case Pixelation::kKittyGraphics: pixelation = "kitty graphics"; break;
+        case Pixelation::kiTerm2Graphics: pixelation = "iterm2 graphics"; break;
+        case Pixelation::kNotChosen: pixelation = "(none)"; break;
+        }
+        fprintf(stderr, "Using %s pixels.\n", pixelation);
+
         const rgba_t bg = display_opts.bgcolor_getter();
         fprintf(stderr,
                 "Background color for transparency '%s', effective "
