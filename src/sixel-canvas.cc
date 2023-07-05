@@ -15,8 +15,9 @@
 
 #include "sixel-canvas.h"
 
-#include "thread-pool.h"
 #include <sixel.h>
+
+#include "thread-pool.h"
 
 // Terminals might have different understanding where the curosr is placed
 // after an image is sent. This is a somewhat undocumented feature of xterm.
@@ -30,7 +31,7 @@ namespace timg {
 
 // Char needs to be non-const to be compatible sixel-callback.
 static int WriteToOutBuffer(char *data, int size, void *outbuf_param) {
-    OutBuffer *outbuffer = (OutBuffer*) outbuf_param;
+    OutBuffer *outbuffer = (OutBuffer *)outbuf_param;
     // TODO realloc
     memcpy(outbuffer->data + outbuffer->size, data, size);
     outbuffer->size += size;

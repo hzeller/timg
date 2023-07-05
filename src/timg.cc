@@ -31,7 +31,7 @@
 #include "timg-version.h"
 #include "unicode-block-canvas.h"
 #ifdef WITH_TIMG_SIXEL
-#include "sixel-canvas.h"
+#    include "sixel-canvas.h"
 #endif
 
 #ifdef WITH_TIMG_TERMINAL_QUERY
@@ -392,7 +392,7 @@ int main(int argc, char *argv[]) {
         return p == Pixelation::kKittyGraphics ||
                p == Pixelation::kiTerm2Graphics
 #ifdef WITH_TIMG_SIXEL
-            || p == Pixelation::kSixelGraphics
+               || p == Pixelation::kSixelGraphics
 #endif
             ;
     };
