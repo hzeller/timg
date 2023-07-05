@@ -9,12 +9,15 @@ timg - Terminal Image and Video Viewer
 
 ### https://timg.sh/
 
-A user-friendly viewer that uses 24-Bit color capabilities and unicode
-character blocks to display images, animations and videos in the terminal.
+A user-friendly terminal image viewer that uses graphic capabilities of
+terminals (Sixel, Kitty or iterm2), or 24-Bit color capabilities and unicode
+character blocks if these are not available.
 
-On terminals that implement the [Kitty Graphics Protocol] or the
-[iTerm2 Graphics Protocol] this displays images in full resolution.
+On terminals that implement the [sixel] protocol, the
+[Kitty Graphics Protocol], or the [iTerm2 Graphics Protocol] this displays
+images in full resolution.
 
+But even the fallback block display is usable.
 ![](./img/sunflower-term.png)
 
 Displays regular images, plays animated gifs, scrolls static images and
@@ -41,24 +44,25 @@ resolution at the expense of slightly worse color accuracy. These modes should
 be compatible with most common terminals that support UTF8 and 24Bit color.
 
 If you are on a [Kitty][Kitty Graphics Protocol], [iTerm2], or [wezterm]
-terminal, images can be shown in full resolution.
+terminal, or a terminal that supports the sixel protocol, images can be shown
+in full resolution.
 
--p half  | -p quarter            | -p kitty  or -p iterm2            |
----------|-----------------------|-----------------------------------|
-![](img/pixelation-half.png) | ![](img/pixelation-quarter.png) | ![](img/pixelation-kitty.png) |
+-p kitty,  -p iterm2, or -p sixel | -p quarter | -p half |
+----------------------------------|------------|---------|
+ ![](img/pixelation-kitty.png) | ![](img/pixelation-quarter.png) | ![](img/pixelation-half.png) |
 
 #### Grid display
 
 Images can be shown in a grid, which is very useful if you quickly want to
-sieve through a lot of images. You can choose to show the filename as title,
+browse through a lot of images. You can choose to show the filename as title,
 so it is easy to find exactly the filename you're looking for (The following
-grid uses `--grid=2` and is pixelated with `-pq`).
+grid uses `--grid=2` and is pixelated -p iterm2).
 
-![Grid view of 4 pictures](./img/grid-timg.png)
+![Grid view of 4 pictures](img/grid-timg-wezterm.png)
 <details>
-<summary>This is how the same grid looks with Kitty or iTerm2 Graphics mode...</summary>
+<summary>This is how the same grid looks if no high-res mode is available with -`-pq`...</summary>
 
-![](img/grid-timg-wezterm.png)
+![](./img/grid-timg.png)
 
 </details>
 
