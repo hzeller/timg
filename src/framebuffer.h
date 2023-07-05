@@ -121,6 +121,8 @@ public:
     uint8_t **row_data();
 
 private:
+    Framebuffer(int width, int height, const rgba_t *from_data);
+
     const int width_;
     const int height_;
     rgba_t *const pixels_;

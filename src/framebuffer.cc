@@ -48,25 +48,32 @@ rgba_t rgba_t::ParseColor(const char *color) {
     return {0, 0, 0, 0};
 }
 
-Framebuffer::Framebuffer(int w, int h)
+// Observed sws_scale() sometimes writing beyond the allocated size (maybe ssse3
+// alignment issues ?). To prevent this being a crash situation, just allocate
+// a little more to have enough contiguous space to write beyond the boundary.
+// It typically only seems to be a few bytes more, but be sure and allocate
+// a full row.
+static constexpr int SWS_SCRATCH_ADDITIONAL_ROW = 1;
+
+Framebuffer::Framebuffer(int w, int h, const rgba_t *from_data)
     : width_(w),
       height_(h),
-      pixels_(new rgba_t[width_ * height_]),
+      pixels_(new rgba_t[width_ * (height_ + SWS_SCRATCH_ADDITIONAL_ROW)]),
       end_(pixels_ + width_ * height_) {
     strides_[0] = (int)sizeof(rgba_t) * width_;
     strides_[1] = 0;  // empty sentinel value.
-    Clear();
+    if (from_data) {
+        memcpy(pixels_, from_data, sizeof(rgba_t) * width_ * height_);
+    }
+    else {
+        Clear();
+    }
 }
 
+Framebuffer::Framebuffer(int w, int h) : Framebuffer(w, h, nullptr) {}
+
 Framebuffer::Framebuffer(const Framebuffer &other)
-    : width_(other.width_),
-      height_(other.height_),
-      pixels_(new rgba_t[width_ * height_]),
-      end_(pixels_ + width_ * height_) {
-    strides_[0] = (int)sizeof(rgba_t) * width_;
-    strides_[1] = 0;  // empty sentinel value.
-    memcpy(pixels_, other.pixels_, sizeof(rgba_t) * width_ * height_);
-}
+    : Framebuffer(other.width(), other.height(), other.pixels_) {}
 
 Framebuffer::~Framebuffer() {
     delete[] row_data_;
