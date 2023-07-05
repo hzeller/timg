@@ -73,9 +73,10 @@ Options:
                          Default derived from terminal size is 160x50
         -p<pixelation> : Pixelation: 'h' = half blocks    'q' = quarter blocks
                                      'k' = kitty graphics 'i' = iTerm2 graphics
+                                     's' = sixel graphics
                          Default: Auto-detect graphics, otherwise 'quarter'.
-        --compress     : Only for -pk or -pi: Compress image data. More
-                         CPU use for timg, but less bandwidth needed.
+        --compress[=level]: Only for -pk or -pi: Compress image data. More
+                         CPU use, but less bandwidth. (default: 1)
         -C, --center   : Center image horizontally.
         -W, --fit-width: Scale to fit width of available space, even if it
                          exceeds height.
@@ -110,7 +111,7 @@ Options:
         -o<outfile>    : Write to <outfile> instead of stdout.
         -E             : Don't hide the cursor while showing images.
         --threads=<n>  : Run image decoding in parallel with n threads
-                         (Default 2, half #cores on this machine)
+                         (Default 3, 3/4 #cores on this machine)
         --color8       : Choose 8 bit color mode for -ph or -pq
         --version      : Print version and exit.
         -h, --help     : Print this help and exit.
@@ -125,6 +126,7 @@ Options:
                         If not set, videos loop once, animated images forever
                         unless there is more than one file to show.
         --frames=<num>: Only show first num frames (if looping, loop only these)
+        --frame-offset=<num>: Start animation/video at this frame
         -t<seconds>   : Stop after this time, independent of --loops or --frames
 ```
 
@@ -477,6 +479,9 @@ sudo dnf install pandoc  # If you want to recreate the man page
 sudo apt install cmake git g++ pkg-config
 sudo apt install libgraphicsmagick++-dev libturbojpeg-dev libexif-dev libswscale-dev libdeflate-dev # needed libs
 
+# For sixel output.
+sudo apt install libsixel-dev
+
 # If you want to include video decoding, also install these additional libraries
 sudo apt install libavcodec-dev libavformat-dev
 
@@ -516,6 +521,8 @@ brew install pandoc  # If you want to recreate the man page
 In the script below you see that the build system allows for some
 compile-time choices:
 
+  * **`WITH_LIBSIXEL`** Use libsixel to output images in [sixel] graphics
+     format. Default **ON**.
   * **`WITH_VIDEO_DECODING`** allow for video decoding. Requires ffmpeg-related
      libraries. You typically want this **ON** (default)
      * **`WITH_VIDEO_DEVICE`** this allows for accessing connected video
@@ -561,4 +568,5 @@ sudo make install
 [iTerm2]: https://iterm2.com/
 [iTerm2 Graphics Protocol]: https://iterm2.com/documentation-images.html
 [wezterm]: https://wezfurlong.org/wezterm/
+[sixel]: https://en.wikipedia.org/wiki/Sixel
 [QOI]: https://qoiformat.org/
