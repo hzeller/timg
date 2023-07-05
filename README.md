@@ -56,11 +56,11 @@ in full resolution.
 Images can be shown in a grid, which is very useful if you quickly want to
 browse through a lot of images. You can choose to show the filename as title,
 so it is easy to find exactly the filename you're looking for (The following
-grid uses `--grid=2` and is pixelated -p iterm2).
+grid uses `--grid=2` and is pixelated `-p iterm2`).
 
 ![Grid view of 4 pictures](img/grid-timg-wezterm.png)
 <details>
-<summary>This is how the same grid looks if no high-res mode is available with -`-pq`...</summary>
+<summary>This is how the same grid looks if no high-res mode is available with - `-p quarter` ...</summary>
 
 ![](./img/grid-timg.png)
 
