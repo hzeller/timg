@@ -912,6 +912,9 @@ int main(int argc, char *argv[]) {
         case Pixelation::kQuarterBlock: pixelation = "quarter block"; break;
         case Pixelation::kKittyGraphics: pixelation = "kitty graphics"; break;
         case Pixelation::kiTerm2Graphics: pixelation = "iterm2 graphics"; break;
+#ifdef WITH_TIMG_SIXEL
+        case Pixelation::kSixelGraphics: pixelation = "sixel graphics"; break;
+#endif
         case Pixelation::kNotChosen: pixelation = "(none)"; break;
         }
         fprintf(stderr, "Using %s pixels.\n", pixelation);
