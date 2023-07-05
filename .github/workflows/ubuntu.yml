@@ -35,13 +35,14 @@ jobs:
         run: |
           mkdir build-limitdep
           cd build-limitdep
-          cmake .. -DWITH_VIDEO_DECODING=Off -DWITH_VIDEO_DEVICE=Off -DWITH_OPENSLIDE_SUPPORT=Off -DWITH_GRAPHICSMAGICK=Off -DWITH_TURBOJPEG=Off
+          cmake .. -DWITH_VIDEO_DECODING=Off -DWITH_VIDEO_DEVICE=Off -DWITH_OPENSLIDE_SUPPORT=Off -DWITH_GRAPHICSMAGICK=Off -DWITH_TURBOJPEG=Off -DWITH_LIBSIXEL=Off
           make -k
 
       - name: Install Full Dependencies
         run: |
           sudo apt install libgraphicsmagick++-dev
           sudo apt install libturbojpeg-dev libexif-dev
+          sudo apt install libsixel-dev
           sudo apt install libavcodec-dev libavformat-dev libavdevice-dev
           sudo apt install libopenslide-dev
           sudo apt install pandoc
@@ -50,7 +51,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. -DWITH_VIDEO_DECODING=On -DWITH_VIDEO_DEVICE=On -DWITH_OPENSLIDE_SUPPORT=On -DWITH_STB_IMAGE=On
+          cmake .. -DWITH_VIDEO_DECODING=On -DWITH_VIDEO_DEVICE=On -DWITH_OPENSLIDE_SUPPORT=On -DWITH_STB_IMAGE=On -DWITH_LIBSIXEL=On
           make -k
 
   CodeFormatting:
