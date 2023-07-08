@@ -193,10 +193,6 @@ these file decoders (GraphicsMagick or libav respectively).
      If no format string is given, this is just the filename (`%f`) or, if
      set, what is provided in the `TIMG_DEFAULT_TITLE` environment variable.
 
-**-F**
-:    Behaves like --title=\"%f\", i.e. the filename is printed as title
-     (or, if set, the `TIMG_DEFAULT_TITLE` environment variable).
-
 **-f** &lt;*filelist-file*&gt;
 :    Read a list of image filenames to show from this file. The list needs
      to be newline separated.
@@ -215,8 +211,8 @@ these file decoders (GraphicsMagick or libav respectively).
 :    Don't hide the cursor while showing images.
 
 **-\-threads**=&lt;*n*&gt;
-:    Run image decoding in parallel with n threads. By default, half the
-     reported CPU-cores are used.
+:    Run image decoding in parallel with n threads. By default, up to 3/4 of
+     the reported CPU-cores are used.
 
 **-\-color8**
 :   Use 8 bit color mode for terminals that don't support 24 bit color

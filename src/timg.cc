@@ -151,6 +151,7 @@ static int usage(const char *progname, ExitCode exit_code, int width,
 #else
     static constexpr char kFileType[] = "image";
 #endif
+    const char *const default_title = getenv("TIMG_DEFAULT_TITLE");
     fprintf(stderr, "usage: %s [options] <%s> [<%s>...]\n", progname, kFileType,
             kFileType);
     fprintf(
@@ -218,8 +219,7 @@ static int usage(const char *progname, ExitCode exit_code, int width,
         "height\n"
         "\t                                    %%D = internal decoder used\n"
         "\t                 If no parameter is given, defaults to \"%%f\"\n"
-        "\t-F             : Print filename as title. Behaves like "
-        "--title=\"%%f\"\n"
+        "\t                 Env-var override with TIMG_DEFAULT_TITLE%s%s%s\n"
         "\t-f<filelist>   : Read newline-separated list of image files to "
         "show.\n"
         "\t                 (Can be provided multiple times.)\n"
@@ -249,7 +249,10 @@ static int usage(const char *progname, ExitCode exit_code, int width,
         "\t--frame-offset=<num>: Start animation/video at this frame\n"
         "\t-t<seconds>   : Stop after this time, independent of --loops or "
         "--frames\n",
-        width, height, kDefaultThreadCount);
+        width, height,
+        default_title ? "='" : "", default_title ? default_title : "",
+        default_title ? "'" : "",
+        kDefaultThreadCount);
     return (int)exit_code;
 }
 

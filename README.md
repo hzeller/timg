@@ -109,7 +109,7 @@ Options:
                                             %w = image width; %h = height
                                             %D = internal decoder used
                          If no parameter is given, defaults to "%f"
-        -F             : Print filename as title. Behaves like --title="%f"
+                         Env-var override with TIMG_DEFAULT_TITLE
         -f<filelist>   : Read newline-separated list of image files to show.
                          (Can be provided multiple times.)
         -o<outfile>    : Write to <outfile> instead of stdout.
