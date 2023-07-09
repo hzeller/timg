@@ -28,7 +28,13 @@ TermSizeResult DetermineTermSize() {
         struct winsize w = {};
         if (ioctl(fd, TIOCGWINSZ, &w) != 0) continue;
         // If we get the size of the terminals in pixels, we can determine
-        // what aspect ratio the pixels have and correct if they not 1:2
+        // what aspect ratio the pixels. This is also needed to
+        // jump up the exact number of character cells needed for animations
+        // and grid display.
+        //
+        // TODO: if TIOCGWINSZ does not return ws_xpixel/ws_ypixel, attempt
+        // \033[14t call ?
+        //
         // Infer the font size if we have window pixel size available.
         // Do some basic plausibility check here.
         if (w.ws_xpixel >= 2 * w.ws_col && w.ws_ypixel >= 4 * w.ws_row &&

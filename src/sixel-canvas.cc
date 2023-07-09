@@ -19,15 +19,50 @@
 
 #include "thread-pool.h"
 
-// Terminals might have different understanding where the curosr is placed
-// after an image is sent. This is a somewhat undocumented feature of xterm.
-// This will make sure that in particular images shown in columns will align
-// properly.
-// This works in xterm, mlterm and wezterm.
-// Konsole does _not_ seem to understand this (use iterm2 mode there instead)
-#define PLACE_CURSOR_AFTER_SIXEL_IMAGE "\033[?8452h"
+#define CSI    "\033["
 
 namespace timg {
+
+SixelCanvas::SixelCanvas(BufferedWriteSequencer *ws, ThreadPool *thread_pool,
+                         bool required_cursor_placement_workaround,
+                         const DisplayOptions &opts)
+    : TerminalCanvas(ws), options_(opts), executor_(thread_pool) {
+
+    // Terminals might have different understanding where the curosr is placed
+    // after an image is sent.
+    // Apparently the original dec terminal placed it afterwards, but some
+    // terminals now have also place the cursor in the _next_ line.
+    //
+    // There seem to be two DECSET settings 7730 and 8452 which influence that,
+    // ... and not all terminals implement all of these. Also xterm apparently
+    // implements CIS 80 backwards ?
+    //
+    // So the below is an attempt to get it working on all of these.
+    // Assuming that xterm is slightly less common these days, but a bunch of
+    // modern terminals are built based on libvte (e.g. gnome-terminal,
+    // xfce4-terminal,..), let's go with that in the common case and try
+    // to detect the exceptions in the graphics query.
+    //
+    // To test: test with one animation and some images with --grid=3x2 --title
+    //
+    // Also see:
+    //   * https://vt100.net/dec/ek-vt382-rm-001.pdf#page=112
+    //   * https://vt100.net/dec/ek-vt38t-ug-001.pdf#page=132
+    // Plese send PR or issue if you know a less ugly way to deal with this.
+    if (!required_cursor_placement_workaround) {
+        //** The default way of doing things; works with most terminals.
+        // works: konsole, mlterm, libvte-based, alacritty-sixel
+        // breaks: xterm, wezterm
+        cursor_move_before_ = CSI "80h" CSI "?7730h" CSI "?8452l";
+        cursor_move_after_ = "\r";
+    } else {
+        //** The workaround enabled for xterm and wezterm.
+        // works: xterm, mlterm, wezterm, alacritty-sixel
+        // break: konsole, libvte-based
+        cursor_move_before_ = CSI "80l" CSI "?7730l" CSI "?8452h";
+        cursor_move_after_ = "\n";
+    }
+}
 
 // Char needs to be non-const to be compatible sixel-callback.
 static int WriteToOutBuffer(char *data, int size, void *outbuf_param) {
@@ -54,12 +89,17 @@ void SixelCanvas::Send(int x, int dy, const Framebuffer &fb_orig,
     // TODO: this should be realloced as needed.
     char *const buffer = new char[1024 + fb->width() * fb->height() * 5];
     char *const offset = AppendPrefixToBuffer(buffer);
-
-    std::function<OutBuffer()> encode_fun = [fb, buffer, offset]() {
+    // avoid capture whole 'this', so copy values locally
+    const char *const cursor_handling_start = cursor_move_before_;
+    const char *const cursor_handling_end = cursor_move_after_;
+    std::function<OutBuffer()> encode_fun = [fb, buffer, offset,
+                                             cursor_handling_start,
+                                             cursor_handling_end]() {
         std::unique_ptr<const Framebuffer> auto_delete(fb);
 
         OutBuffer out(buffer, offset - buffer);
-        WriteStringToOutBuffer(PLACE_CURSOR_AFTER_SIXEL_IMAGE "\033Pq", &out);
+        WriteStringToOutBuffer(cursor_handling_start, &out);
+        WriteStringToOutBuffer("\033Pq", &out);  // Start sixel data
         sixel_output_t *sixel_out = nullptr;
         sixel_output_new(&sixel_out, WriteToOutBuffer, &out, nullptr);
 
@@ -76,7 +116,8 @@ void SixelCanvas::Send(int x, int dy, const Framebuffer &fb_orig,
         sixel_dither_destroy(sixel_dither);
         sixel_output_destroy(sixel_out);
 
-        WriteStringToOutBuffer("\033\\\n", &out);
+        WriteStringToOutBuffer("\033\\", &out);  // end sixel data
+        WriteStringToOutBuffer(cursor_handling_end, &out);
         return out;
     };
     write_sequencer_->WriteBuffer(executor_->ExecAsync(encode_fun), seq_type,

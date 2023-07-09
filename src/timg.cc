@@ -118,6 +118,7 @@ namespace timg {
 struct PresentationOptions {
     // Rendering
     Pixelation pixelation         = Pixelation::kNotChosen;
+    bool sixel_cursor_workaround = false;
     bool terminal_use_upper_block = false;
     bool use_256_color = false;  // For terminals that don't do 24 bit color
 
@@ -301,6 +302,7 @@ static void PresentImages(LoadedImageSources *loaded_sources,
     case Pixelation::kSixelGraphics:
         compression_pool.reset(new ThreadPool(sequencer->max_queue_len() + 1));
         canvas.reset(new timg::SixelCanvas(sequencer, compression_pool.get(),
+                                           present.sixel_cursor_workaround,
                                            display_opts));
         break;
 #endif
@@ -697,23 +699,38 @@ int main(int argc, char *argv[]) {
     if (present.pixelation == Pixelation::kNotChosen) {
         present.pixelation = Pixelation::kQuarterBlock;  // Good default.
 #ifdef WITH_TIMG_TERMINAL_QUERY
-        // Konsole has the bad behaviour that it does not absorb the kitty
-        // graphics query but spills it on the screen. "Luckily", Konsole has
-        // another bug not returning the window pixel size, so we can use that
-        // to avoid the query :)
         if (term.font_width_px > 0 && term.font_height_px > 0) {
-            switch (timg::QuerySupportedGraphicsProtocol()) {
+            auto graphics_info = timg::QuerySupportedGraphicsProtocol();
+            switch (graphics_info.preferred_graphics) {
             case timg::GraphicsProtocol::kIterm2:
                 present.pixelation = Pixelation::kiTerm2Graphics;
                 break;
             case timg::GraphicsProtocol::kKitty:
                 present.pixelation = Pixelation::kKittyGraphics;
                 break;
-            default: break;
+            case timg::GraphicsProtocol::kSixel:
+#    ifdef WITH_TIMG_SIXEL
+                present.pixelation = Pixelation::kSixelGraphics;
+                present.sixel_cursor_workaround =
+                    graphics_info.known_broken_sixel_cursor_placement;
+#    else
+                present.pixelation = Pixelation::kQuarterBlock;
+#    endif
+                break;
+            case timg::GraphicsProtocol::kNone: break;
             }
         }
 #endif
     }
+#if defined(WITH_TIMG_SIXEL) && defined(WITH_TIMG_TERMINAL_QUERY)
+    // If the user manually choose sixel, we still can't avoid a terminal
+    // query, as we have to figure out if it has a broken cursor implementation.
+    else if (present.pixelation == Pixelation::kSixelGraphics) {
+        auto graphics_info = timg::QuerySupportedGraphicsProtocol();
+        present.sixel_cursor_workaround =
+            graphics_info.known_broken_sixel_cursor_placement;
+    }
+#endif
 
     // If 'none' is chosen for background color, then using the
     // PNG compression with alpha channels gives us compositing on client side
@@ -920,8 +937,17 @@ int main(int argc, char *argv[]) {
 #endif
         case Pixelation::kNotChosen: pixelation = "(none)"; break;
         }
-        fprintf(stderr, "Using %s pixels.\n", pixelation);
-
+        fprintf(stderr, "Using %s pixels", pixelation);
+#ifdef WITH_TIMG_SIXEL
+        if (present.pixelation == Pixelation::kSixelGraphics) {
+            if (present.sixel_cursor_workaround) {
+                fprintf(stderr, " (with cursor placment workaround)");
+            } else {
+                fprintf(stderr, " (with default cursor placement)");
+            }
+        }
+#endif
+        fprintf(stderr, ".\n");
         const rgba_t bg = display_opts.bgcolor_getter();
         fprintf(stderr,
                 "Background color for transparency '%s', effective "

@@ -25,8 +25,8 @@ class ThreadPool;
 class SixelCanvas final : public TerminalCanvas {
 public:
     SixelCanvas(BufferedWriteSequencer *ws, ThreadPool *thread_pool,
-                const DisplayOptions &opts)
-        : TerminalCanvas(ws), options_(opts), executor_(thread_pool) {}
+                bool required_cursor_placement_workaround,
+                const DisplayOptions &opts);
 
     void Send(int x, int dy, const Framebuffer &framebuffer,
               SeqType sequence_type, Duration end_of_frame) override;
@@ -34,6 +34,8 @@ public:
 private:
     const DisplayOptions &options_;
     ThreadPool *const executor_;
+    const char *cursor_move_before_;
+    const char *cursor_move_after_;
 };
 }  // namespace timg
 #endif  // SIXEL_CANVAS_H

@@ -25,9 +25,15 @@ enum class GraphicsProtocol {
     kNone,
     kIterm2,
     kKitty,
+    kSixel,
 };
+struct TermGraphicsInfo {
+    GraphicsProtocol preferred_graphics;
+    bool known_broken_sixel_cursor_placement;
+};
+
 // Query the terminal if and what graphics protocol it supports.
-GraphicsProtocol QuerySupportedGraphicsProtocol();
+TermGraphicsInfo QuerySupportedGraphicsProtocol();
 
 }  // namespace timg
 

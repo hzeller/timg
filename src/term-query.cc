@@ -178,15 +178,22 @@ const char *QueryBackgroundColor() {
     return result;
 }
 
-GraphicsProtocol QuerySupportedGraphicsProtocol() {
+static inline bool contains(const char *data, size_t len, const char *str) {
+    return memmem(data, len, str, strlen(str)) != nullptr;
+}
+
+TermGraphicsInfo QuerySupportedGraphicsProtocol() {
+    TermGraphicsInfo result;
+    result.preferred_graphics = GraphicsProtocol::kNone;
+    result.known_broken_sixel_cursor_placement = false;
+
     const char *const term = getenv("TERM");
     if (term && strcmp(term, "xterm-kitty") == 0) {
-        return GraphicsProtocol::kKitty;
+        result.preferred_graphics = GraphicsProtocol::kKitty;
+        return result;
     }
 
     const Duration kTimeBudget = Duration::Millis(250);
-
-    GraphicsProtocol result = GraphicsProtocol::kNone;
 
     // We send out two queries: one CSI for terminal version detection that
     // is supported at least by the terminals we're interested in. From the
@@ -201,13 +208,26 @@ GraphicsProtocol QuerySupportedGraphicsProtocol() {
     char buffer[512];
     QueryTerminal(term_query, buffer, sizeof(buffer), kTimeBudget,
                   [&result](const char *data, size_t len) {
-                      if ((memmem(data, len, "iTerm2", 6) != 0) ||
-                          (memmem(data, len, "Konsole 2", 9) != 0)) {
-                          result = GraphicsProtocol::kIterm2;
+                      if (contains(data, len, "iTerm2") ||
+                          contains(data, len, "Konsole 2")) {
+                          result.preferred_graphics = GraphicsProtocol::kIterm2;
                       }
-                      if ((memmem(data, len, "WezTerm", 7) != 0) ||
-                          (memmem(data, len, "kitty", 5) != 0)) {
-                          result = GraphicsProtocol::kKitty;
+                      if (contains(data, len, "WezTerm")) {
+                          // Kitty seems to work better with animations
+                          // on wezterm currently
+                          // https://github.com/wez/wezterm/issues/3882
+                          result.preferred_graphics = GraphicsProtocol::kKitty;
+                          result.known_broken_sixel_cursor_placement = true;
+                      }
+                      if (contains(data, len, "kitty")) {
+                          result.preferred_graphics = GraphicsProtocol::kKitty;
+                      }
+                      if (contains(data, len, "mlterm")) {
+                          result.preferred_graphics = GraphicsProtocol::kSixel;
+                      }
+                      if (contains(data, len, "XTerm")) {
+                          result.preferred_graphics = GraphicsProtocol::kSixel;
+                          result.known_broken_sixel_cursor_placement = true;
                       }
                       // We finish once we found the response to DSR5
                       return (const char *)memmem(data, len, "\033[0n", 3);
