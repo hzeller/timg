@@ -106,14 +106,14 @@ uint8_t **Framebuffer::row_data() {
 
 void Framebuffer::AlphaComposeBackground(const bgcolor_query &get_bg,
                                          rgba_t pattern_col, int pwidth,
-                                         int pheight) {
+                                         int pheight, int start_row) {
     if (!get_bg) return;  // -b none
 
-    iterator pos = begin();
+    iterator pos = begin() + (start_row * width());
     for (/**/; pos < end(); ++pos) {
         if (pos->a < 0xff) break;  // First pixel that is transparent.
     }
-    if (pos == end()) return;  // Nothing transparent all the way to the end.
+    if (pos >= end()) return;  // Nothing transparent all the way to the end.
 
     // Need to do alpha blending, so only now we have to retrieve the bgcolor.
     const rgba_t bgcolor = get_bg();

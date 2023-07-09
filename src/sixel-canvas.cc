@@ -103,7 +103,8 @@ void SixelCanvas::Send(int x, int dy, const Framebuffer &fb_orig,
     fb->AlphaComposeBackground(options_.bgcolor_getter,
                                options_.bg_pattern_color,
                                options_.pattern_size * options_.cell_x_px,
-                               options_.pattern_size * options_.cell_y_px / 2);
+                               options_.pattern_size * options_.cell_y_px / 2,
+                               fb_orig.height());
     // .. overwrite with whatever is in the orig.
     std::copy(fb_orig.begin(), fb_orig.end(), fb->begin());
 

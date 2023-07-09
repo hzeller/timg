@@ -97,10 +97,14 @@ public:
     // pixel will be the pattern color. That creates a 'checkerboard-pattern'
     // sometimes used to display transparent pictures.
     //
+    // "start_row" is to start the transparency filling further down; it is
+    // only really needed as an optimization in the sixels canvas.
+    //
     // This Alpha compositing merges in the linearized colors domain.
     using bgcolor_query = std::function<rgba_t()>;
     void AlphaComposeBackground(const bgcolor_query &get_bg, rgba_t pattern,
-                                int pattern_width, int pattern_height);
+                                int pattern_width, int pattern_height,
+                                int start_row = 0);
 
     // The raw internal buffer containing width()*height() pixels organized
     // from top left to bottom right.
