@@ -16,6 +16,7 @@
 #include "kitty-canvas.h"
 
 #include <algorithm>
+#include <cassert>
 #include <cstdint>
 
 #include "timg-base64.h"
@@ -57,7 +58,7 @@ KittyGraphicsCanvas::KittyGraphicsCanvas(BufferedWriteSequencer *ws,
 void KittyGraphicsCanvas::Send(int x, int dy, const Framebuffer &fb_orig,
                                SeqType seq_type, Duration end_of_frame) {
     if (dy < 0) {
-        MoveCursorDY(-((-dy + options_.cell_y_px - 1) / options_.cell_y_px));
+        MoveCursorDY(cell_height_for_pixels(dy));
     }
     MoveCursorDX(x / options_.cell_x_px);
 
@@ -151,4 +152,10 @@ char *KittyGraphicsCanvas::RequestBuffer(int width, int height) {
         4 + 1; /* digit space for cursor up/right; \n */
     return new char[content_size];
 }
+
+int KittyGraphicsCanvas::cell_height_for_pixels(int pixels) const {
+    assert(pixels <= 0);  // Currently only use-case
+    return -((-pixels + options_.cell_y_px - 1) / options_.cell_y_px);
+}
+
 }  // namespace timg

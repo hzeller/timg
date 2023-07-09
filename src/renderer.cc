@@ -109,10 +109,10 @@ public:
                 if (y_offset) {
                     // Move pixels needed for cell, then one more
                     // then one line more to reach the place of the title.
-                    const int y_move = (-y_offset + options_.cell_y_px - 1) /
-                                       options_.cell_y_px;
+                    const int y_move =
+                        canvas_->cell_height_for_pixels(y_offset);
                     const int kSpaceForTitle = 1;
-                    canvas_->MoveCursorDY(-y_move - kSpaceForTitle);
+                    canvas_->MoveCursorDY(y_move - kSpaceForTitle);
                 }
                 canvas_->MoveCursorDX(x_offset / options_.cell_x_px);
                 canvas_->AddPrefixNextSend(title_.c_str(), title_.length());

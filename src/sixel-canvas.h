@@ -28,6 +28,8 @@ public:
                 bool required_cursor_placement_workaround,
                 const DisplayOptions &opts);
 
+    int cell_height_for_pixels(int pixels) const final;
+
     void Send(int x, int dy, const Framebuffer &framebuffer,
               SeqType sequence_type, Duration end_of_frame) override;
 

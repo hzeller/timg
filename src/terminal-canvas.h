@@ -34,6 +34,8 @@ public:
     TerminalCanvas(const TerminalCanvas &) = delete;
     virtual ~TerminalCanvas();
 
+    virtual int cell_height_for_pixels(int pixels) const = 0;
+
     // Send frame to terminal. Move to xposition (relative to the left
     // of the screen, and delta y (relative to the current position) first.
     virtual void Send(int x, int dy, const Framebuffer &framebuffer,

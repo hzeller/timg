@@ -19,6 +19,8 @@
 #include <stddef.h>
 #include <sys/types.h>
 
+#include <cassert>
+
 #include "terminal-canvas.h"
 
 namespace timg {
@@ -36,6 +38,10 @@ public:
                        bool use_upper_half_block, bool use_256_color);
     ~UnicodeBlockCanvas() override;
 
+    int cell_height_for_pixels(int pixels) const final {
+        assert(pixels <= 0);  // Currently only use-case
+        return (pixels - 1) / 2;
+    }
     void Send(int x, int dy, const Framebuffer &framebuffer, SeqType seq_type,
               Duration end_of_frame) override;
 

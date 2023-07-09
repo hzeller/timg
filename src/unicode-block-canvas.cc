@@ -322,7 +322,7 @@ void UnicodeBlockCanvas::Send(int x, int dy, const Framebuffer &framebuffer,
     OutBuffer out_buffer(RequestBuffers(width, height), 0);
     char *pos = out_buffer.data;
 
-    if (dy < 0) MoveCursorDY((dy - 1) / 2);
+    if (dy < 0) MoveCursorDY(cell_height_for_pixels(dy));
 
     pos = AppendPrefixToBuffer(pos);
 

@@ -17,6 +17,9 @@
 
 #include <sixel.h>
 
+#include <algorithm>
+#include <cassert>
+
 #include "thread-pool.h"
 
 #define CSI "\033["
@@ -73,6 +76,11 @@ static int WriteToOutBuffer(char *data, int size, void *outbuf_param) {
     return size;
 }
 
+static inline int round_to_sixel(int pixels) {
+    pixels += 5;
+    return pixels - pixels % 6;
+}
+
 static void WriteStringToOutBuffer(const char *str, OutBuffer *outbuffer) {
     WriteToOutBuffer(const_cast<char *>(str), strlen(str), outbuffer);
 }
@@ -80,12 +88,25 @@ static void WriteStringToOutBuffer(const char *str, OutBuffer *outbuffer) {
 void SixelCanvas::Send(int x, int dy, const Framebuffer &fb_orig,
                        SeqType seq_type, Duration end_of_frame) {
     if (dy < 0) {
-        MoveCursorDY(-((-dy + options_.cell_y_px - 1) / options_.cell_y_px));
+        MoveCursorDY(cell_height_for_pixels(dy));
     }
     MoveCursorDX(x / options_.cell_x_px);
 
     // Create copy to be used in threads.
-    const Framebuffer *const fb = new Framebuffer(fb_orig);
+
+    // Round height to next possible sixel cut-off treat the remaining strip
+    // at the bottom as transparent.
+    Framebuffer *const fb =
+        new Framebuffer(fb_orig.width(), round_to_sixel(fb_orig.height()));
+    // First, make it transparent with whatever choosen (ideally, we only
+    // do the last couple of rows)
+    fb->AlphaComposeBackground(options_.bgcolor_getter,
+                               options_.bg_pattern_color,
+                               options_.pattern_size * options_.cell_x_px,
+                               options_.pattern_size * options_.cell_y_px / 2);
+    // .. overwrite with whatever is in the orig.
+    std::copy(fb_orig.begin(), fb_orig.end(), fb->begin());
+
     // TODO: this should be realloced as needed.
     char *const buffer = new char[1024 + fb->width() * fb->height() * 5];
     char *const offset = AppendPrefixToBuffer(buffer);
@@ -121,6 +142,16 @@ void SixelCanvas::Send(int x, int dy, const Framebuffer &fb_orig,
         };
     write_sequencer_->WriteBuffer(executor_->ExecAsync(encode_fun), seq_type,
                                   end_of_frame);
+}
+
+int SixelCanvas::cell_height_for_pixels(int pixels) const {
+    assert(pixels <= 0);  // Currently only use-case
+    pixels = -pixels;
+    // Unlike the other exact pixel canvases where we have to round to the
+    // next even cell_y_px, here we first need to round to the next even 6
+    // first.
+    return -((round_to_sixel(pixels) + options_.cell_y_px - 1) /
+             options_.cell_y_px);
 }
 
 }  // namespace timg

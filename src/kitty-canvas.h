@@ -27,6 +27,8 @@ public:
     KittyGraphicsCanvas(BufferedWriteSequencer *ws, ThreadPool *thread_pool,
                         const DisplayOptions &opts);
 
+    int cell_height_for_pixels(int pixels) const final;
+
     void Send(int x, int dy, const Framebuffer &framebuffer,
               SeqType sequence_type, Duration end_of_frame) override;
 
