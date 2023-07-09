@@ -184,7 +184,7 @@ static inline bool contains(const char *data, size_t len, const char *str) {
 
 TermGraphicsInfo QuerySupportedGraphicsProtocol() {
     TermGraphicsInfo result;
-    result.preferred_graphics = GraphicsProtocol::kNone;
+    result.preferred_graphics                  = GraphicsProtocol::kNone;
     result.known_broken_sixel_cursor_placement = false;
 
     const char *const term = getenv("TERM");

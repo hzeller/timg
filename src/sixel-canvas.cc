@@ -19,7 +19,7 @@
 
 #include "thread-pool.h"
 
-#define CSI    "\033["
+#define CSI "\033["
 
 namespace timg {
 
@@ -27,7 +27,6 @@ SixelCanvas::SixelCanvas(BufferedWriteSequencer *ws, ThreadPool *thread_pool,
                          bool required_cursor_placement_workaround,
                          const DisplayOptions &opts)
     : TerminalCanvas(ws), options_(opts), executor_(thread_pool) {
-
     // Terminals might have different understanding where the curosr is placed
     // after an image is sent.
     // Apparently the original dec terminal placed it afterwards, but some
@@ -54,13 +53,14 @@ SixelCanvas::SixelCanvas(BufferedWriteSequencer *ws, ThreadPool *thread_pool,
         // works: konsole, mlterm, libvte-based, alacritty-sixel
         // breaks: xterm, wezterm
         cursor_move_before_ = CSI "80h" CSI "?7730h" CSI "?8452l";
-        cursor_move_after_ = "\r";
-    } else {
+        cursor_move_after_  = "\r";
+    }
+    else {
         //** The workaround enabled for xterm and wezterm.
         // works: xterm, mlterm, wezterm, alacritty-sixel
         // break: konsole, libvte-based
         cursor_move_before_ = CSI "80l" CSI "?7730l" CSI "?8452h";
-        cursor_move_after_ = "\n";
+        cursor_move_after_  = "\n";
     }
 }
 
@@ -91,35 +91,34 @@ void SixelCanvas::Send(int x, int dy, const Framebuffer &fb_orig,
     char *const offset = AppendPrefixToBuffer(buffer);
     // avoid capture whole 'this', so copy values locally
     const char *const cursor_handling_start = cursor_move_before_;
-    const char *const cursor_handling_end = cursor_move_after_;
-    std::function<OutBuffer()> encode_fun = [fb, buffer, offset,
-                                             cursor_handling_start,
-                                             cursor_handling_end]() {
-        std::unique_ptr<const Framebuffer> auto_delete(fb);
+    const char *const cursor_handling_end   = cursor_move_after_;
+    std::function<OutBuffer()> encode_fun =
+        [fb, buffer, offset, cursor_handling_start, cursor_handling_end]() {
+            std::unique_ptr<const Framebuffer> auto_delete(fb);
 
-        OutBuffer out(buffer, offset - buffer);
-        WriteStringToOutBuffer(cursor_handling_start, &out);
-        WriteStringToOutBuffer("\033Pq", &out);  // Start sixel data
-        sixel_output_t *sixel_out = nullptr;
-        sixel_output_new(&sixel_out, WriteToOutBuffer, &out, nullptr);
+            OutBuffer out(buffer, offset - buffer);
+            WriteStringToOutBuffer(cursor_handling_start, &out);
+            WriteStringToOutBuffer("\033Pq", &out);  // Start sixel data
+            sixel_output_t *sixel_out = nullptr;
+            sixel_output_new(&sixel_out, WriteToOutBuffer, &out, nullptr);
 
-        sixel_dither_t *sixel_dither = nullptr;
-        sixel_dither_new(&sixel_dither, 256, nullptr);
-        sixel_dither_initialize(sixel_dither, (unsigned char *)fb->begin(),
-                                fb->width(), fb->height(),
-                                SIXEL_PIXELFORMAT_RGBA8888, SIXEL_LARGE_LUM,
-                                SIXEL_REP_AVERAGE_COLORS, SIXEL_QUALITY_AUTO);
+            sixel_dither_t *sixel_dither = nullptr;
+            sixel_dither_new(&sixel_dither, 256, nullptr);
+            sixel_dither_initialize(
+                sixel_dither, (unsigned char *)fb->begin(), fb->width(),
+                fb->height(), SIXEL_PIXELFORMAT_RGBA8888, SIXEL_LARGE_LUM,
+                SIXEL_REP_AVERAGE_COLORS, SIXEL_QUALITY_AUTO);
 
-        sixel_encode((unsigned char *)fb->begin(), fb->width(), fb->height(), 0,
-                     sixel_dither, sixel_out);
+            sixel_encode((unsigned char *)fb->begin(), fb->width(),
+                         fb->height(), 0, sixel_dither, sixel_out);
 
-        sixel_dither_destroy(sixel_dither);
-        sixel_output_destroy(sixel_out);
+            sixel_dither_destroy(sixel_dither);
+            sixel_output_destroy(sixel_out);
 
-        WriteStringToOutBuffer("\033\\", &out);  // end sixel data
-        WriteStringToOutBuffer(cursor_handling_end, &out);
-        return out;
-    };
+            WriteStringToOutBuffer("\033\\", &out);  // end sixel data
+            WriteStringToOutBuffer(cursor_handling_end, &out);
+            return out;
+        };
     write_sequencer_->WriteBuffer(executor_->ExecAsync(encode_fun), seq_type,
                                   end_of_frame);
 }

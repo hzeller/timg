@@ -118,7 +118,7 @@ namespace timg {
 struct PresentationOptions {
     // Rendering
     Pixelation pixelation         = Pixelation::kNotChosen;
-    bool sixel_cursor_workaround = false;
+    bool sixel_cursor_workaround  = false;
     bool terminal_use_upper_block = false;
     bool use_256_color = false;  // For terminals that don't do 24 bit color
 
@@ -250,9 +250,8 @@ static int usage(const char *progname, ExitCode exit_code, int width,
         "\t--frame-offset=<num>: Start animation/video at this frame\n"
         "\t-t<seconds>   : Stop after this time, independent of --loops or "
         "--frames\n",
-        width, height,
-        default_title ? "='" : "", default_title ? default_title : "",
-        default_title ? "'" : "",
+        width, height, default_title ? "='" : "",
+        default_title ? default_title : "", default_title ? "'" : "",
         kDefaultThreadCount);
     return (int)exit_code;
 }
@@ -942,7 +941,8 @@ int main(int argc, char *argv[]) {
         if (present.pixelation == Pixelation::kSixelGraphics) {
             if (present.sixel_cursor_workaround) {
                 fprintf(stderr, " (with cursor placment workaround)");
-            } else {
+            }
+            else {
                 fprintf(stderr, " (with default cursor placement)");
             }
         }
