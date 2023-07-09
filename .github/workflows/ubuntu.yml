@@ -56,6 +56,70 @@ jobs:
           cmake .. -DWITH_VIDEO_DECODING=On -DWITH_VIDEO_DEVICE=On -DWITH_OPENSLIDE_SUPPORT=On -DWITH_STB_IMAGE=On -DWITH_LIBSIXEL=On
           make -k
 
+  AppImage:
+    runs-on: ubuntu-latest
+    name: Build AppImage
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+     # TODO: extract version from tag, fix-up yml file.
+      - name: Install Dependencies
+        run: |
+          sudo apt update
+          sudo apt install cmake git g++ clang pkg-config
+          sudo apt install libswscale-dev libavutil-dev libdeflate-dev
+          sudo apt install libgraphicsmagick++-dev
+          sudo apt install libturbojpeg-dev libexif-dev
+          sudo apt install libsixel-dev
+          sudo apt install libavcodec-dev libavformat-dev libavdevice-dev
+          sudo apt install libopenslide-dev
+          sudo apt install pandoc
+
+      - name: Set Version
+        run: |
+          echo "PACKAGE_VERSION=$(git tag | tail -1 | sed 's/^v//')" >> $GITHUB_ENV
+
+      - name: Build AppDir
+        run: |
+          # Switch off some or the more expensive dependencies.
+          # also check apt to include in .github/conf/AppImageBuilder.yml
+          ./.github/bin/prepare-app-image.sh \
+             -DWITH_GRAPHICSMAGICK=Off \
+             -DWITH_VIDEO_DECODING=Off \
+             -DWITH_VIDEO_DEVICE=Off \
+             -DWITH_OPENSLIDE_SUPPORT=Off \
+             -DWITH_TURBOJPEG=On \
+             -DWITH_STB_IMAGE=On \
+             -DWITH_QOI_IMAGE=On \
+             -DWITH_LIBSIXEL=On
+          strip AppDir/usr/bin/timg
+          ldd AppDir/usr/bin/timg
+          sed "s/@VERSION@/$PACKAGE_VERSION/" \
+              < .github/conf/AppImageBuilder.yml.in \
+              > AppImageBuilder.yml
+
+      - name: Package
+        uses: AppImageCrafters/build-appimage@master
+        env:
+          UPDATE_INFO: gh-releases-zsync|hzeller|timg|latest|*.AppImage.zsync
+        with:
+          recipe: "AppImageBuilder.yml"
+
+      - name: Show result
+        run: |
+          ls -l
+
+      - name: 📤 Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: timg-${{ env.PACKAGE_VERSION }}-x86_64.AppImage
+          path: timg-${{ env.PACKAGE_VERSION }}-x86_64.AppImage
+
+      # TODO: upload to release
+
   CodeFormatting:
     if: false   # currently, there is no clang-format-13 in ubuntu latest
     runs-on: ubuntu-latest
