@@ -100,11 +100,10 @@ void SixelCanvas::Send(int x, int dy, const Framebuffer &fb_orig,
         new Framebuffer(fb_orig.width(), round_to_sixel(fb_orig.height()));
     // First, make it transparent with whatever choosen (ideally, we only
     // do the last couple of rows)
-    fb->AlphaComposeBackground(options_.bgcolor_getter,
-                               options_.bg_pattern_color,
-                               options_.pattern_size * options_.cell_x_px,
-                               options_.pattern_size * options_.cell_y_px / 2,
-                               fb_orig.height());
+    fb->AlphaComposeBackground(
+        options_.bgcolor_getter, options_.bg_pattern_color,
+        options_.pattern_size * options_.cell_x_px,
+        options_.pattern_size * options_.cell_y_px / 2, fb_orig.height());
     // .. overwrite with whatever is in the orig.
     std::copy(fb_orig.begin(), fb_orig.end(), fb->begin());
 

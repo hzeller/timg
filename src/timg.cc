@@ -50,6 +50,9 @@
 
 #    include "image-display.h"
 #endif
+#ifdef WITH_TIMG_SIXEL
+#    include <sixel.h>
+#endif
 
 #include <errno.h>
 #include <fcntl.h>
@@ -615,6 +618,12 @@ int main(int argc, char *argv[]) {
 #ifdef WITH_TIMG_VIDEO
             fprintf(stderr, "Video decoding %s\n",
                     timg::VideoLoader::VersionInfo());
+#endif
+            fprintf(stderr,
+                    "Half, quarter, iterm2, and kitty encoding "
+                    "timg builtin.\n");
+#ifdef WITH_TIMG_SIXEL
+            fprintf(stderr, "Libsixel version %s\n", LIBSIXEL_VERSION);
 #endif
             return 0;
         case OPT_TITLE:
