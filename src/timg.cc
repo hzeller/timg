@@ -72,6 +72,7 @@
 #include <future>
 #include <iostream>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
@@ -885,8 +886,8 @@ int main(int argc, char *argv[]) {
 
     ExitCode exit_code = ExitCode::kSuccess;
 
-    // Only print errors if we got one explicit filename.
-    const bool print_errors = (filelist.size() == 1);
+    std::mutex errors_lock;   // Collect any errors to display later.
+    std::deque<std::string> errors;
 
     // Async image loading, preparing them in a thread pool
     LoadedImageSources loaded_sources;
@@ -894,12 +895,19 @@ int main(int argc, char *argv[]) {
         if (interrupt_received) break;
         std::function<timg::ImageSource *()> f =
             [filename, frame_offset, max_frames, do_img_loading, do_vid_loading,
-             print_errors, &display_opts, &exit_code]() -> timg::ImageSource * {
+             &display_opts, &exit_code, &errors_lock,
+             &errors]() -> timg::ImageSource * {
             if (interrupt_received) return nullptr;
+            // TODO: after switch to c++17, use variant in return ?
+            std::string err;
             ImageSource *result = ImageSource::Create(
                 filename, display_opts, frame_offset, max_frames,
-                do_img_loading, do_vid_loading, print_errors);
-            if (!result) exit_code = ExitCode::kImageReadError;
+                do_img_loading, do_vid_loading, &err);
+            if (!result) {
+                std::unique_lock<std::mutex> l(errors_lock);
+                exit_code = ExitCode::kImageReadError;
+                if (!err.empty()) errors.push_back(err);
+            }
             return result;
         };
         loaded_sources.push_back(pool->ExecAsync(f));
@@ -920,6 +928,17 @@ int main(int argc, char *argv[]) {
     PresentImages(&loaded_sources, display_opts, present, &sequencer,
                   &cell_size_warning_needed);
     const Time end_show = Time::Now();
+
+    // Error messages have been collected to not clutter the image output
+    // when they happen. Emit them now.
+    int max_errors_to_show = 4;
+    for (const std::string &err : errors) {
+        fprintf(stderr, "%s\n", err.c_str());
+        if (--max_errors_to_show == 0) break;
+    }
+    if (!max_errors_to_show) {
+        fprintf(stderr, "... total of %d errors\n", (int)errors.size());
+    }
 
     if (interrupt_received) {
         // Even though we completed the write, some terminals sometimes seem

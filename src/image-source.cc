@@ -152,7 +152,7 @@ ImageSource *ImageSource::Create(const std::string &filename,
                                  int frame_offset, int frame_count,
                                  bool attempt_image_loading,
                                  bool attempt_video_loading,
-                                 bool print_errors) {
+                                 std::string *error) {
     std::unique_ptr<ImageSource> result;
     if (attempt_image_loading) {
 #ifdef WITH_TIMG_OPENSLIDE_SUPPORT
@@ -202,16 +202,16 @@ ImageSource *ImageSource::Create(const std::string &filename,
 #endif
 
     // Ran into trouble opening. Let's see if this is even an accessible file.
-    if (filename != "-" && print_errors) {
+    if (filename != "-") {
         struct stat statresult;
         if (stat(filename.c_str(), &statresult) < 0) {
-            fprintf(stderr, "%s: %s\n", filename.c_str(), strerror(errno));
+            error->append(filename).append(": ").append(strerror(errno));
         }
         else if (S_ISDIR(statresult.st_mode)) {
-            fprintf(stderr, "%s: is a directory\n", filename.c_str());
+            error->append(filename).append(": is a directory");
         }
         else if (access(filename.c_str(), R_OK) < 0) {
-            fprintf(stderr, "%s: %s\n", filename.c_str(), strerror(errno));
+            error->append(filename).append(": ").append(strerror(errno));
         }
     }
 
@@ -219,9 +219,7 @@ ImageSource *ImageSource::Create(const std::string &filename,
     // fprintf(stderr, "%s: couldn't load\n", filename);
 #ifdef WITH_TIMG_VIDEO
     if (filename == "-" || filename == "/dev/stdin") {
-        fprintf(stderr,
-                "If this is a video on stdin, use '-V' to "
-                "skip image probing\n");
+        *error = "If this is a video on stdin, use '-V' to skip image probing";
     }
 #endif
     return nullptr;

@@ -32,11 +32,12 @@ public:
     // Factory that creates an image source, trying all available
     // implementations until one can deal with the filename.
     // Returns a fully LoadAndScale()'d ImageSource that SendFrame()
-    // can be called on, or nullptr if file can not be opened
+    // can be called on, or nullptr if file can not be opened.
+    // In case of an error, the error message is filled into "error" out param.
     static ImageSource *Create(const std::string &filename,
                                const DisplayOptions &options, int frame_offset,
                                int frames_count, bool attempt_image_loading,
-                               bool attempt_video_loading, bool print_errors);
+                               bool attempt_video_loading, std::string *error);
 
     virtual ~ImageSource() {}
 
