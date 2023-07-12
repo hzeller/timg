@@ -223,7 +223,12 @@ static int usage(const char *progname, ExitCode exit_code, int width,
         "\t                 Env-var override with TIMG_DEFAULT_TITLE%s%s%s\n"
         "\t-f<filelist>   : Read newline-separated list of image files to "
         "show.\n"
+        "\t                 Relative filenames are relative to current "
+        "directory.\n"
         "\t                 (Can be provided multiple times.)\n"
+        "\t-F<filelist>   : like -f, but relative filenames considered "
+        "relative\n"
+        "\t                 to the directory containting the filelist.\n"
         "\t-o<outfile>    : Write to <outfile> instead of stdout.\n"
         "\t-E             : Don't hide the cursor while showing images.\n"
         "\t--threads=<n>  : Run image decoding in parallel with n threads\n"
@@ -256,9 +261,11 @@ static int usage(const char *progname, ExitCode exit_code, int width,
     return (int)exit_code;
 }
 
-// Read list of filenames from newline separated file. Non-absolute files
-// are resolved relative to the filelist_file
+// Read list of filenames from newline separated file.
+// Non-absolute files are resolved relative to the filelist_file or
+// relative to currnet working directory.
 bool AppendToFileList(const std::string &filelist_file,
+                      bool consider_relative_to_filelist,
                       std::vector<std::string> *filelist) {
     std::ifstream filelist_stream(
         filelist_file == "-" ? "/dev/stdin" : filelist_file, std::ifstream::in);
@@ -272,7 +279,10 @@ bool AppendToFileList(const std::string &filelist_file,
     std::string filename;
     for (std::string filename; std::getline(filelist_stream, filename); /**/) {
         if (filename.empty()) continue;
-        if (filename[0] != '/' && !prefix.empty()) filename.insert(0, prefix);
+        if (consider_relative_to_filelist &&  //
+            filename[0] != '/' && !prefix.empty()) {
+            filename.insert(0, prefix);
+        }
         filelist->push_back(filename);
     }
     return true;
@@ -412,6 +422,7 @@ int main(int argc, char *argv[]) {
         OPT_PATTERN_SIZE,
         OPT_ROTATE,
         OPT_THREADS,
+        OPT_TITLE,
         OPT_VERBOSE,
         OPT_VERSION,
         OPT_AUTO_CROP,
@@ -439,7 +450,7 @@ int main(int argc, char *argv[]) {
         {"rotate",               required_argument, NULL, OPT_ROTATE        },
         {"scroll",               optional_argument, NULL, OPT_SCROLL        },
         {"threads",              required_argument, NULL, OPT_THREADS       },
-        {"title",                optional_argument, NULL, 'F'               },
+        {"title",                optional_argument, NULL, OPT_TITLE         },
         {"upscale",              optional_argument, NULL, 'U'               },
         {"verbose",              no_argument,       NULL, OPT_VERBOSE       },
         {"version",              no_argument,       NULL, OPT_VERSION       },
@@ -448,7 +459,7 @@ int main(int argc, char *argv[]) {
 
     int opt;
     int option_index = 0;
-    while ((opt = getopt_long(argc, argv, "vg:w:t:c:f:b:B:hCFEd:UWaVIo:f:p:",
+    while ((opt = getopt_long(argc, argv, "vg:w:t:c:f:b:B:hCF:Ed:UWaVIo:f:p:",
                               long_options, &option_index)) != -1) {
         switch (opt) {
         case 'g':
@@ -571,8 +582,10 @@ int main(int argc, char *argv[]) {
             }
             break;
         case 'F':
-            display_opts.show_title = !display_opts.show_title;
-            if (optarg) display_opts.title_format = optarg;
+            if (!AppendToFileList(optarg, true, &filelist)) {
+                return usage(argv[0], ExitCode::kFilelistProblem,
+                             geometry_width, geometry_height);
+            }
             break;
         case 'E': present.hide_cursor = false; break;
         case 'W': display_opts.fill_width = true; break;
@@ -604,6 +617,10 @@ int main(int argc, char *argv[]) {
                     timg::VideoLoader::VersionInfo());
 #endif
             return 0;
+        case OPT_TITLE:
+            display_opts.show_title = !display_opts.show_title;
+            if (optarg) display_opts.title_format = optarg;
+            break;
         case 'o':
             output_fd = open(optarg, O_WRONLY | O_CREAT | O_TRUNC, 0664);
             if (output_fd < 0) {
@@ -613,7 +630,7 @@ int main(int argc, char *argv[]) {
             }
             break;
         case 'f':
-            if (!AppendToFileList(optarg, &filelist)) {
+            if (!AppendToFileList(optarg, false, &filelist)) {
                 return usage(argv[0], ExitCode::kFilelistProblem,
                              geometry_width, geometry_height);
             }

@@ -195,14 +195,25 @@ these file decoders (GraphicsMagick or libav respectively).
 
 **-f** &lt;*filelist-file*&gt;
 :    Read a list of image filenames to show from this file. The list needs
-     to be newline separated.
+     to be newline separated, so one filename per line.
      This option can be supplied multiple times in which case it appends
      to the end of the list of images to show.
-     If there are also filenames on the command line, they will be shown at
-     the very end.
+     If there are also filenames on the command line, they will also be
+     shown after the images from the file list have been shown.
 
      Absolute filenames in the list are used as-is, relative filenames are
-     resolved relative to the filelist-file itself.
+     resolved relative to the current directory.
+
+     (Note: this behavior changed between v1.5.0 and v1.5.1: previously, -f
+     was resolving relative to the filelist; this changed to current directory.
+     Look-up relative to the file list is provided with with uppercase **-F**).
+
+**-F**
+:    Like **-f**, but relative filenames are resolved relative to the
+     directory the file list resides in.
+     This allows you to e.g. have a file list at the top of a directory
+     structure with relative filenames but are not required to navigate there
+     first to display them with timg.
 
 **-o** &lt;*outfile*&gt;
 :    Write terminal image to given filename instead of stdout.
