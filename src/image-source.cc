@@ -222,6 +222,23 @@ ImageSource *ImageSource::Create(const std::string &filename,
         *error = "If this is a video on stdin, use '-V' to skip image probing";
     }
 #endif
+
+#ifndef WITH_TIMG_VIDEO
+    if (error->empty()) {
+        const char *const end_filename = filename.data() + filename.length();
+        for (const char *suffix : {".mov", ".mp4", ".mkv", ".avi", ".wmv"}) {
+            const size_t suffix_len = strlen(suffix);
+            if (filename.length() < suffix_len) continue;
+            if (strcasecmp(end_filename - suffix_len, suffix) == 0) {
+                error->append(filename).append(
+                    ": looks like a video file, but video support not compiled "
+                    "into this timg.");
+                break;
+            }
+        }
+    }
+#endif
+
     return nullptr;
 }
 
