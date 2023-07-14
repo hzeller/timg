@@ -156,6 +156,8 @@ static int usage(const char *progname, ExitCode exit_code, int width,
 #else
     static constexpr char kFileType[] = "image";
 #endif
+    const char *after_slash_progname = rindex(progname, '/');
+    progname = after_slash_progname ? after_slash_progname + 1 : progname;
     const char *const default_title = getenv("TIMG_DEFAULT_TITLE");
     fprintf(stderr, "usage: %s [options] <%s> [<%s>...]\n", progname, kFileType,
             kFileType);
