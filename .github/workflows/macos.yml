@@ -19,7 +19,7 @@ jobs:
           brew install openslide
           brew install pandoc
       - name: Get the Source
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Build timg
         run: |
           mkdir build
