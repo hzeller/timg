@@ -19,6 +19,7 @@ jobs:
     steps:
       - name: Install minimal dependencies
         run: |
+          sudo apt update
           sudo apt install cmake git g++ clang pkg-config libswscale-dev libavutil-dev libdeflate-dev
 
       - name: Get the Source
@@ -40,6 +41,7 @@ jobs:
 
       - name: Install Full Dependencies
         run: |
+          sudo apt update
           sudo apt install libgraphicsmagick++-dev
           sudo apt install libturbojpeg-dev libexif-dev
           sudo apt install libsixel-dev
