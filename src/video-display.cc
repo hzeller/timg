@@ -119,11 +119,14 @@ bool VideoLoader::LoadAndScale(const DisplayOptions &display_options,
     frame_count_  = frame_count;
 
     const char *file = (filename() == "-") ? "/dev/stdin" : filename().c_str();
+    const size_t file_len = strlen(file);
     // Only consider applying transparency for certain file types we know
     // it might happen.
-    for (const char *ending :
+    for (const char *suffix :
          {".png", ".gif", ".qoi", ".apng", ".svg", "/dev/stdin"}) {
-        if (strcasecmp(file + strlen(file) - strlen(ending), ending) == 0) {
+        const size_t suffix_len = strlen(suffix);
+        if (file_len < suffix_len) continue;
+        if (strcasecmp(file + file_len - suffix_len, suffix) == 0) {
             maybe_transparent_ = true;
             break;
         }
