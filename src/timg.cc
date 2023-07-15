@@ -123,6 +123,7 @@ struct PresentationOptions {
     // Rendering
     Pixelation pixelation         = Pixelation::kNotChosen;
     bool sixel_cursor_workaround  = false;
+    bool tmux_workaround          = false;
     bool terminal_use_upper_block = false;
     bool use_256_color = false;  // For terminals that don't do 24 bit color
 
@@ -306,6 +307,7 @@ static void PresentImages(LoadedImageSources *loaded_sources,
     case Pixelation::kKittyGraphics:
         compression_pool.reset(new ThreadPool(sequencer->max_queue_len() + 1));
         canvas.reset(new KittyGraphicsCanvas(sequencer, compression_pool.get(),
+                                             present.tmux_workaround,
                                              display_opts));
         break;
     case Pixelation::kiTerm2Graphics:
@@ -728,7 +730,8 @@ int main(int argc, char *argv[]) {
         present.pixelation = Pixelation::kQuarterBlock;  // Good default.
 #ifdef WITH_TIMG_TERMINAL_QUERY
         if (term.font_width_px > 0 && term.font_height_px > 0) {
-            auto graphics_info = timg::QuerySupportedGraphicsProtocol();
+            auto graphics_info      = timg::QuerySupportedGraphicsProtocol();
+            present.tmux_workaround = graphics_info.in_tmux;
             switch (graphics_info.preferred_graphics) {
             case timg::GraphicsProtocol::kIterm2:
                 present.pixelation = Pixelation::kiTerm2Graphics;
@@ -750,6 +753,11 @@ int main(int argc, char *argv[]) {
         }
 #endif
     }
+    else if (present.pixelation == Pixelation::kKittyGraphics) {
+        // If the user manually chooses kitty, we still need to know if in tmux
+        auto graphics_info      = timg::QuerySupportedGraphicsProtocol();
+        present.tmux_workaround = graphics_info.in_tmux;
+    }
 #if defined(WITH_TIMG_SIXEL) && defined(WITH_TIMG_TERMINAL_QUERY)
     // If the user manually choose sixel, we still can't avoid a terminal
     // query, as we have to figure out if it has a broken cursor implementation.
@@ -759,6 +767,17 @@ int main(int argc, char *argv[]) {
             graphics_info.known_broken_sixel_cursor_placement;
     }
 #endif
+
+    // If we are in tmux and use the kitty protocol, we need to tell it to
+    // allow pass-through.
+    // Somewhat broken abstraction here, should move to some
+    // TerminalCanvas::Prepare().
+    if (present.pixelation == Pixelation::kKittyGraphics &&
+        present.tmux_workaround) {
+        if (system("tmux set -p allow-passthrough on") != 0) {
+            fprintf(stderr, "Could not set tmux passthrough for graphics\n");
+        }
+    }
 
     // If 'none' is chosen for background color, then using the
     // PNG compression with alpha channels gives us compositing on client side

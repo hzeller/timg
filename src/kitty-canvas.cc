@@ -71,8 +71,12 @@ static char *AppendEscaped(char *pos, char c, bool wrap_tmux) {
 
 KittyGraphicsCanvas::KittyGraphicsCanvas(BufferedWriteSequencer *ws,
                                          ThreadPool *thread_pool,
+                                         bool tmux_workaround_needed,
                                          const DisplayOptions &opts)
-    : TerminalCanvas(ws), options_(opts), executor_(thread_pool) {}
+    : TerminalCanvas(ws),
+      options_(opts),
+      tmux_workaround_needed_(tmux_workaround_needed),
+      executor_(thread_pool) {}
 
 void KittyGraphicsCanvas::Send(int x, int dy, const Framebuffer &fb_orig,
                                SeqType seq_type, Duration end_of_frame) {
@@ -123,7 +127,7 @@ void KittyGraphicsCanvas::Send(int x, int dy, const Framebuffer &fb_orig,
     const int cols   = fb->width() / opts.cell_x_px;
     const int rows   = -cell_height_for_pixels(-fb->height());
     const int indent = x / opts.cell_x_px;
-    bool wrap_tmux   = false;
+    bool wrap_tmux   = tmux_workaround_needed_;
     std::function<OutBuffer()> encode_fun = [opts, fb, id, buffer, offset, rows,
                                              cols, indent, wrap_tmux]() {
         std::unique_ptr<const Framebuffer> auto_delete(fb);

@@ -186,11 +186,12 @@ TermGraphicsInfo QuerySupportedGraphicsProtocol() {
     TermGraphicsInfo result;
     result.preferred_graphics                  = GraphicsProtocol::kNone;
     result.known_broken_sixel_cursor_placement = false;
+    result.in_tmux                             = false;
 
     const char *const term = getenv("TERM");
     if (term && strcmp(term, "xterm-kitty") == 0) {
         result.preferred_graphics = GraphicsProtocol::kKitty;
-        return result;
+        // Fall through, as we still have to determine if we're in tmux
     }
 
     const Duration kTimeBudget = Duration::Millis(250);
@@ -228,6 +229,9 @@ TermGraphicsInfo QuerySupportedGraphicsProtocol() {
                       if (contains(data, len, "XTerm")) {
                           result.preferred_graphics = GraphicsProtocol::kSixel;
                           result.known_broken_sixel_cursor_placement = true;
+                      }
+                      if (contains(data, len, "tmux")) {
+                          result.in_tmux = true;
                       }
                       // We finish once we found the response to DSR5
                       return (const char *)memmem(data, len, "\033[0n", 3);

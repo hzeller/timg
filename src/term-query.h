@@ -30,6 +30,7 @@ enum class GraphicsProtocol {
 struct TermGraphicsInfo {
     GraphicsProtocol preferred_graphics;
     bool known_broken_sixel_cursor_placement;
+    bool in_tmux;
 };
 
 // Query the terminal if and what graphics protocol it supports.
