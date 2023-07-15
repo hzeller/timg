@@ -888,7 +888,7 @@ int main(int argc, char *argv[]) {
 
     ExitCode exit_code = ExitCode::kSuccess;
 
-    std::mutex errors_lock;   // Collect any errors to display later.
+    std::mutex errors_lock;  // Collect any errors to display later.
     std::deque<std::string> errors;
 
     // Async image loading, preparing them in a thread pool
