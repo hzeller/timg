@@ -666,6 +666,9 @@ int main(int argc, char *argv[]) {
 #ifdef WITH_TIMG_SIXEL
             case 's': present.pixelation = Pixelation::kSixelGraphics; break;
 #endif
+            default:
+                fprintf(stderr, "Unknown --pixelation/-p parameter '%s'\n",
+                        optarg);
             }
             break;
         case OPT_COMPRESS_PIXEL:
