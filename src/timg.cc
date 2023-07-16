@@ -409,7 +409,11 @@ int main(int argc, char *argv[]) {
     int geometry_height       = (term.rows - 2);
     bool debug_no_frame_delay = false;
 
-    // Convenience predicate: pixelation sending high-res images, no blocks.
+    // Convenience predicates: pixelation sending high-res images, no blocks.
+    const auto is_pixel_direct_with_alpha = [](Pixelation p) {
+        return p == Pixelation::kKittyGraphics ||
+               p == Pixelation::kiTerm2Graphics;
+    };
     const auto is_pixel_direct_p = [](Pixelation p) {
         return p == Pixelation::kKittyGraphics ||
                p == Pixelation::kiTerm2Graphics
@@ -779,10 +783,17 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // If 'none' is chosen for background color, then using the
-    // PNG compression with alpha channels gives us compositing on client side
+    // The high-res image terminals provide alpha-blending, no need to
+    // query the terminal color for 'auto'
+    if (is_pixel_direct_with_alpha(present.pixelation) &&
+        (strcasecmp(bg_color, "auto") == 0)) {
+        bg_color = "none";
+    }
+
+    // If 'none' is chosen for background color, then emitting the
+    // PNG with alpha channels gives us compositing on client side.
     if (is_pixel_direct_p(present.pixelation) &&
-        strcasecmp(bg_color, "none") == 0) {
+        (strcasecmp(bg_color, "none") == 0)) {
         display_opts.local_alpha_handling = false;
     }
 
