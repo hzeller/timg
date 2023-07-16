@@ -27,6 +27,7 @@
 #include "terminal-canvas.h"
 #include "termutils.h"
 #include "thread-pool.h"
+#include "timg-help.h"
 #include "timg-time.h"
 #include "timg-version.h"
 #include "unicode-block-canvas.h"
@@ -243,7 +244,8 @@ static int usage(const char *progname, ExitCode exit_code, int width,
         "\t--color8       : Choose 8 bit color mode for -ph or -pq\n"
         "\t--version      : Print version and exit.\n"
         "\t--verbose      : Print some stats after images shown.\n"
-        "\t-h, --help     : Print this help and exit.\n"
+        "\t-h             : Print this help and exit.\n"
+        "\t--help         : Print detailed help and exit.\n"
 
         "\n  \e[1mScrolling\e[0m\n"
         "\t--scroll=[<ms>]       : Scroll horizontally (optionally: delay ms "
@@ -438,6 +440,7 @@ int main(int argc, char *argv[]) {
         OPT_TITLE,
         OPT_VERBOSE,
         OPT_VERSION,
+        OPT_MANPAGE_HELP,
         OPT_AUTO_CROP,
         OPT_SCROLL,
     };
@@ -456,7 +459,7 @@ int main(int argc, char *argv[]) {
         {"fit-width",            no_argument,       NULL, 'W'               },
         {"frames",               required_argument, NULL, OPT_FRAME_COUNT   },
         {"grid",                 required_argument, NULL, OPT_GRID          },
-        {"help",                 no_argument,       NULL, 'h'               },
+        {"help",                 no_argument,       NULL, OPT_MANPAGE_HELP  },
         {"loops",                optional_argument, NULL, 'c'               },
         {"pattern-size",         required_argument, NULL, OPT_PATTERN_SIZE  },
         {"pixelation",           required_argument, NULL, 'p'               },
@@ -472,7 +475,7 @@ int main(int argc, char *argv[]) {
 
     int opt;
     int option_index = 0;
-    while ((opt = getopt_long(argc, argv, "vg:w:t:c:f:b:B:hCF:Ed:UWaVIo:f:p:",
+    while ((opt = getopt_long(argc, argv, "vg:w:t:c:f:b:B:hCF:Ed:UWaVIo:f:p:h",
                               long_options, &option_index)) != -1) {
         switch (opt) {
         case 'g':
@@ -678,6 +681,10 @@ int main(int argc, char *argv[]) {
         case OPT_COLOR_256: present.use_256_color = true; break;
         case OPT_VERBOSE: verbose = true; break;
         case OPT_NO_FRAME_DELAY: debug_no_frame_delay = true; break;
+        case OPT_MANPAGE_HELP:
+            InvokeHelpPager();
+            return 0;
+            break;
         case 'h':
         default:
             return usage(

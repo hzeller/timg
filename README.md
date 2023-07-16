@@ -122,7 +122,8 @@ Options:
         --color8       : Choose 8 bit color mode for -ph or -pq
         --version      : Print version and exit.
         --verbose      : Print some stats after images shown.
-        -h, --help     : Print this help and exit.
+        -h             : Print this help and exit.
+        --help         : Print detailed help and exit.
 
   Scrolling
         --scroll=[<ms>]       : Scroll horizontally (optionally: delay ms (60)).

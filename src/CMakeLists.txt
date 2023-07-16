@@ -15,6 +15,7 @@ target_sources(timg PRIVATE
   timg-base64.h
   timg-png.h        timg-png.cc
   timg-time.h
+  timg-help.h       timg-help.cc
   unicode-block-canvas.h unicode-block-canvas.cc
 )
 
