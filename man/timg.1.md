@@ -90,7 +90,7 @@ With **-I** or **-V** you can choose to use only one of these file decoders
      : 24Bit RGB/32 Bit RGBA images to be displayed. This is implemented in the
      : `kitty` terminal but also e.g. `konsole`.
      : This is the only protocol that can work around the reluctance of
-     : `tmux` to allow graphics protoccols.
+     : `tmux` to allow graphics protocols.
      : Some creative workarounds (Unicode placeholders) are used that are
      : only implemented in `kitty` version >= 0.28 right now. Also needs `tmux`
      : version >= 3.3.
