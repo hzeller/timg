@@ -69,6 +69,7 @@ static char *AppendEscaped(char *pos, char c, bool wrap_tmux) {
 };
 
 static void EnableTmuxPassthrough() {
+    const bool tmux_is_local     = getenv("TMUX");  // simplistic way
     bool set_passthrough_success = false;
     // We need to tell tmux to allow pass-through of the image data
     // that we send behind its back to kitty...
@@ -81,7 +82,7 @@ static void EnableTmuxPassthrough() {
         break;
     default:
         // "command not found" is typically in upper region of exit codes
-        if (getenv("TMUX")) {  // crude way to determine if we run locally
+        if (tmux_is_local) {
             fprintf(stderr, "Can't set passthrough, tmux set exit-code=%d\n",
                     ret);
         }

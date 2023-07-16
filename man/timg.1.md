@@ -82,20 +82,23 @@ With **-I** or **-V** you can choose to use only one of these file decoders
      : You find the sixel protocol implemented by `xterm` (invoke
      : with `-ti vt340`) and `mlterm` or `konsole`. Recently, more terminal
      : emulators re-discovered this format and started implementing it.
+     : This does not work in `tmux`, but there is a tmux fork with sixel
+     : support around.
 
      **kitty** (short 'k')
      : The Kitty terminal implements an image protocol that allows for full
      : 24Bit RGB/32 Bit RGBA images to be displayed. This is implemented in the
      : `kitty` terminal but also e.g. `konsole`.
-     : This is the only protocol that currently also works within `tmux`,
-     : but since it requires some very specific workarounds to `tmux`
-     : reluctance to support graphics (Unicode placeholders), it might only
-     : properly be displayed in the `kitty` terminal version >= 0.28 currently.
+     : This is the only protocol that can work around the reluctance of
+     : `tmux` to allow graphics protoccols.
+     : Some creative workarounds (Unicode placeholders) are used that are
+     : only implemented in `kitty` version >= 0.28 right now. Also needs `tmux`
+     : version >= 3.3.
 
      **iterm2** (short 'i')
      : The iterm2 graphics is another image protocol that allows for full
      : 24 Bit RGB/32 Bit RGBA images. It originated on the popular MacOS
-     : OpenSource iterm2 terminal but is now also implemented by `wezterm` and
+     : OpenSource iTerm2 terminal but is now also implemented by `wezterm` and
      : `konsole`.
 
      `timg` attempts to recognize the available terminal feature, but it might
@@ -164,11 +167,15 @@ With **-I** or **-V** you can choose to use only one of these file decoders
     the given color, which alternates with the **-b** color.
     The allows for HTTML/SVG/X11 colors like **-b**.
 
-    The checkerboard pattern has blocks one character cell wide and half
+    The checkerboard pattern has square blocks one character cell wide and half
     a cell high (see `--pattern-size` to change).
 
     A common combination would be to use `-bgray -Bdarkgray` for backgrounds
     known from image editors.
+
+    Sometimes setting such background is the only way to see an image, e.g.
+    if you have an image with a transparent background showing content with
+    the same color as your terminal background...
 
 **-\-pattern-size**=&lt;*size-factor*&gt;
 :   Scale background checkerboard pattern by this factor.
@@ -429,7 +436,8 @@ Report bugs at <http://github.com/hzeller/timg/issues>
 
 Copyright (c) 2016..2023 Henner Zeller. This program is free software,
 provided under the GNU GPL version 2.0.
-<https://gnu.org/licenses/gpl-2.0.html>.
+
+<https://gnu.org/licenses/gpl-2.0.html>
 
 # SEE ALSO
 

@@ -109,24 +109,27 @@ You find the sixel protocol implemented by \f[V]xterm\f[R] (invoke
 with \f[V]-ti vt340\f[R]) and \f[V]mlterm\f[R] or \f[V]konsole\f[R].
 Recently, more terminal
 emulators re-discovered this format and started implementing it.
+This does not work in \f[V]tmux\f[R], but there is a tmux fork with
+sixel
+support around.
 .TP
 \f[B]kitty\f[R] (short `k')
 The Kitty terminal implements an image protocol that allows for full
 24Bit RGB/32 Bit RGBA images to be displayed.
 This is implemented in the
 \f[V]kitty\f[R] terminal but also e.g.\ \f[V]konsole\f[R].
-This is the only protocol that currently also works within
-\f[V]tmux\f[R],
-but since it requires some very specific workarounds to \f[V]tmux\f[R]
-reluctance to support graphics (Unicode placeholders), it might only
-properly be displayed in the \f[V]kitty\f[R] terminal version >= 0.28
-currently.
+This is the only protocol that can work around the reluctance of
+\f[V]tmux\f[R] to allow graphics protoccols.
+Some creative workarounds (Unicode placeholders) are used that are
+only implemented in \f[V]kitty\f[R] version >= 0.28 right now.
+Also needs \f[V]tmux\f[R]
+version >= 3.3.
 .TP
 \f[B]iterm2\f[R] (short `i')
 The iterm2 graphics is another image protocol that allows for full
 24 Bit RGB/32 Bit RGBA images.
 It originated on the popular MacOS
-OpenSource iterm2 terminal but is now also implemented by
+OpenSource iTerm2 terminal but is now also implemented by
 \f[V]wezterm\f[R] and
 \f[V]konsole\f[R].
 .PP
@@ -209,11 +212,15 @@ with the given color, which alternates with the \f[B]-b\f[R] color.
 The allows for HTTML/SVG/X11 colors like \f[B]-b\f[R].
 .RS
 .PP
-The checkerboard pattern has blocks one character cell wide and half a
-cell high (see \f[V]--pattern-size\f[R] to change).
+The checkerboard pattern has square blocks one character cell wide and
+half a cell high (see \f[V]--pattern-size\f[R] to change).
 .PP
 A common combination would be to use \f[V]-bgray -Bdarkgray\f[R] for
 backgrounds known from image editors.
+.PP
+Sometimes setting such background is the only way to see an image, e.g.
+if you have an image with a transparent background showing content with
+the same color as your terminal background\&...
 .RE
 .TP
 \f[B]--pattern-size\f[R]=<\f[I]size-factor\f[R]>
@@ -515,7 +522,8 @@ Report bugs at <http://github.com/hzeller/timg/issues>
 .PP
 Copyright (c) 2016..2023 Henner Zeller.
 This program is free software, provided under the GNU GPL version 2.0.
-<https://gnu.org/licenses/gpl-2.0.html>.
+.PP
+<https://gnu.org/licenses/gpl-2.0.html>
 .SH SEE ALSO
 .PP
 GraphicsMagick, ffmpeg(1), utf-8(7), unicode(7), kitty(1),
