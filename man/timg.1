@@ -27,19 +27,16 @@ timg - A terminal image and video viewer
 .PP
 Show images, play animated gifs, scroll static images or play videos in
 the terminal.
-Even show PDFs if needed.
+Even show PDFs.
 .PP
-Useful if you want to have a quick visual check without leaving the
-comfort of your shell and having to start a bulky image viewer.
+View images without leaving the comfort of your shell.
 Sometimes this is the only way if your terminal is connected remotely
 via ssh.
-And of course if you don\[cq]t need the resolution.
-While icons typically fit pixel-perfect, larger images are scaled down
-to match the resolution.
 .PP
-The command line accepts any number of image/video filenames that it
-shows in sequence one per page or in a grid in multiple columns,
-depending on your choice of \f[B]--grid\f[R].
+The command line accepts any number of image/video filenames (or read a
+list of filenames from a file) and shows these in sequence one per page
+or in a grid in multiple columns, depending on your choice of
+\f[B]--grid\f[R].
 The output is emitted in-line with minimally messing with your terminal,
 so you can simply go back in history using your terminals\[cq]
 scroll-bar (Or redirecting the output to a file allows you to later
@@ -51,64 +48,108 @@ read an image from a pipe.
 If the input from a pipe is a video, use the \f[B]-V\f[R] option (see
 below).
 .PP
-Under the hood, timg uses GraphicsMagick to open and decode a wide range
-of image formats.
-It also uses libav to decode and play videos or images from files and
-URLs.
+Under the hood, \f[V]timg\f[R] uses various image libraries to open and
+decode a wide range of image formats.
+It uses threads to open and decode images in parallel for super-fast
+viewing experience for many images.
+To play videos, it uses libav from files and URLs.
 With \f[B]-I\f[R] or \f[B]-V\f[R] you can choose to use only one of
-these file decoders (GraphicsMagick or libav respectively).
+these file decoders ({GraphicsMagick, turbojpeg, qoi} or libav
+respectively).
 .SH OPTIONS
 .SS General Options
 .TP
 \f[B]-g\f[R] \f[I]<width>x<height>\f[R]
-Output image to fit inside given geometry.
+Geometry.
+Scale output to fit inside given number of character cells.
 By default, the size is determined by the available space in the
-terminal.
+terminal, so you typically won\[cq]t have to change this.
 The image is scaled to fit inside the available box to fill the screen;
 see \f[B]-W\f[R] if you want to fill the width.
 .RS
 .PP
 It is possible to only partially specify the size before or after the
-\f[B]x\f[R] separator, like \f[B]-g<width>x\f[R] or
+\f[V]x\f[R]-separator, like \f[B]-g<width>x\f[R] or
 \f[B]-gx<height>\f[R].
 The corresponding other value is then derived from the terminal size.
 .RE
 .TP
-\f[B]-p\f[R] \f[I]<[h|q|k|i]>\f[R], \f[B]--pixelation\f[R]=\f[I][h|q|k|i]\f[R]
+\f[B]-p\f[R] \f[I]<[h|q|s|k|i]>\f[R], \f[B]--pixelation\f[R]=\f[I][h|q|s|k|i]\f[R]
 Choice for pixelation of the content.
-Value `h' chooses unicode half block characters, while `q' chooses
-quarter blocks.
-The choice `k' chooses kitty-graphics protocol, `i' the iTerm2 graphics
-protocol.
 .RS
 .PP
+Available values
+.TP
+\f[B]half\f[R] (short `h')
+Uses unicode half block characters, this is the lowest resolution.
+Color is using a lower or upper half block and chooses the foreground
+color and background color to make up two vertical pixels per character
+cell.
 Half blocks have a pixel aspect ratio of about 1:1 and represent colors
 correctly, but they look more `blocky'.
-.PP
+.TP
+\f[B]quarter\f[R] (short `q')
+This chooses a Unicdoe character with small sub-blocks for four pixels
+per characcter cell.
+:
 Quarter blocks will have a pixel aspect ratio of 1:2 (timg will stretch
-the picture accordingly, no worries), and can only represent colors
-approximately, as the four quadrant sub-pixels can only be foreground or
-background color.
-This increases the spatial resolution in x-direction at expense of
-slight less color accuracy.
+the picture accordingly, no worries), and can only
+represent colors approximately, as the four quadrant sub-pixels can only
+be foreground or background color.
+This increases the spatial resolution
+in x-direction at expense of slight less color accuracy.
 It makes it look less `blocky' and usually better.
+.TP
+\f[B]sixel\f[R] (short `s')
+Sixel output allows a high resolution image output that dates back
+to DEC VT200 and VT340 terminals.
+This image mode provides full
+resolution on a 256 color palette that \f[V]timg\f[R] optimizes for each
+image.
+You find the sixel protocol implemented by \f[V]xterm\f[R] (invoke
+with \f[V]-ti vt340\f[R]) and \f[V]mlterm\f[R] or \f[V]konsole\f[R].
+Recently, more terminal
+emulators re-discovered this format and started implementing it.
+.TP
+\f[B]kitty\f[R] (short `k')
+The Kitty terminal implements an image protocol that allows for full
+24Bit RGB/32 Bit RGBA images to be displayed.
+This is implemented in the
+\f[V]kitty\f[R] terminal but also e.g.\ \f[V]konsole\f[R].
+:
+This is the only protocol that currently also works within
+\f[V]tmux\f[R],
+but since it requires some very specific workarounds to \f[V]tmux\f[R]
+reluctance to support graphics (Unicode placeholders), it might only
+properly be displayed in the \f[V]kitty\f[R] terminal version >= 0.28
+currently.
+.TP
+\f[B]iterm2\f[R] (short `i')
+The iterm2 graphics is another image protocol that allows for full
+24 Bit RGB/32 Bit RGBA images.
+It originated on the popular MacOS
+OpenSource iterm2 terminal but is now also implemented by
+\f[V]wezterm\f[R] and
+\f[V]konsole\f[R].
 .PP
-There are terminal emulators that offer to display high-resolution
-pictures.
-If timg is detecting to run in a Kitty, iTerm2 or WezTerm, the
-corresponding mode is auto-selected.
-You can choose the modes explicitly with -pk (Kitty) or -pi (iTerm2
-protocol, also implemented by WezTerm).
-.PP
-Default is `quarter' unless the terminal is graphics-capable.
+\f[V]timg\f[R] attempts to recognize the available terminal feature, but
+it might not be able to auto-detect all full-resolution compatible
+terminals and fall back to \f[B]quarter\f[R] in that case.
+If you\[cq]re always working in the same terminal, maybe set an alias,
+e.g.\ \f[V]alias timg=\[aq]timg -ps\[aq]\f[R] to lock the standard
+pixelation.
 .RE
 .TP
-\f[B]--compress\f[R][=<\f[I]level\f[R]>]**
-For the graphics modes: this switches on compression for the
-transmission to the terminal.
+\f[B]--compress\f[R][=<\f[I]level\f[R]>]
+For the kitty and iterm2 graphics modes: this chooses the compression
+for the transmission to the terminal.
 This uses more CPU on timg, but is desirable when connected over a slow
 network.
-Default compression level is 1, to disable, set to 0 (zero).
+Default compression level is 1 which should be reasonable default in
+almost all cases.
+To disable, set to 0 (zero).
+Use \f[V]--verbose\f[R] to see the amount of data \f[V]timg\f[R] sent to
+the terminal.
 .TP
 \f[B]-C\f[R], \f[B]--center\f[R]
 Center image(s) and title(s) horizontally.
@@ -125,7 +166,9 @@ Arrange images in a grid.
 If only one parameter is given, arranges in a square grid
 (e.g.\ \f[B]--grid=3\f[R] makes a 3x3 grid).
 Alternatively, you can choose columns and rows that should fit on one
-terminal (e.g.\ \f[B]--grid=3x2\f[R])
+terminal (e.g.\ \f[B]--grid=3x2\f[R]).
+This is a very useful option if you want to browse images (see examples
+below).
 .TP
 \f[B]-w\f[R] <\f[I]seconds\f[R]>
 Wait time between images when multiple images are given on the command
@@ -134,29 +177,46 @@ Fractional values are allowed, so \f[B]-w3.1415\f[R] would wait
 approximately \[*p] seconds between images.
 .TP
 \f[B]-a\f[R]
-Switch off anti aliasing.
+Switch off anti-aliasing.
 The images are scaled down to show on the minimal amount of pixels, so
 some smoothing is applied for best visual effect.
-This switches off that smoothing.
+This option switches off that smoothing.
 .TP
 \f[B]-b\f[R] <\f[I]background-color\f[R]>
 Set the background color for transparent images.
 Common HTML/SVG/X11 color strings are supported, such as
-\f[B]purple\f[R], *\f[B]#00ff00\f[R] or \f[B]rgb(0, 0, 255)\f[R].
+\f[B]purple\f[R], \f[B]#00ff00\f[R] or \f[B]rgb(0, 0, 255)\f[R].
 .RS
 .PP
-As a `special' color, \f[B]auto\f[R] is allowed, which attempts to query
-the terminal for its background color (Best effort; not all terminals
-support that).
+The special value \f[B]none\f[R] switches off blending background color
+and relies on the terminal to provide alpha-blending.
+This works well with kitty and iterm2 graphics, but might result in less
+blended edges for the text-block based pixelations.
+.PP
+Another special value is \f[B]auto\f[R]:
+.IP \[bu] 2
+For graphics modes, this behaves like \f[V]none\f[R], sending RGBA
+images for alpha-blending directly in the terminal.
+.IP \[bu] 2
+For text-block modes, this attempts to query the terminal for its
+background color (Best effort; not all terminals support that).
 If detection fails, the fallback is `black'.
 .PP
-The special value \f[B]none\f[R] switches off blending background color.
+Default is \f[B]auto\f[R].
 .RE
 .TP
 \f[B]-B\f[R] <\f[I]checkerboard-other-color\f[R]>
 Show the background of a transparent image in a checkerboard pattern
 with the given color, which alternates with the \f[B]-b\f[R] color.
-Supported color specifications like in \f[B]-b\f[R].
+The allows for HTTML/SVG/X11 colors like \f[B]-b\f[R].
+.RS
+.PP
+The checkerboard pattern has blocks one character cell wide and half a
+cell high (see \f[V]--pattern-size\f[R] to change).
+.PP
+A common combination would be to use \f[V]-bgray -Bdarkgray\f[R] for
+backgrounds known from image editors.
+.RE
 .TP
 \f[B]--pattern-size\f[R]=<\f[I]size-factor\f[R]>
 Scale background checkerboard pattern by this factor.
@@ -210,12 +270,13 @@ that forces the upscaling to be in integer increments to keep the
 .RE
 .TP
 \f[B]-V\f[R]
-This is a video, directly read the content as video and don\[cq]t
-attempt to probe image decoding first.
+Tell \f[V]timg\f[R] that this is a video, directly read the content as
+video and don\[cq]t attempt to probe image decoding first.
 .RS
 .PP
-Usually, timg will first attempt to interpret the data as image, but if
-it that fails, will fall-back to try interpret the file as video.
+Usually, \f[V]timg\f[R] will first attempt to interpret the data as
+image, but if it that fails, will fall-back to try interpret the file as
+video.
 However, if the file is coming from stdin, the first bytes used to probe
 for the image have already been consumed so the fall-back would fail in
 that case\&...
@@ -243,7 +304,8 @@ In this string, the following format specifiers are expanded:
 .IP \[bu] 2
 \f[V]%h\f[R] = image height
 .IP \[bu] 2
-\f[V]%D\f[R] = internal decoder used (image, video, \&...)
+\f[V]%D\f[R] = internal decoder used (image, video, qoi, sta, openslide,
+\&...)
 .PP
 If no format string is given, this is just the filename (\f[V]%f\f[R])
 or, if set, what is provided in the \f[V]TIMG_DEFAULT_TITLE\f[R]
@@ -252,16 +314,29 @@ environment variable.
 .TP
 \f[B]-f\f[R] <\f[I]filelist-file\f[R]>
 Read a list of image filenames to show from this file.
-The list needs to be newline separated.
+The list needs to be newline separated, so one filename per line.
 This option can be supplied multiple times in which case it appends to
 the end of the list of images to show.
-If there are also filenames on the command line, they will be shown at
-the very end.
+If there are also filenames on the command line, they will also be shown
+after the images from the file list have been shown.
 .RS
 .PP
 Absolute filenames in the list are used as-is, relative filenames are
-resolved relative to the filelist-file itself.
+resolved relative to the \f[I]current directory\f[R].
+.PP
+(Note: this behavior changed between v1.5.0 and v1.5.1: previously, -f
+was resolving relative to the filelist; this changed to current
+directory.
+Look-up relative to the file list is provided with with uppercase
+\f[B]-F\f[R]).
 .RE
+.TP
+\f[B]-F\f[R]
+Like \f[B]-f\f[R], but relative filenames are resolved relative to the
+\f[I]directory the file list resides in\f[R].
+This allows you to e.g.\ have a file list at the top of a directory
+hierarchy with relative filenames but are not required to change into
+that directory first for \f[V]timg\f[R] to resolve the relative paths.
 .TP
 \f[B]-o\f[R] <\f[I]outfile\f[R]>
 Write terminal image to given filename instead of stdout.
@@ -281,8 +356,19 @@ Use 8 bit color mode for terminals that don\[cq]t support 24 bit color
 \f[B]--version\f[R]
 Print version and exit.
 .TP
+\f[B]--verbose\f[R]
+Print some useful information such as observed terminal cells, chosen
+pixelation, or observed frame-rate.
+.TP
 \f[B]-h\f[R], \f[B]--help\f[R]
 Print command line option help and exit.
+.TP
+\f[B]--debug-no-frame-delay\f[R]
+Don\[cq]t delay frames in videos or animations but emit as fast as
+possible.
+This might be useful for developers of terminal emulations to do
+performace tests or simply if you want to redirect the output to a file
+and don\[cq]t want to wait.
 .SS For Animations, Scrolling, or Video
 .PP
 Usually, animations are shown in full in an infinite loop.
@@ -338,7 +424,7 @@ image provided.
 If an invalid option or parameter was provided.
 .TP
 \f[B]3\f[R]
-If timg could not determine the size of terminal (not a tty?).
+If \f[V]timg\f[R] could not determine the size of terminal (not a tty?).
 Provide \f[B]-g\f[R] option to provide size of the output to be
 generated.
 .TP
@@ -354,11 +440,12 @@ The default format string used for \f[V]--title\f[R].
 If not given, the default title format string is \[dq]\f[V]%f\f[R]\[dq].
 .TP
 \f[B]TIMG_USE_UPPER_BLOCK\f[R]
-If this environment variable is set to the value \f[B]1\f[R], timg will
-use the U+2580 - `Upper Half Block' (\[u2580]) Unicode character.
+If this environment variable is set to the value \f[B]1\f[R],
+\f[V]timg\f[R] will use the U+2580 - `Upper Half Block' (\[u2580])
+Unicode character.
 .RS
 .PP
-To display pixels, timg uses a Unicode half block and sets the
+To display pixels, \f[V]timg\f[R] uses a Unicode half block and sets the
 foreground color and background color to get two vertical pixels.
 By default, it uses the U+2584 - `Lower Half Block' (\[u2584]) character
 to achieve this goal.
@@ -388,15 +475,29 @@ your terminal emulator of choice.
 .RE
 .TP
 \f[B]TIMG_ALLOW_FRAME_SKIP\f[R]
-Set this environment variable to 1 if you like to allow timg to drop
-frames when play-back is falling behind.
+Set this environment variable to 1 if you like to allow \f[V]timg\f[R]
+to drop frames when play-back is falling behind.
 This is particularly useful if you are on a very slow remote terminal
 connection that can\[cq]t keep up with playing videos.
 Or if you have a very slow CPU.
 .SH EXAMPLES
 .PP
 Some example invocations including scrolling text or streaming an online
-video are put together at <https://github.com/hzeller/timg#examples>
+video are put together at <https://timg.sh/#examples>
+.PP
+It might be useful to prepare some environment variables or aliases in
+the startup profile of your shell.
+The \f[V]timg\f[R] author typically has these set:
+.IP
+.nf
+\f[C]
+# The default --title format
+export TIMG_DEFAULT_TITLE=\[dq]%b (%wx%h)\[dq]
+
+# image list. An alias to quickly list images; invoke with ils images/*
+alias ils=\[aq]timg --grid=3x1 --upscale=i --center --title --frames=1 -bgray -Bdarkgray\[aq]
+\f[R]
+.fi
 .SH KNOWN ISSUES
 .PP
 This requires a terminal that can deal with Unicode characters and 24
@@ -408,14 +509,15 @@ The option \f[B]-V\f[R] should not be necessary for streaming video from
 stdin; timg should internally buffer bytes it uses for probing.
 .SH BUGS
 .PP
-Report bugs to <http://github.com/hzeller/timg/issues>
+Report bugs at <http://github.com/hzeller/timg/issues>
 .SH COPYRIGHT
 .PP
-Copyright (c) 2016..2021 Henner Zeller.
-This program is free software, provided under the GNU GPL version 2.0 or
-later <https://gnu.org/licenses/gpl.html>.
+Copyright (c) 2016..2023 Henner Zeller.
+This program is free software, provided under the GNU GPL version 2.0.
+<https://gnu.org/licenses/gpl-2.0.html>.
 .SH SEE ALSO
 .PP
-GraphicsMagick, ffmpeg(1)
+GraphicsMagick, ffmpeg(1), utf-8(7), unicode(7), kitty(1),
+https://en.wikipedia.org/wiki/Sixel
 .SH AUTHORS
 Henner Zeller.

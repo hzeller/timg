@@ -13,17 +13,15 @@ timg - A terminal image and video viewer
 # DESCRIPTION
 
 Show images, play animated gifs, scroll static images or play videos in the
-terminal. Even show PDFs if needed.
+terminal. Even show PDFs.
 
-Useful if you want to have a quick visual check without leaving the comfort
-of your shell and having to start a bulky image viewer. Sometimes this is the
-only way if your terminal is connected remotely via ssh. And of course if you
-don't need the resolution. While icons typically fit pixel-perfect, larger
-images are scaled down to match the resolution.
+View images without leaving the comfort of your shell.
+Sometimes this is the only way if your terminal is connected remotely via ssh.
 
-The command line accepts any number of image/video filenames that it shows
-in sequence one per page or in a grid in multiple columns, depending on your
-choice of **-\-grid**. The output is emitted in-line with minimally messing
+The command line accepts any number of image/video filenames (or read a list
+of filenames from a file) and shows these in sequence one per page or
+in a grid in multiple columns, depending on your choice of **-\-grid**.
+The output is emitted in-line with minimally messing
 with your terminal, so you can simply go back in history using your terminals'
 scroll-bar (Or redirecting the output to a file allows you to later
 simply **cat** that file to your terminal. Even **less -R** seems to be happy
@@ -33,53 +31,88 @@ The special filename "-" stands for standard input, so you can read
 an image from a pipe. If the input from a pipe is a video, use the **-V** option
 (see below).
 
-Under the hood, timg uses GraphicsMagick to open and decode a wide
-range of image formats. It also uses libav to decode and play videos or images
-from files and URLs. With **-I** or **-V** you can choose to use only one of
-these file decoders (GraphicsMagick or libav respectively).
+Under the hood, `timg` uses various image libraries to open and
+decode a wide range of image formats. It uses threads to open and decode images
+in parallel for super-fast viewing experience for many images.
+To play videos, it uses libav from files and URLs.
+With **-I** or **-V** you can choose to use only one of these file decoders
+({GraphicsMagick, turbojpeg, qoi} or libav respectively).
 
 # OPTIONS
 
 ## General Options
 **-g** *&lt;width&gt;x&lt;height&gt;*
-:    Output image to fit inside given geometry. By default, the size is
-     determined by the available space in the terminal. The image is
-     scaled to fit inside the available box to fill the screen; see **-W** if
-     you want to fill the width.
+:    Geometry. Scale output to fit inside given number of character cells.
+     By default, the size is determined by the available space in the terminal,
+     so you typically won't have to change this.
+     The image is scaled to fit inside the available box to fill the screen;
+     see **-W** if you want to fill the width.
 
      It is possible to only partially specify the size before or after the
-     **x** separator, like **-g&lt;width&gt;x** or **-gx&lt;height&gt;**. The corresponding
+     `x`-separator, like **-g&lt;width&gt;x** or **-gx&lt;height&gt;**. The corresponding
      other value is then derived from the terminal size.
 
-**-p** *&lt;[h|q|k|i]&gt;*, **-\-pixelation**=*[h|q|k|i]*
-:    Choice for pixelation of the content. Value 'h' chooses unicode half
-     block characters, while 'q' chooses quarter blocks.
-     The choice 'k' chooses kitty-graphics protocol, 'i' the iTerm2 graphics
-     protocol.
+**-p** *&lt;[h|q|s|k|i]&gt;*, **-\-pixelation**=*[h|q|s|k|i]*
+:    Choice for pixelation of the content.
 
-     Half blocks have a pixel aspect ratio of about 1:1 and represent colors
-     correctly, but they look more 'blocky'.
+     Available values
 
-     Quarter blocks will have a pixel aspect ratio of 1:2 (timg will stretch
-     the picture accordingly, no worries), and can only
-     represent colors approximately, as the four quadrant sub-pixels can only
-     be foreground or background color. This increases the spatial resolution
-     in x-direction at expense of slight less color accuracy.
-     It makes it look less 'blocky' and usually better.
+     **half** (short 'h')
+     : Uses unicode half block characters, this is the lowest resolution.
+     : Color is using a lower or upper half block and chooses the foreground
+     : color and background color to make up two vertical pixels per character
+     : cell.
+     : Half blocks have a pixel aspect ratio of about 1:1 and represent colors
+     : correctly, but they look more 'blocky'.
 
-     There are terminal emulators that offer to display high-resolution
-     pictures. If timg is detecting to run in a Kitty, iTerm2 or WezTerm,
-     the corresponding mode is auto-selected. You can choose the modes
-     explicitly with -pk (Kitty) or -pi (iTerm2 protocol, also implemented
-     by WezTerm).
+     **quarter** (short 'q')
+     : This chooses a Unicdoe character with small sub-blocks for four pixels
+     : per characcter cell.
+     :
+     : Quarter blocks will have a pixel aspect ratio of 1:2 (timg will stretch
+     : the picture accordingly, no worries), and can only
+     : represent colors approximately, as the four quadrant sub-pixels can only
+     : be foreground or background color. This increases the spatial resolution
+     : in x-direction at expense of slight less color accuracy.
+     : It makes it look less 'blocky' and usually better.
 
-     Default is 'quarter' unless the terminal is graphics-capable.
+     **sixel** (short 's')
+     : Sixel output allows a high resolution image output that dates back
+     : to DEC VT200 and VT340 terminals. This image mode provides full
+     : resolution on a 256 color palette that `timg` optimizes for each image.
+     : You find the sixel protocol implemented by `xterm` (invoke
+     : with `-ti vt340`) and `mlterm` or `konsole`. Recently, more terminal
+     : emulators re-discovered this format and started implementing it.
 
-**-\-compress**[=&lt;*level*&gt;]**
-:   For the graphics modes: this switches on compression for the transmission to
-    the terminal. This uses more CPU on timg, but is desirable when connected
-    over a slow network. Default compression level is 1, to disable, set to
-    0 (zero).
+     **kitty** (short 'k')
+     : The Kitty terminal implements an image protocol that allows for full
+     : 24Bit RGB/32 Bit RGBA images to be displayed. This is implemented in the
+     : `kitty` terminal but also e.g. `konsole`.
+     :
+     : This is the only protocol that currently also works within `tmux`,
+     : but since it requires some very specific workarounds to `tmux`
+     : reluctance to support graphics (Unicode placeholders), it might only
+     : properly be displayed in the `kitty` terminal version >= 0.28 currently.
+
+     **iterm2** (short 'i')
+     : The iterm2 graphics is another image protocol that allows for full
+     : 24 Bit RGB/32 Bit RGBA images. It originated on the popular MacOS
+     : OpenSource iterm2 terminal but is now also implemented by `wezterm` and
+     : `konsole`.
+
+     `timg` attempts to recognize the available terminal feature, but it might
+     not be able to auto-detect all full-resolution compatible terminals and
+     fall back to **quarter** in that case. If you're always working in the
+     same terminal, maybe set an alias, e.g. `alias timg='timg -ps'` to
+     lock the standard pixelation.
+
+**-\-compress**[=&lt;*level*&gt;]
+:   For the kitty and iterm2 graphics modes: this chooses the compression
+    for the transmission to the terminal. This uses more CPU on timg, but is
+    desirable when connected over a slow network.
+    Default compression level is 1 which should be reasonable default in
+    almost all cases. To disable, set to 0 (zero). Use `--verbose` to see
+    the amount of data `timg` sent to the terminal.
 
 **-C**, **-\-center**
 :    Center image(s) and title(s) horizontally.
@@ -94,33 +127,50 @@ these file decoders (GraphicsMagick or libav respectively).
 :    Arrange images in a grid. If only one parameter is given, arranges in a
     square grid (e.g. **-\-grid=3** makes a 3x3 grid). Alternatively, you can
     choose columns and rows that should fit on one terminal
-    (e.g. **-\-grid=3x2**)
+    (e.g. **-\-grid=3x2**).
+    This is a very useful option if you want to browse images (see examples
+    below).
 
 **-w** &lt;*seconds*&gt;
 :   Wait time between images when multiple images are given on the command
-    line. Fractional values are allowed, so **-w3.1415** would wait approximately
-    π seconds between images.
+    line. Fractional values are allowed, so **-w3.1415** would wait
+    approximately π seconds between images.
 
 **-a**
-:   Switch off anti aliasing. The images are scaled down to show on the
+:   Switch off anti-aliasing. The images are scaled down to show on the
     minimal amount of pixels, so some smoothing is applied for best visual
-    effect. This switches off that smoothing.
+    effect. This option switches off that smoothing.
 
 **-b** &lt;*background-color*&gt;
 :    Set the background color for transparent images. Common HTML/SVG/X11
      color strings are supported, such as **purple**,
-     ***#00ff00** or **rgb(0, 0, 255)**.
+     **#00ff00** or **rgb(0, 0, 255)**.
 
-     As a 'special' color, **auto** is allowed, which attempts to query the
-     terminal for its background color (Best effort; not all terminals support
-     that). If detection fails, the fallback is 'black'.
+     The special value **none** switches off blending background color and
+     relies on the terminal to provide alpha-blending. This works well with
+     kitty and iterm2 graphics, but might result in less blended edges for the
+     text-block based pixelations.
 
-     The special value **none** switches off blending background color.
+     Another special value is **auto**:
+
+       * For graphics modes, this behaves like `none`, sending RGBA
+         images for alpha-blending directly in the terminal.
+       * For text-block modes, this attempts to query the
+         terminal for its background color (Best effort; not all terminals
+         support that). If detection fails, the fallback is 'black'.
+
+    Default is **auto**.
 
 **-B** &lt;*checkerboard-other-color*&gt;
-:    Show the background of a transparent image in a checkerboard pattern with
+:   Show the background of a transparent image in a checkerboard pattern with
     the given color, which alternates with the **-b** color.
-    Supported color specifications like in **-b**.
+    The allows for HTTML/SVG/X11 colors like **-b**.
+
+    The checkerboard pattern has blocks one character cell wide and half
+    a cell high (see `--pattern-size` to change).
+
+    A common combination would be to use `-bgray -Bdarkgray` for backgrounds
+    known from image editors.
 
 **-\-pattern-size**=&lt;*size-factor*&gt;
 :   Scale background checkerboard pattern by this factor.
@@ -163,10 +213,10 @@ these file decoders (GraphicsMagick or libav respectively).
     appearance of an upscaled image without bilinear scale 'fuzzing'.
 
 **-V**
-:    This is a video, directly read the content as video and don't attempt to
-    probe image decoding first.
+:   Tell `timg` that this is a video, directly read the content as video
+    and don't attempt to probe image decoding first.
 
-    Usually, timg will first attempt to interpret the data as image, but
+    Usually, `timg` will first attempt to interpret the data as image, but
     if it that fails, will fall-back to try interpret the file as video.
     However, if the file is coming from stdin, the first bytes used to probe
     for the image have already been consumed so the fall-back would fail in
@@ -188,7 +238,7 @@ these file decoders (GraphicsMagick or libav respectively).
        * `%b` = basename (filename without path)
        * `%w` = image width
        * `%h` = image height
-       * `%D` = internal decoder used (image, video, ...)
+       * `%D` = internal decoder used (image, video, qoi, sta, openslide, ...)
 
      If no format string is given, this is just the filename (`%f`) or, if
      set, what is provided in the `TIMG_DEFAULT_TITLE` environment variable.
@@ -202,7 +252,7 @@ these file decoders (GraphicsMagick or libav respectively).
      shown after the images from the file list have been shown.
 
      Absolute filenames in the list are used as-is, relative filenames are
-     resolved relative to the current directory.
+     resolved relative to the _current directory_.
 
      (Note: this behavior changed between v1.5.0 and v1.5.1: previously, -f
      was resolving relative to the filelist; this changed to current directory.
@@ -210,10 +260,10 @@ these file decoders (GraphicsMagick or libav respectively).
 
 **-F**
 :    Like **-f**, but relative filenames are resolved relative to the
-     directory the file list resides in.
+     _directory the file list resides in_.
      This allows you to e.g. have a file list at the top of a directory
-     structure with relative filenames but are not required to navigate there
-     first to display them with timg.
+     hierarchy with relative filenames but are not required to change into that
+     directory first for `timg` to resolve the relative paths.
 
 **-o** &lt;*outfile*&gt;
 :    Write terminal image to given filename instead of stdout.
@@ -232,8 +282,18 @@ these file decoders (GraphicsMagick or libav respectively).
 **-\-version**
 :    Print version and exit.
 
+**-\-verbose**
+:    Print some useful information such as observed terminal cells,
+     chosen pixelation, or observed frame-rate.
+
 **-h**, **-\-help**
 :    Print command line option help and exit.
+
+**-\-debug-no-frame-delay**
+:    Don't delay frames in videos or animations but emit as fast as possible.
+     This might be useful for developers of terminal emulations to do performace
+     tests or simply if you want to redirect the output to a file and don't
+     want to wait.
 
 ## For Animations, Scrolling, or Video
 
@@ -286,7 +346,7 @@ Exit code is
 :    If an invalid option or parameter was provided.
 
 **3**
-:    If timg could not determine the size of terminal (not a tty?). Provide
+:    If `timg` could not determine the size of terminal (not a tty?). Provide
     **-g** option to provide size of the output to be generated.
 
 **4**
@@ -303,10 +363,10 @@ Exit code is
     title format string is \"`%f`\".
 
 **TIMG_USE_UPPER_BLOCK**
-:    If this environment variable is set to the value **1**, timg will use the
+:    If this environment variable is set to the value **1**, `timg` will use the
      U+2580 - 'Upper Half Block' (&#x2580;) Unicode character.
 
-    To display pixels, timg uses a Unicode half block and sets the foreground
+    To display pixels, `timg` uses a Unicode half block and sets the foreground
     color and background color to get two vertical pixels. By default, it uses
     the U+2584 - 'Lower Half Block' (&#x2584;) character to achieve this goal. This
     has been chosen as it resulted in the best image in all tested terminals
@@ -329,8 +389,8 @@ Exit code is
     your terminal emulator of choice.
 
 **TIMG_ALLOW_FRAME_SKIP**
-:   Set this environment variable to 1 if you like to allow timg to drop frames
-    when play-back is falling behind.
+:   Set this environment variable to 1 if you like to allow `timg` to drop
+    frames when play-back is falling behind.
     This is particularly useful if you are on a very slow remote terminal
     connection that can't keep up with playing videos. Or if you have a very
     slow CPU.
@@ -338,7 +398,18 @@ Exit code is
 # EXAMPLES
 
 Some example invocations including scrolling text or streaming an
-online video are put together at <https://github.com/hzeller/timg#examples>
+online video are put together at <https://timg.sh/#examples>
+
+It might be useful to prepare some environment variables or aliases in the
+startup profile of your shell. The `timg` author typically has these set:
+
+```
+# The default --title format
+export TIMG_DEFAULT_TITLE="%b (%wx%h)"
+
+# image list. An alias to quickly list images; invoke with ils images/*
+alias ils='timg --grid=3x1 --upscale=i --center --title --frames=1 -bgray -Bdarkgray'
+```
 
 # KNOWN ISSUES
 
@@ -351,14 +422,15 @@ timg should internally buffer bytes it uses for probing.
 
 # BUGS
 
-Report bugs to <http://github.com/hzeller/timg/issues>
+Report bugs at <http://github.com/hzeller/timg/issues>
 
 # COPYRIGHT
 
-Copyright (c) 2016..2021 Henner Zeller. This program is free software,
-provided under the GNU GPL version 2.0 or later
-<https://gnu.org/licenses/gpl.html>.
+Copyright (c) 2016..2023 Henner Zeller. This program is free software,
+provided under the GNU GPL version 2.0.
+<https://gnu.org/licenses/gpl-2.0.html>.
 
 # SEE ALSO
 
-GraphicsMagick, ffmpeg(1)
+GraphicsMagick, ffmpeg(1), utf-8(7), unicode(7), kitty(1),
+https://en.wikipedia.org/wiki/Sixel

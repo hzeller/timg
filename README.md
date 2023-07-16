@@ -111,13 +111,17 @@ Options:
                          If no parameter is given, defaults to "%f"
                          Env-var override with TIMG_DEFAULT_TITLE
         -f<filelist>   : Read newline-separated list of image files to show.
+                         Relative filenames are relative to current directory.
                          (Can be provided multiple times.)
+        -F<filelist>   : like -f, but relative filenames considered relative
+                         to the directory containting the filelist.
         -o<outfile>    : Write to <outfile> instead of stdout.
         -E             : Don't hide the cursor while showing images.
         --threads=<n>  : Run image decoding in parallel with n threads
                          (Default 3, 3/4 #cores on this machine)
         --color8       : Choose 8 bit color mode for -ph or -pq
         --version      : Print version and exit.
+        --verbose      : Print some stats after images shown.
         -h, --help     : Print this help and exit.
 
   Scrolling

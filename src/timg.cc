@@ -242,6 +242,7 @@ static int usage(const char *progname, ExitCode exit_code, int width,
         "\t                 (Default %d, 3/4 #cores on this machine)\n"
         "\t--color8       : Choose 8 bit color mode for -ph or -pq\n"
         "\t--version      : Print version and exit.\n"
+        "\t--verbose      : Print some stats after images shown.\n"
         "\t-h, --help     : Print this help and exit.\n"
 
         "\n  \e[1mScrolling\e[0m\n"
@@ -1026,10 +1027,11 @@ int main(int argc, char *argv[]) {
 #endif
         fprintf(stderr, ".\n");
         const rgba_t bg = display_opts.bgcolor_getter();
-        fprintf(stderr,
-                "Background color for transparency '%s', effective "
-                "RGB #%02x%02x%02x\n",
-                bg_color, bg.r, bg.g, bg.b);
+        fprintf(stderr, "Background color for transparency '%s'", bg_color);
+        if (strcasecmp(bg_color, "none") != 0) {
+            fprintf(stderr, "; effective RGB #%02x%02x%02x", bg.r, bg.g, bg.b);
+        }
+        fprintf(stderr, "\n");
         const rgba_t checker_bg = display_opts.bg_pattern_color;
         if (checker_bg.a == 0xff) {
             fprintf(stderr,
