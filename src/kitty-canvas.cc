@@ -32,8 +32,6 @@ static constexpr int kBase64EncodedChunkSize = 4096;  // Max allowed: 4096.
 static constexpr int kByteChunk              = kBase64EncodedChunkSize / 4 * 3;
 
 namespace timg {
-static char *append_xy_msb(char *buffer, int x, int y, uint8_t msb);
-
 // Create ID unique enough for our purposes.
 static uint32_t CreateId() {
     static const uint32_t kStart = (uint32_t)time(nullptr) << 7;
@@ -44,6 +42,7 @@ static uint32_t CreateId() {
 
 // Placehholder unicode characters to be used in tmux image output.
 // https://sw.kovidgoyal.net/kitty/graphics-protocol/#unicode-placeholders
+static char *append_xy_msb(char *buffer, int x, int y, uint8_t msb);
 static char *AppendUnicodePicureTiles(char *pos, uint32_t id, int indent,
                                       int rows, int cols) {
     *pos++ = '\r';
@@ -69,14 +68,47 @@ static char *AppendEscaped(char *pos, char c, bool wrap_tmux) {
     return pos;
 };
 
+static void EnableTmuxPassthrough() {
+    bool set_passthrough_success = false;
+    // We need to tell tmux to allow pass-through of the image data
+    // that we send behind its back to kitty...
+    const int ret = system("tmux set -p allow-passthrough on > /dev/null 2>&1");
+    switch (ret) {
+    case 0: set_passthrough_success = true; break;
+    case 1:
+        // Exit code 1: we were able to call tmux set, but option was unknown
+        fprintf(stderr, "Can't set passthrough; need tmux >= 3.3.\n");
+        break;
+    default:
+        // "command not found" is typically in upper region of exit codes
+        if (getenv("TMUX")) {  // crude way to determine if we run locally
+            fprintf(stderr, "Can't set passthrough, tmux set exit-code=%d\n",
+                    ret);
+        }
+        else {
+            // Probably remote, and no tmux installed there.
+        }
+    }
+    if (!set_passthrough_success) {
+        // Could not successfully set the passthrough mode, but we
+        // actually don't know if it might work anyway.
+        // TODO: Maybe send a kitty graphics query to determine if it would
+        // work and only if not, provide a error message.
+    }
+}
+
 KittyGraphicsCanvas::KittyGraphicsCanvas(BufferedWriteSequencer *ws,
                                          ThreadPool *thread_pool,
-                                         bool tmux_workaround_needed,
+                                         bool tmux_passthrough_needed,
                                          const DisplayOptions &opts)
     : TerminalCanvas(ws),
       options_(opts),
-      tmux_workaround_needed_(tmux_workaround_needed),
-      executor_(thread_pool) {}
+      tmux_passthrough_needed_(tmux_passthrough_needed),
+      executor_(thread_pool) {
+    if (tmux_passthrough_needed) {
+        EnableTmuxPassthrough();
+    }
+}
 
 void KittyGraphicsCanvas::Send(int x, int dy, const Framebuffer &fb_orig,
                                SeqType seq_type, Duration end_of_frame) {
@@ -127,7 +159,7 @@ void KittyGraphicsCanvas::Send(int x, int dy, const Framebuffer &fb_orig,
     const int cols   = fb->width() / opts.cell_x_px;
     const int rows   = -cell_height_for_pixels(-fb->height());
     const int indent = x / opts.cell_x_px;
-    bool wrap_tmux   = tmux_workaround_needed_;
+    bool wrap_tmux   = tmux_passthrough_needed_;
     std::function<OutBuffer()> encode_fun = [opts, fb, id, buffer, offset, rows,
                                              cols, indent, wrap_tmux]() {
         std::unique_ptr<const Framebuffer> auto_delete(fb);

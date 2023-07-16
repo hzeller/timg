@@ -25,7 +25,7 @@ namespace timg {
 class KittyGraphicsCanvas final : public TerminalCanvas {
 public:
     KittyGraphicsCanvas(BufferedWriteSequencer *ws, ThreadPool *thread_pool,
-                        bool tmux_workaround_needed,
+                        bool tmux_passthrough_needed,
                         const DisplayOptions &opts);
 
     int cell_height_for_pixels(int pixels) const final;
@@ -35,7 +35,7 @@ public:
 
 private:
     const DisplayOptions &options_;
-    const bool tmux_workaround_needed_;
+    const bool tmux_passthrough_needed_;
     ThreadPool *const executor_;
 
     char *RequestBuffer(int width, int height);

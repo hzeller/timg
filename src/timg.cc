@@ -780,17 +780,6 @@ int main(int argc, char *argv[]) {
     }
 #endif
 
-    // If we are in tmux and use the kitty protocol, we need to tell it to
-    // allow pass-through.
-    // Somewhat broken abstraction here, should move to some
-    // TerminalCanvas::Prepare().
-    if (present.pixelation == Pixelation::kKittyGraphics &&
-        present.tmux_workaround) {
-        if (system("tmux set -p allow-passthrough on") != 0) {
-            fprintf(stderr, "Could not set tmux passthrough for graphics\n");
-        }
-    }
-
     // The high-res image terminals provide alpha-blending, no need to
     // query the terminal color for 'auto'
     if (is_pixel_direct_with_alpha(present.pixelation) &&
