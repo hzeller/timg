@@ -123,7 +123,7 @@ Options:
         --version      : Print version and exit.
         --verbose      : Print some stats after images shown.
         -h             : Print this help and exit.
-        --help         : Print detailed help and exit.
+        --help         : Page through detailed manpage-like help and exit.
 
   Scrolling
         --scroll=[<ms>]       : Scroll horizontally (optionally: delay ms (60)).

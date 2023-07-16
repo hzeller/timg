@@ -91,7 +91,6 @@ correctly, but they look more `blocky'.
 \f[B]quarter\f[R] (short `q')
 This chooses a Unicdoe character with small sub-blocks for four pixels
 per characcter cell.
-:
 Quarter blocks will have a pixel aspect ratio of 1:2 (timg will stretch
 the picture accordingly, no worries), and can only
 represent colors approximately, as the four quadrant sub-pixels can only
@@ -116,7 +115,6 @@ The Kitty terminal implements an image protocol that allows for full
 24Bit RGB/32 Bit RGBA images to be displayed.
 This is implemented in the
 \f[V]kitty\f[R] terminal but also e.g.\ \f[V]konsole\f[R].
-:
 This is the only protocol that currently also works within
 \f[V]tmux\f[R],
 but since it requires some very specific workarounds to \f[V]tmux\f[R]
@@ -360,8 +358,11 @@ Print version and exit.
 Print some useful information such as observed terminal cells, chosen
 pixelation, or observed frame-rate.
 .TP
-\f[B]-h\f[R], \f[B]--help\f[R]
+\f[B]-h\f[R]
 Print command line option help and exit.
+.TP
+\f[B]--help\f[R]
+Page through detailed manpage-like help and exit.
 .TP
 \f[B]--debug-no-frame-delay\f[R]
 Don\[cq]t delay frames in videos or animations but emit as fast as

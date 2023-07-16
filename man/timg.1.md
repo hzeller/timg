@@ -68,7 +68,6 @@ With **-I** or **-V** you can choose to use only one of these file decoders
      **quarter** (short 'q')
      : This chooses a Unicdoe character with small sub-blocks for four pixels
      : per characcter cell.
-     :
      : Quarter blocks will have a pixel aspect ratio of 1:2 (timg will stretch
      : the picture accordingly, no worries), and can only
      : represent colors approximately, as the four quadrant sub-pixels can only
@@ -88,7 +87,6 @@ With **-I** or **-V** you can choose to use only one of these file decoders
      : The Kitty terminal implements an image protocol that allows for full
      : 24Bit RGB/32 Bit RGBA images to be displayed. This is implemented in the
      : `kitty` terminal but also e.g. `konsole`.
-     :
      : This is the only protocol that currently also works within `tmux`,
      : but since it requires some very specific workarounds to `tmux`
      : reluctance to support graphics (Unicode placeholders), it might only
@@ -286,8 +284,11 @@ With **-I** or **-V** you can choose to use only one of these file decoders
 :    Print some useful information such as observed terminal cells,
      chosen pixelation, or observed frame-rate.
 
-**-h**, **-\-help**
+**-h**
 :    Print command line option help and exit.
+
+**-\-help**
+:    Page through detailed manpage-like help and exit.
 
 **-\-debug-no-frame-delay**
 :    Don't delay frames in videos or animations but emit as fast as possible.

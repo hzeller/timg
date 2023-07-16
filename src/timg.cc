@@ -245,7 +245,7 @@ static int usage(const char *progname, ExitCode exit_code, int width,
         "\t--version      : Print version and exit.\n"
         "\t--verbose      : Print some stats after images shown.\n"
         "\t-h             : Print this help and exit.\n"
-        "\t--help         : Print detailed help and exit.\n"
+        "\t--help         : Page through detailed manpage-like help and exit.\n"
 
         "\n  \e[1mScrolling\e[0m\n"
         "\t--scroll=[<ms>]       : Scroll horizontally (optionally: delay ms "
