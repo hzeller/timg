@@ -56,7 +56,66 @@ jobs:
           cmake .. -DWITH_VIDEO_DECODING=On -DWITH_VIDEO_DEVICE=On -DWITH_OPENSLIDE_SUPPORT=On -DWITH_STB_IMAGE=On -DWITH_LIBSIXEL=On
           make -k
 
-  AppImage:
+  CodeFormatting:
+    if: false   # currently, there is no clang-format-13 in ubuntu latest
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Install Dependencies
+      run: |
+        sudo apt-get install clang-format-13
+
+    - name: Run formatting style check
+      run: ./.github/bin/run-clang-format.sh
+
+  TagIfNeeded:
+    name: Version Tagging
+    runs-on: ubuntu-latest
+    #if: ${{github.event_name == 'push' && github.ref == 'refs/heads/main'}}
+    permissions:
+      contents: write
+
+    outputs:
+      release_tag: ${{ steps.do_tag.outputs.RELEASE_TAG }}
+
+    steps:
+    - name: 📥 Download artifacts
+      uses: actions/download-artifact@v3
+
+    - uses: actions/checkout@v3
+      with:
+       fetch-depth: 0
+       token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Tag with CMake version if not already.
+      id: do_tag
+      run: |
+        git config --local user.name "Development Bot"
+        git config --local user.email "h.zeller@timg.sh"
+
+        # We want to tag whenever the cmake version changes. So extract the
+        # hash of when the current version was entered.
+        read TAG_HASH TAG_VERSION <<<$(git annotate -l CMakeLists.txt | sed 's/\(^[0-9A-Fa-f]\+\).*project(timg VERSION \([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1 \2/p;d')
+
+        echo "timg Version v${TAG_VERSION} at hash ${TAG_HASH}"
+
+        # If this is the first time we see this tag: apply.
+        if [ -z "$(git tag -l "v${TAG_VERSION}")" ]; then
+          git tag -a "v${TAG_VERSION}" ${TAG_HASH} -m "Update to v${TAG_VERSION}"
+          git push origin "v${TAG_VERSION}"
+          echo "RELEASE_TAG=v${TAG_VERSION}" >> $GITHUB_OUTPUT
+        else
+          echo "Tag does exist already"
+        fi
+
+  AppImageBuild:
+    needs: [ TagIfNeeded ]
     runs-on: ubuntu-latest
     name: Build AppImage
     steps:
@@ -71,16 +130,13 @@ jobs:
           sudo apt update
           sudo apt install cmake git g++ clang pkg-config
           sudo apt install libswscale-dev libavutil-dev libdeflate-dev
-          sudo apt install libgraphicsmagick++-dev
           sudo apt install libturbojpeg-dev libexif-dev
           sudo apt install libsixel-dev
-          sudo apt install libavcodec-dev libavformat-dev libavdevice-dev
-          sudo apt install libopenslide-dev
           sudo apt install pandoc
 
       - name: Set Version
         run: |
-          echo "PACKAGE_VERSION=$(git tag | tail -1 | sed 's/^v//')" >> $GITHUB_ENV
+          echo "PACKAGE_VERSION=$(git describe | sed 's/\(v.*-.*\)-.*/\1/')" >> $GITHUB_ENV
 
       - name: Build AppDir
         run: |
@@ -108,32 +164,25 @@ jobs:
         with:
           recipe: "AppImageBuilder.yml"
 
-      - name: Show result
-        run: |
-          ls -l
-
       - name: 📤 Upload artifact
         uses: actions/upload-artifact@v3
         with:
           name: timg-${{ env.PACKAGE_VERSION }}-x86_64.AppImage
           path: timg-${{ env.PACKAGE_VERSION }}-x86_64.AppImage
 
-      # TODO: upload to release
 
-  CodeFormatting:
-    if: false   # currently, there is no clang-format-13 in ubuntu latest
+  Release:
+    needs: [ AppImageBuild ]
+    if: needs.TagIfNeeded.release_tag != ''
     runs-on: ubuntu-latest
-
+    name: Create Release
     steps:
-
-    - name: Checkout code
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-
-    - name: Install Dependencies
-      run: |
-        sudo apt-get install clang-format-13
-
-    - name: Run formatting style check
-      run: ./.github/bin/run-clang-format.sh
+      - name: 🎉 Release If Tagged
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: artifact/timg-*.AppImage
+          tag: ${{ needs.TagIfNeeded.release_tag }}
+          overwrite: true
+          file_glob: true
+          prerelease: true
