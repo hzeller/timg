@@ -185,4 +185,3 @@ jobs:
           tag: ${{ needs.TagIfNeeded.release_tag }}
           overwrite: true
           file_glob: true
-          prerelease: true
