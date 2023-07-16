@@ -70,13 +70,11 @@ jobs:
         run: |
           sudo apt update
           sudo apt install cmake git g++ clang pkg-config
-          sudo apt install libswscale-dev libavutil-dev libdeflate-dev
-          sudo apt install libgraphicsmagick++-dev
+          sudo apt install libswscale-dev libdeflate-dev
           sudo apt install libturbojpeg-dev libexif-dev
           sudo apt install libsixel-dev
-          sudo apt install libavcodec-dev libavformat-dev libavdevice-dev
-          sudo apt install libopenslide-dev
-          sudo apt install pandoc
+          sudo apt install desktop-file-utils
+          sudo apt install libfuse2
 
       - name: Set Version
         run: |
@@ -84,8 +82,12 @@ jobs:
 
       - name: Build AppDir
         run: |
-          # Switch off some or the more expensive dependencies.
-          # also check apt to include in .github/conf/AppImageBuilder.yml
+          # Get appimagetool that is used for packaging
+          wget https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-x86_64.AppImage
+          chmod +x appimagetool-x86_64.AppImage
+          export APPIMAGETOOL=./appimagetool-x86_64.AppImage
+
+          # Switch off some of the more expensive dependencies.
           ./.github/bin/prepare-app-image.sh \
              -DWITH_GRAPHICSMAGICK=Off \
              -DWITH_VIDEO_DECODING=Off \
@@ -95,18 +97,6 @@ jobs:
              -DWITH_STB_IMAGE=On \
              -DWITH_QOI_IMAGE=On \
              -DWITH_LIBSIXEL=On
-          strip AppDir/usr/bin/timg
-          ldd AppDir/usr/bin/timg
-          sed "s/@VERSION@/$PACKAGE_VERSION/" \
-              < .github/conf/AppImageBuilder.yml.in \
-              > AppImageBuilder.yml
-
-      - name: Package
-        uses: AppImageCrafters/build-appimage@master
-        env:
-          UPDATE_INFO: gh-releases-zsync|hzeller|timg|latest|*.AppImage.zsync
-        with:
-          recipe: "AppImageBuilder.yml"
 
       - name: Show result
         run: |
@@ -115,8 +105,8 @@ jobs:
       - name: 📤 Upload artifact
         uses: actions/upload-artifact@v3
         with:
-          name: timg-${{ env.PACKAGE_VERSION }}-x86_64.AppImage
-          path: timg-${{ env.PACKAGE_VERSION }}-x86_64.AppImage
+          name: timg-x86_64.AppImage
+          path: timg-x86_64.AppImage
 
       # TODO: upload to release
 
