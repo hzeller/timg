@@ -41,16 +41,8 @@ With **-I** or **-V** you can choose to use only one of these file decoders
 # OPTIONS
 
 ## General Options
-**-g** *&lt;width&gt;x&lt;height&gt;*
-:    Geometry. Scale output to fit inside given number of character cells.
-     By default, the size is determined by the available space in the terminal,
-     so you typically won't have to change this.
-     The image is scaled to fit inside the available box to fill the screen;
-     see **-W** if you want to fill the width.
 
-     It is possible to only partially specify the size before or after the
-     `x`-separator, like **-g&lt;width&gt;x** or **-gx&lt;height&gt;**. The corresponding
-     other value is then derived from the terminal size.
+Most likely commonly needed options first.
 
 **-p** *&lt;[h|q|s|k|i]&gt;*, **-\-pixelation**=*[h|q|s|k|i]*
 :    Choice for pixelation of the content.
@@ -107,23 +99,6 @@ With **-I** or **-V** you can choose to use only one of these file decoders
      same terminal, maybe set an alias, e.g. `alias timg='timg -ps'` to
      lock the standard pixelation.
 
-**-\-compress**[=&lt;*level*&gt;]
-:   For the kitty and iterm2 graphics modes: this chooses the compression
-    for the transmission to the terminal. This uses more CPU on timg, but is
-    desirable when connected over a slow network.
-    Default compression level is 1 which should be reasonable default in
-    almost all cases. To disable, set to 0 (zero). Use `--verbose` to see
-    the amount of data `timg` sent to the terminal.
-
-**-C**, **-\-center**
-:    Center image(s) and title(s) horizontally.
-
-**-W**, **-\-fit-width**
-:    Scale to fit width of the available space. This means that the height can
-     overflow, e.g. be longer than the terminal, so might require scrolling to
-     see the full picture.
-     Default behavior is to fit within the allotted width *and* height.
-
 **-\-grid**=&lt;*cols*&gt;[x&lt;*rows*&gt;]
 :    Arrange images in a grid. If only one parameter is given, arranges in a
     square grid (e.g. **-\-grid=3** makes a 3x3 grid). Alternatively, you can
@@ -132,15 +107,44 @@ With **-I** or **-V** you can choose to use only one of these file decoders
     This is a very useful option if you want to browse images (see examples
     below).
 
-**-w** &lt;*seconds*&gt;
-:   Wait time between images when multiple images are given on the command
-    line. Fractional values are allowed, so **-w3.1415** would wait
-    approximately π seconds between images.
+**-C**, **-\-center**
+:    Center image(s) and title(s) horizontally in their alotted space.
 
-**-a**
-:   Switch off anti-aliasing. The images are scaled down to show on the
-    minimal amount of pixels, so some smoothing is applied for best visual
-    effect. This option switches off that smoothing.
+**-\-title=[format-string]**
+:    Print title above each image. It is possible to customize the
+     title by giving a format string. In this string, the following format
+     specifiers are expanded:
+
+       * `%f` = full filename
+       * `%b` = basename (filename without path)
+       * `%w` = image width
+       * `%h` = image height
+       * `%D` = internal decoder used (image, video, qoi, sta, openslide, ...)
+
+     If no format string is given, this is just the filename (`%f`) or, if
+     set, what is provided in the `TIMG_DEFAULT_TITLE` environment variable.
+
+**-f** &lt;*filelist-file*&gt;
+:    Read a list of image filenames to show from this file. The list needs
+     to be newline separated, so one filename per line.
+     This option can be supplied multiple times in which case it appends
+     to the end of the list of images to show.
+     If there are also filenames on the command line, they will also be
+     shown after the images from the file list have been shown.
+
+     Absolute filenames in the list are used as-is, relative filenames are
+     resolved relative to the _current directory_.
+
+     (Note: this behavior changed between v1.5.0 and v1.5.1: previously, -f
+     was resolving relative to the filelist; this changed to current directory.
+     Look-up relative to the file list is provided with with uppercase **-F**).
+
+**-F**
+:    Like **-f**, but relative filenames are resolved relative to the
+     _directory the file list resides in_.
+     This allows you to e.g. have a file list at the top of a directory
+     hierarchy with relative filenames but are not required to change into that
+     directory first for `timg` to resolve the relative paths.
 
 **-b** &lt;*background-color*&gt;
 :    Set the background color for transparent images. Common HTML/SVG/X11
@@ -181,7 +185,7 @@ With **-I** or **-V** you can choose to use only one of these file decoders
 :   Scale background checkerboard pattern by this factor.
 
 **-\-auto-crop**[=&lt;*pre-crop*&gt;]
-:    Trim same-color pixels around the border of image before displaying. Use
+:   Trim same-color pixels around the border of image before displaying. Use
     this if there is a boring even-colored space aorund the image which uses
     too many of our available few pixels.
 
@@ -194,14 +198,11 @@ With **-I** or **-V** you can choose to use only one of these file decoders
 :   If 'exif', rotate the image according to the exif data stored
     in the image. With 'off', no rotation is extracted or applied.
 
-**-\-clear**
-:   Clear screen before *first* image. This places the image at the top of the
-    screen.
-
-    There is an optional parameter '*every*' (**-\-clear=every**), which will
-    clean the screen before every image. This only makes sense if there is no
-    **-\-grid** used and if you allow some time to show the image of course,
-    so good in combination with **-w**.
+**-W**, **-\-fit-width**
+:    Scale to fit width of the available space. This means that the height can
+     overflow, e.g. be longer than the terminal, so might require scrolling to
+     see the full picture.
+     Default behavior is to fit within the allotted width *and* height.
 
 **-U**, **-\-upscale=[i]**
 :   Allow Upscaling. If an image is smaller than the terminal size, scale
@@ -211,11 +212,20 @@ With **-I** or **-V** you can choose to use only one of these file decoders
     available pixels in the terminal are left at the original size (this
     helps assess small deliberately pixelated images such as icons in their
     intended appearance). This option scales up smaller images to fit available
-    space.
+    space (e.g. icons).
 
     The long option allows for an optional parameter **-\-upscale=i**
     that forces the upscaling to be in integer increments to keep the 'blocky'
     appearance of an upscaled image without bilinear scale 'fuzzing'.
+
+**-\-clear**
+:   Clear screen before *first* image. This places the image at the top of the
+    screen.
+
+    There is an optional parameter '*every*' (**-\-clear=every**), which will
+    clean the screen before every image. This only makes sense if there is no
+    **-\-grid** used and if you allow some time to show the image of course,
+    so good in combination with **-w**.
 
 **-V**
 :   Tell `timg` that this is a video, directly read the content as video
@@ -234,47 +244,40 @@ With **-I** or **-V** you can choose to use only one of these file decoders
 :    This is an image, don't attempt to fall back to video decoding. Somewhat
     the opposite of **-V**.
 
-**-\-title=[format-string]**
-:    Print title above each image. It is possible to customize the
-     title by giving a format string. In this string, the following format
-     specifiers are expanded:
+**-w** &lt;*seconds*&gt;
+:   Wait time between images when multiple images are given on the command
+    line. Fractional values are allowed, so **-w3.1415** would wait
+    approximately π seconds between images.
 
-       * `%f` = full filename
-       * `%b` = basename (filename without path)
-       * `%w` = image width
-       * `%h` = image height
-       * `%D` = internal decoder used (image, video, qoi, sta, openslide, ...)
+**-a**
+:   Switch off anti-aliasing. The images are scaled down to show on the
+    minimal amount of pixels, so some smoothing is applied for best visual
+    effect. This option switches off that smoothing.
 
-     If no format string is given, this is just the filename (`%f`) or, if
-     set, what is provided in the `TIMG_DEFAULT_TITLE` environment variable.
+**-g** *&lt;width&gt;x&lt;height&gt;*
+:    Geometry. Scale output to fit inside given number of character cells.
+     By default, the size is determined by the available space in the terminal,
+     so you typically won't have to change this.
+     The image is scaled to fit inside the available box to fill the screen;
+     see **-W** if you want to fill the width.
 
-**-f** &lt;*filelist-file*&gt;
-:    Read a list of image filenames to show from this file. The list needs
-     to be newline separated, so one filename per line.
-     This option can be supplied multiple times in which case it appends
-     to the end of the list of images to show.
-     If there are also filenames on the command line, they will also be
-     shown after the images from the file list have been shown.
-
-     Absolute filenames in the list are used as-is, relative filenames are
-     resolved relative to the _current directory_.
-
-     (Note: this behavior changed between v1.5.0 and v1.5.1: previously, -f
-     was resolving relative to the filelist; this changed to current directory.
-     Look-up relative to the file list is provided with with uppercase **-F**).
-
-**-F**
-:    Like **-f**, but relative filenames are resolved relative to the
-     _directory the file list resides in_.
-     This allows you to e.g. have a file list at the top of a directory
-     hierarchy with relative filenames but are not required to change into that
-     directory first for `timg` to resolve the relative paths.
+     It is possible to only partially specify the size before or after the
+     `x`-separator, like **-g&lt;width&gt;x** or **-gx&lt;height&gt;**. The corresponding
+     other value is then derived from the terminal size.
 
 **-o** &lt;*outfile*&gt;
 :    Write terminal image to given filename instead of stdout.
 
 **-E**
 :    Don't hide the cursor while showing images.
+
+**-\-compress**[=&lt;*level*&gt;]
+:   For the kitty and iterm2 graphics modes: this chooses the compression
+    for the transmission to the terminal. This uses more CPU on timg, but is
+    desirable when connected over a slow network.
+    Default compression level is 1 which should be reasonable default in
+    almost all cases. To disable, set to 0 (zero). Use `--verbose` to see
+    the amount of data `timg` sent to the terminal.
 
 **-\-threads**=&lt;*n*&gt;
 :    Run image decoding in parallel with n threads. By default, up to 3/4 of

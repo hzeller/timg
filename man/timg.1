@@ -58,21 +58,8 @@ these file decoders ({GraphicsMagick, turbojpeg, qoi} or libav
 respectively).
 .SH OPTIONS
 .SS General Options
-.TP
-\f[B]-g\f[R] \f[I]<width>x<height>\f[R]
-Geometry.
-Scale output to fit inside given number of character cells.
-By default, the size is determined by the available space in the
-terminal, so you typically won\[cq]t have to change this.
-The image is scaled to fit inside the available box to fill the screen;
-see \f[B]-W\f[R] if you want to fill the width.
-.RS
 .PP
-It is possible to only partially specify the size before or after the
-\f[V]x\f[R]-separator, like \f[B]-g<width>x\f[R] or
-\f[B]-gx<height>\f[R].
-The corresponding other value is then derived from the terminal size.
-.RE
+Most likely commonly needed options first.
 .TP
 \f[B]-p\f[R] \f[I]<[h|q|s|k|i]>\f[R], \f[B]--pixelation\f[R]=\f[I][h|q|s|k|i]\f[R]
 Choice for pixelation of the content.
@@ -119,7 +106,7 @@ The Kitty terminal implements an image protocol that allows for full
 This is implemented in the
 \f[V]kitty\f[R] terminal but also e.g.\ \f[V]konsole\f[R].
 This is the only protocol that can work around the reluctance of
-\f[V]tmux\f[R] to allow graphics protoccols.
+\f[V]tmux\f[R] to allow graphics protocols.
 Some creative workarounds (Unicode placeholders) are used that are
 only implemented in \f[V]kitty\f[R] version >= 0.28 right now.
 Also needs \f[V]tmux\f[R]
@@ -141,27 +128,6 @@ e.g.\ \f[V]alias timg=\[aq]timg -ps\[aq]\f[R] to lock the standard
 pixelation.
 .RE
 .TP
-\f[B]--compress\f[R][=<\f[I]level\f[R]>]
-For the kitty and iterm2 graphics modes: this chooses the compression
-for the transmission to the terminal.
-This uses more CPU on timg, but is desirable when connected over a slow
-network.
-Default compression level is 1 which should be reasonable default in
-almost all cases.
-To disable, set to 0 (zero).
-Use \f[V]--verbose\f[R] to see the amount of data \f[V]timg\f[R] sent to
-the terminal.
-.TP
-\f[B]-C\f[R], \f[B]--center\f[R]
-Center image(s) and title(s) horizontally.
-.TP
-\f[B]-W\f[R], \f[B]--fit-width\f[R]
-Scale to fit width of the available space.
-This means that the height can overflow, e.g.\ be longer than the
-terminal, so might require scrolling to see the full picture.
-Default behavior is to fit within the allotted width \f[I]and\f[R]
-height.
-.TP
 \f[B]--grid\f[R]=<\f[I]cols\f[R]>[x<\f[I]rows\f[R]>]
 Arrange images in a grid.
 If only one parameter is given, arranges in a square grid
@@ -171,17 +137,56 @@ terminal (e.g.\ \f[B]--grid=3x2\f[R]).
 This is a very useful option if you want to browse images (see examples
 below).
 .TP
-\f[B]-w\f[R] <\f[I]seconds\f[R]>
-Wait time between images when multiple images are given on the command
-line.
-Fractional values are allowed, so \f[B]-w3.1415\f[R] would wait
-approximately \[*p] seconds between images.
+\f[B]-C\f[R], \f[B]--center\f[R]
+Center image(s) and title(s) horizontally in their alotted space.
 .TP
-\f[B]-a\f[R]
-Switch off anti-aliasing.
-The images are scaled down to show on the minimal amount of pixels, so
-some smoothing is applied for best visual effect.
-This option switches off that smoothing.
+\f[B]--title=[format-string]\f[R]
+Print title above each image.
+It is possible to customize the title by giving a format string.
+In this string, the following format specifiers are expanded:
+.RS
+.IP \[bu] 2
+\f[V]%f\f[R] = full filename
+.IP \[bu] 2
+\f[V]%b\f[R] = basename (filename without path)
+.IP \[bu] 2
+\f[V]%w\f[R] = image width
+.IP \[bu] 2
+\f[V]%h\f[R] = image height
+.IP \[bu] 2
+\f[V]%D\f[R] = internal decoder used (image, video, qoi, sta, openslide,
+\&...)
+.PP
+If no format string is given, this is just the filename (\f[V]%f\f[R])
+or, if set, what is provided in the \f[V]TIMG_DEFAULT_TITLE\f[R]
+environment variable.
+.RE
+.TP
+\f[B]-f\f[R] <\f[I]filelist-file\f[R]>
+Read a list of image filenames to show from this file.
+The list needs to be newline separated, so one filename per line.
+This option can be supplied multiple times in which case it appends to
+the end of the list of images to show.
+If there are also filenames on the command line, they will also be shown
+after the images from the file list have been shown.
+.RS
+.PP
+Absolute filenames in the list are used as-is, relative filenames are
+resolved relative to the \f[I]current directory\f[R].
+.PP
+(Note: this behavior changed between v1.5.0 and v1.5.1: previously, -f
+was resolving relative to the filelist; this changed to current
+directory.
+Look-up relative to the file list is provided with with uppercase
+\f[B]-F\f[R]).
+.RE
+.TP
+\f[B]-F\f[R]
+Like \f[B]-f\f[R], but relative filenames are resolved relative to the
+\f[I]directory the file list resides in\f[R].
+This allows you to e.g.\ have a file list at the top of a directory
+hierarchy with relative filenames but are not required to change into
+that directory first for \f[V]timg\f[R] to resolve the relative paths.
 .TP
 \f[B]-b\f[R] <\f[I]background-color\f[R]>
 Set the background color for transparent images.
@@ -243,18 +248,12 @@ If `exif', rotate the image according to the exif data stored in the
 image.
 With `off', no rotation is extracted or applied.
 .TP
-\f[B]--clear\f[R]
-Clear screen before \f[I]first\f[R] image.
-This places the image at the top of the screen.
-.RS
-.PP
-There is an optional parameter `\f[I]every\f[R]'
-(\f[B]--clear=every\f[R]), which will clean the screen before every
-image.
-This only makes sense if there is no \f[B]--grid\f[R] used and if you
-allow some time to show the image of course, so good in combination with
-\f[B]-w\f[R].
-.RE
+\f[B]-W\f[R], \f[B]--fit-width\f[R]
+Scale to fit width of the available space.
+This means that the height can overflow, e.g.\ be longer than the
+terminal, so might require scrolling to see the full picture.
+Default behavior is to fit within the allotted width \f[I]and\f[R]
+height.
 .TP
 \f[B]-U\f[R], \f[B]--upscale=[i]\f[R]
 Allow Upscaling.
@@ -266,12 +265,26 @@ By default, larger images are only scaled down and images smaller than
 the available pixels in the terminal are left at the original size (this
 helps assess small deliberately pixelated images such as icons in their
 intended appearance).
-This option scales up smaller images to fit available space.
+This option scales up smaller images to fit available space
+(e.g.\ icons).
 .PP
 The long option allows for an optional parameter \f[B]--upscale=i\f[R]
 that forces the upscaling to be in integer increments to keep the
 `blocky' appearance of an upscaled image without bilinear scale
 `fuzzing'.
+.RE
+.TP
+\f[B]--clear\f[R]
+Clear screen before \f[I]first\f[R] image.
+This places the image at the top of the screen.
+.RS
+.PP
+There is an optional parameter `\f[I]every\f[R]'
+(\f[B]--clear=every\f[R]), which will clean the screen before every
+image.
+This only makes sense if there is no \f[B]--grid\f[R] used and if you
+allow some time to show the image of course, so good in combination with
+\f[B]-w\f[R].
 .RE
 .TP
 \f[B]-V\f[R]
@@ -295,59 +308,49 @@ See link in EXAMPLES section for a an example.
 This is an image, don\[cq]t attempt to fall back to video decoding.
 Somewhat the opposite of \f[B]-V\f[R].
 .TP
-\f[B]--title=[format-string]\f[R]
-Print title above each image.
-It is possible to customize the title by giving a format string.
-In this string, the following format specifiers are expanded:
-.RS
-.IP \[bu] 2
-\f[V]%f\f[R] = full filename
-.IP \[bu] 2
-\f[V]%b\f[R] = basename (filename without path)
-.IP \[bu] 2
-\f[V]%w\f[R] = image width
-.IP \[bu] 2
-\f[V]%h\f[R] = image height
-.IP \[bu] 2
-\f[V]%D\f[R] = internal decoder used (image, video, qoi, sta, openslide,
-\&...)
-.PP
-If no format string is given, this is just the filename (\f[V]%f\f[R])
-or, if set, what is provided in the \f[V]TIMG_DEFAULT_TITLE\f[R]
-environment variable.
-.RE
+\f[B]-w\f[R] <\f[I]seconds\f[R]>
+Wait time between images when multiple images are given on the command
+line.
+Fractional values are allowed, so \f[B]-w3.1415\f[R] would wait
+approximately \[*p] seconds between images.
 .TP
-\f[B]-f\f[R] <\f[I]filelist-file\f[R]>
-Read a list of image filenames to show from this file.
-The list needs to be newline separated, so one filename per line.
-This option can be supplied multiple times in which case it appends to
-the end of the list of images to show.
-If there are also filenames on the command line, they will also be shown
-after the images from the file list have been shown.
+\f[B]-a\f[R]
+Switch off anti-aliasing.
+The images are scaled down to show on the minimal amount of pixels, so
+some smoothing is applied for best visual effect.
+This option switches off that smoothing.
+.TP
+\f[B]-g\f[R] \f[I]<width>x<height>\f[R]
+Geometry.
+Scale output to fit inside given number of character cells.
+By default, the size is determined by the available space in the
+terminal, so you typically won\[cq]t have to change this.
+The image is scaled to fit inside the available box to fill the screen;
+see \f[B]-W\f[R] if you want to fill the width.
 .RS
 .PP
-Absolute filenames in the list are used as-is, relative filenames are
-resolved relative to the \f[I]current directory\f[R].
-.PP
-(Note: this behavior changed between v1.5.0 and v1.5.1: previously, -f
-was resolving relative to the filelist; this changed to current
-directory.
-Look-up relative to the file list is provided with with uppercase
-\f[B]-F\f[R]).
+It is possible to only partially specify the size before or after the
+\f[V]x\f[R]-separator, like \f[B]-g<width>x\f[R] or
+\f[B]-gx<height>\f[R].
+The corresponding other value is then derived from the terminal size.
 .RE
-.TP
-\f[B]-F\f[R]
-Like \f[B]-f\f[R], but relative filenames are resolved relative to the
-\f[I]directory the file list resides in\f[R].
-This allows you to e.g.\ have a file list at the top of a directory
-hierarchy with relative filenames but are not required to change into
-that directory first for \f[V]timg\f[R] to resolve the relative paths.
 .TP
 \f[B]-o\f[R] <\f[I]outfile\f[R]>
 Write terminal image to given filename instead of stdout.
 .TP
 \f[B]-E\f[R]
 Don\[cq]t hide the cursor while showing images.
+.TP
+\f[B]--compress\f[R][=<\f[I]level\f[R]>]
+For the kitty and iterm2 graphics modes: this chooses the compression
+for the transmission to the terminal.
+This uses more CPU on timg, but is desirable when connected over a slow
+network.
+Default compression level is 1 which should be reasonable default in
+almost all cases.
+To disable, set to 0 (zero).
+Use \f[V]--verbose\f[R] to see the amount of data \f[V]timg\f[R] sent to
+the terminal.
 .TP
 \f[B]--threads\f[R]=<\f[I]n\f[R]>
 Run image decoding in parallel with n threads.
