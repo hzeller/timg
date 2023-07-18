@@ -86,6 +86,7 @@ Options:
                          exceeds height.
         --grid=<cols>[x<rows>] : Arrange images in a grid (contact sheet).
         -w<seconds>    : Wait time between images (default: 0.0).
+        -wr<seconds>   : like above, but wait time between rows in grid.
         -a             : Switch off anti aliasing (default: on).
         -b<str>        : Background color to use behind alpha channel. Format
                          'yellow', '#rrggbb', 'auto' or 'none' (default 'auto').
