@@ -22,7 +22,7 @@
 // Requires pandoc to be installed to get the freshest.
 // Execute the following in the build/ dir.
 #if 0
-man -Tutf8 man/timg.1 | gzip -9       \
+man -Tascii man/timg.1 | gzip -9       \
     | od -tx1 -Anone | sed 's/ /\\x/g' \
     | awk 'BEGIN { printf("/* auto generated */\nstatic constexpr char kGzippedManpage[] ="); } \
           { printf("\n    \"%s\"", $0); } \

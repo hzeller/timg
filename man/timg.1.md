@@ -8,7 +8,7 @@ timg - A terminal image and video viewer
 
 # SYNOPSIS
 
-  **timg** [&lt;*options*&gt; &lt;*image/video*&gt; [&lt;*image/video*&gt;...]
+  **timg** [&lt;*options*&gt;] &lt;*image/video*&gt; [&lt;*image/video*&gt;...]
 
 # DESCRIPTION
 
@@ -81,23 +81,24 @@ Most likely commonly needed options first.
      : The Kitty terminal implements an image protocol that allows for full
      : 24Bit RGB/32 Bit RGBA images to be displayed. This is implemented in the
      : `kitty` terminal but also e.g. `konsole`.
-     : This is the only protocol that can work around the reluctance of
-     : `tmux` to allow graphics protocols.
+     : You can even use this in `tmux`: This is the only protocol that can
+     : work around the reluctance of `tmux` to allow graphics protocols.
      : Some creative workarounds (Unicode placeholders) are used that are
      : only implemented in `kitty` version >= 0.28 right now. Also needs `tmux`
-     : version >= 3.3.
+     : version >= 3.3. You have to explicitly set the `-pk` option inside
+     : tmux as timg would otherwise just use block-pixels there.
 
      **iterm2** (short 'i')
      : The iterm2 graphics is another image protocol that allows for full
-     : 24 Bit RGB/32 Bit RGBA images. It originated on the popular MacOS
+     : 24 Bit RGB/32 Bit RGBA images. It originated on the popular macOS
      : OpenSource iTerm2 terminal but is now also implemented by `wezterm` and
      : `konsole`.
 
      `timg` attempts to recognize the available terminal feature, but it might
      not be able to auto-detect all full-resolution compatible terminals and
-     fall back to **quarter** in that case. If you're always working in the
-     same terminal, maybe set an alias, e.g. `alias timg='timg -ps'` to
-     lock the standard pixelation.
+     fall back to **quarter** in that case. In that case you'd pass the `-p`
+     option to choose the best pixelation. If you're always working in the
+     same terminal, maybe create an alias, e.g. `alias timg='timg -ps'`.
 
 **-\-grid**=&lt;*cols*&gt;[x&lt;*rows*&gt;]
 :    Arrange images in a grid. If only one parameter is given, arranges in a
@@ -245,9 +246,8 @@ Most likely commonly needed options first.
     the opposite of **-V**.
 
 **-w** &lt;*seconds*&gt;
-:   Wait time between images when multiple images are given on the command
-    line. Fractional values are allowed, so **-w3.1415** would wait
-    approximately π seconds between images.
+:   Wait time in seconds between images when multiple images are given on
+    the command line. Fractional values are allowed.
 
 **-a**
 :   Switch off anti-aliasing. The images are scaled down to show on the
@@ -284,7 +284,8 @@ Most likely commonly needed options first.
      the reported CPU-cores are used.
 
 **-\-color8**
-:   Use 8 bit color mode for terminals that don't support 24 bit color
+:   For `half` and `quarter` block pixelation: Use 8 bit color mode for
+    terminals that don't support 24 bit color
     (only shows 6x6x6 = 216 distinct colors instead of 256x256x256 = 16777216).
 
 **-\-version**
@@ -316,7 +317,7 @@ limit infinity.
     Fractional values are allowed.
 
 **-\-loops**=&lt;*num*&gt;
-:    Number of loops through a fully cycle of an animation or video.
+:   Number of loops through a fully cycle of an animation or video.
     A value of *-1* stands for 'forever'.
 
     If *not* set, videos loop once, animated images forever unless there is
@@ -325,8 +326,10 @@ limit infinity.
     the output get stuck on the first animation.
 
 **-\-frames**=&lt;*frame-count*&gt;
-:    Only render the first *frame-count* frames in an animation or video.
-    If frame-count is set to 1, the output behaves like a static image.
+:   Only render the first *frame-count* frames in an animation or video.
+    If frame-count is set to 1, the output just is the first frame so
+    behaves like a static image. Typically you'd use it when you show a bunch
+    of images to quickly browse without waiting for animations to finish.
 
 **-\-frame-offset**=&lt;*offset*&gt;
 :    For animations or videos, start at this frame.
@@ -375,11 +378,11 @@ Exit code is
 
 **TIMG_USE_UPPER_BLOCK**
 :    If this environment variable is set to the value **1**, `timg` will use the
-     U+2580 - 'Upper Half Block' (&#x2580;) Unicode character.
+     U+2580 - 'Upper Half Block' Unicode character.
 
     To display pixels, `timg` uses a Unicode half block and sets the foreground
     color and background color to get two vertical pixels. By default, it uses
-    the U+2584 - 'Lower Half Block' (&#x2584;) character to achieve this goal. This
+    the U+2584 - 'Lower Half Block' character to achieve this goal. This
     has been chosen as it resulted in the best image in all tested terminals
     (konsole, gnome terminal and cool-retro-term). So usually, there is no
     need to change that. But if the terminal or font result in a funny output,

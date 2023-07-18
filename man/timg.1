@@ -21,7 +21,7 @@
 timg - A terminal image and video viewer
 .SH SYNOPSIS
 .PP
-\f[B]timg\f[R] [<\f[I]options\f[R]> <\f[I]image/video\f[R]>
+\f[B]timg\f[R] [<\f[I]options\f[R]>] <\f[I]image/video\f[R]>
 [<\f[I]image/video\f[R]>\&...]
 .SH DESCRIPTION
 .PP
@@ -105,17 +105,21 @@ The Kitty terminal implements an image protocol that allows for full
 24Bit RGB/32 Bit RGBA images to be displayed.
 This is implemented in the
 \f[V]kitty\f[R] terminal but also e.g.\ \f[V]konsole\f[R].
-This is the only protocol that can work around the reluctance of
-\f[V]tmux\f[R] to allow graphics protocols.
+You can even use this in \f[V]tmux\f[R]: This is the only protocol that
+can
+work around the reluctance of \f[V]tmux\f[R] to allow graphics
+protocols.
 Some creative workarounds (Unicode placeholders) are used that are
 only implemented in \f[V]kitty\f[R] version >= 0.28 right now.
 Also needs \f[V]tmux\f[R]
 version >= 3.3.
+You have to explicitly set the \f[V]-pk\f[R] option inside
+tmux as timg would otherwise just use block-pixels there.
 .TP
 \f[B]iterm2\f[R] (short `i')
 The iterm2 graphics is another image protocol that allows for full
 24 Bit RGB/32 Bit RGBA images.
-It originated on the popular MacOS
+It originated on the popular macOS
 OpenSource iTerm2 terminal but is now also implemented by
 \f[V]wezterm\f[R] and
 \f[V]konsole\f[R].
@@ -123,9 +127,10 @@ OpenSource iTerm2 terminal but is now also implemented by
 \f[V]timg\f[R] attempts to recognize the available terminal feature, but
 it might not be able to auto-detect all full-resolution compatible
 terminals and fall back to \f[B]quarter\f[R] in that case.
-If you\[cq]re always working in the same terminal, maybe set an alias,
-e.g.\ \f[V]alias timg=\[aq]timg -ps\[aq]\f[R] to lock the standard
+In that case you\[cq]d pass the \f[V]-p\f[R] option to choose the best
 pixelation.
+If you\[cq]re always working in the same terminal, maybe create an
+alias, e.g.\ \f[V]alias timg=\[aq]timg -ps\[aq]\f[R].
 .RE
 .TP
 \f[B]--grid\f[R]=<\f[I]cols\f[R]>[x<\f[I]rows\f[R]>]
@@ -309,10 +314,9 @@ This is an image, don\[cq]t attempt to fall back to video decoding.
 Somewhat the opposite of \f[B]-V\f[R].
 .TP
 \f[B]-w\f[R] <\f[I]seconds\f[R]>
-Wait time between images when multiple images are given on the command
-line.
-Fractional values are allowed, so \f[B]-w3.1415\f[R] would wait
-approximately \[*p] seconds between images.
+Wait time in seconds between images when multiple images are given on
+the command line.
+Fractional values are allowed.
 .TP
 \f[B]-a\f[R]
 Switch off anti-aliasing.
@@ -357,9 +361,9 @@ Run image decoding in parallel with n threads.
 By default, up to 3/4 of the reported CPU-cores are used.
 .TP
 \f[B]--color8\f[R]
-Use 8 bit color mode for terminals that don\[cq]t support 24 bit color
-(only shows 6x6x6 = 216 distinct colors instead of 256x256x256 =
-16777216).
+For \f[V]half\f[R] and \f[V]quarter\f[R] block pixelation: Use 8 bit
+color mode for terminals that don\[cq]t support 24 bit color (only shows
+6x6x6 = 216 distinct colors instead of 256x256x256 = 16777216).
 .TP
 \f[B]--version\f[R]
 Print version and exit.
@@ -404,7 +408,10 @@ get stuck on the first animation.
 \f[B]--frames\f[R]=<\f[I]frame-count\f[R]>
 Only render the first \f[I]frame-count\f[R] frames in an animation or
 video.
-If frame-count is set to 1, the output behaves like a static image.
+If frame-count is set to 1, the output just is the first frame so
+behaves like a static image.
+Typically you\[cq]d use it when you show a bunch of images to quickly
+browse without waiting for animations to finish.
 .TP
 \f[B]--frame-offset\f[R]=<\f[I]offset\f[R]>
 For animations or videos, start at this frame.
@@ -452,14 +459,14 @@ If not given, the default title format string is \[dq]\f[V]%f\f[R]\[dq].
 .TP
 \f[B]TIMG_USE_UPPER_BLOCK\f[R]
 If this environment variable is set to the value \f[B]1\f[R],
-\f[V]timg\f[R] will use the U+2580 - `Upper Half Block' (\[u2580])
-Unicode character.
+\f[V]timg\f[R] will use the U+2580 - `Upper Half Block' Unicode
+character.
 .RS
 .PP
 To display pixels, \f[V]timg\f[R] uses a Unicode half block and sets the
 foreground color and background color to get two vertical pixels.
-By default, it uses the U+2584 - `Lower Half Block' (\[u2584]) character
-to achieve this goal.
+By default, it uses the U+2584 - `Lower Half Block' character to achieve
+this goal.
 This has been chosen as it resulted in the best image in all tested
 terminals (konsole, gnome terminal and cool-retro-term).
 So usually, there is no need to change that.
