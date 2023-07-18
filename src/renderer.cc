@@ -18,6 +18,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <memory>
+
 namespace timg {
 std::string Renderer::TrimTitle(const std::string &title,
                                 int requested_width) const {
@@ -39,8 +41,9 @@ namespace {
 class SingleColumnRenderer final : public Renderer {
 public:
     SingleColumnRenderer(timg::TerminalCanvas *canvas,
-                         const DisplayOptions &display_opts)
-        : Renderer(canvas, display_opts) {}
+                         const DisplayOptions &display_opts,
+                         Duration wait_time)
+        : Renderer(canvas, display_opts), wait_time_(wait_time) {}
 
     WriteFramebufferFun render_cb(const std::string &title) final {
         // For single column mode, implementation is straightforward
@@ -51,6 +54,12 @@ public:
         };
     }
 
+    void MaybeWaitBetweenImageSources() const final {
+        if (!wait_time_.is_zero()) {
+            (Time::Now() + wait_time_).WaitUntil();
+        }
+    }
+
 private:
     void RenderTitle(const std::string &title) {
         if (!options_.show_title) return;
@@ -58,6 +67,8 @@ private:
             TrimTitle(title, options_.width / options_.cell_x_px);
         canvas_->AddPrefixNextSend(tout.data(), tout.size());
     }
+
+    const Duration wait_time_;
 };
 
 // The multi column renderer positions every update in a new column.
@@ -66,10 +77,15 @@ private:
 class MultiColumnRenderer final : public Renderer {
 public:
     MultiColumnRenderer(timg::TerminalCanvas *canvas,
-                        const DisplayOptions &display_opts, int cols, int rows)
+                        const DisplayOptions &display_opts, int cols, int rows,
+                        Duration wait_between_images,
+                        Duration wait_between_rows)
+
         : Renderer(canvas, display_opts),
           columns_(cols),
-          column_width_(display_opts.width) {}
+          column_width_(display_opts.width),
+          wait_between_images_(wait_between_images),
+          wait_between_rows_(wait_between_rows) {}
 
     ~MultiColumnRenderer() final {
         if (current_column_ != 0) {
@@ -127,6 +143,15 @@ public:
         };
     }
 
+    void MaybeWaitBetweenImageSources() const final {
+        if (!wait_between_images_.is_zero()) {
+            (Time::Now() + wait_between_images_).WaitUntil();
+        }
+        if (current_column_ == columns_-1 && !wait_between_rows_.is_zero()) {
+            (Time::Now() + wait_between_rows_).WaitUntil();
+        }
+    }
+
 private:
     void PrepareTitle(const std::string &title) {
         if (!options_.show_title) return;
@@ -149,6 +174,9 @@ private:
 
     const int columns_;
     const int column_width_;
+    const Duration wait_between_images_;
+    const Duration wait_between_rows_;
+
     std::string title_;
     bool first_render_call_       = true;
     int current_column_           = -1;
@@ -164,12 +192,16 @@ Renderer::Renderer(timg::TerminalCanvas *canvas,
 
 std::unique_ptr<Renderer> Renderer::Create(timg::TerminalCanvas *output,
                                            const DisplayOptions &display_opts,
-                                           int cols, int rows) {
+                                           int cols, int rows,
+                                           Duration wait_between_images,
+                                           Duration wait_between_rows) {
     if (cols > 1) {
         return std::make_unique<MultiColumnRenderer>(output, display_opts, cols,
-                                                     rows);
+                                                     rows, wait_between_images,
+                                                     wait_between_rows);
     }
-    return std::make_unique<SingleColumnRenderer>(output, display_opts);
+    return std::make_unique<SingleColumnRenderer>(
+        output, display_opts, std::max(wait_between_images, wait_between_rows));
 }
 
 }  // namespace timg

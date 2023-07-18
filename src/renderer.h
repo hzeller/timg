@@ -29,7 +29,9 @@ namespace timg {
 // sending it to the screen, depending on the grid configuration.
 class Renderer {
 public:
-    // A function to write a framebuffer and its offset with timing
+    // A function to write a framebuffer and its offset with timing.
+    // This callback is handed over to each ImageSource::SendFrames to
+    // emit their content.
     using WriteFramebufferFun =
         std::function<void(int x, int dy, const Framebuffer &fb,
                            SeqType seq_type, Duration end_of_frame)>;
@@ -38,7 +40,9 @@ public:
     // The single column vs. multi column are different implementations.
     static std::unique_ptr<Renderer> Create(timg::TerminalCanvas *output,
                                             const DisplayOptions &display_opts,
-                                            int cols, int rows);
+                                            int cols, int rows,
+                                            Duration wait_between_images,
+                                            Duration wait_between_rows);
 
     virtual ~Renderer() {}
 
@@ -48,6 +52,9 @@ public:
     // The returned call can be used to output multiple frames with the usual
     // (x, dy) positioning.
     virtual WriteFramebufferFun render_cb(const std::string &title) = 0;
+
+    // Wait if needed between image sources.
+    virtual void MaybeWaitBetweenImageSources() const = 0;
 
 protected:
     Renderer(timg::TerminalCanvas *canvas, const DisplayOptions &display_opts);

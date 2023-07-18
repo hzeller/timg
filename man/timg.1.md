@@ -249,6 +249,12 @@ Most likely commonly needed options first.
 :   Wait time in seconds between images when multiple images are given on
     the command line. Fractional values are allowed.
 
+**-wr** &lt;*seconds*&gt;
+:   Similar to `-w`, but wait time between _rows_. If a `--grid` is chosen,
+    this will wait at the end of a completed row. If no grid is chosen,
+    then this is equivalent to `-w`. Both, `-w` and `-wr` can be provided to
+    show each image individually, but also have a wait time between rows.
+
 **-a**
 :   Switch off anti-aliasing. The images are scaled down to show on the
     minimal amount of pixels, so some smoothing is applied for best visual

@@ -318,6 +318,14 @@ Wait time in seconds between images when multiple images are given on
 the command line.
 Fractional values are allowed.
 .TP
+\f[B]-wr\f[R] <\f[I]seconds\f[R]>
+Similar to \f[V]-w\f[R], but wait time between \f[I]rows\f[R].
+If a \f[V]--grid\f[R] is chosen, this will wait at the end of a
+completed row.
+If no grid is chosen, then this is equivalent to \f[V]-w\f[R].
+Both, \f[V]-w\f[R] and \f[V]-wr\f[R] can be provided to show each image
+individually, but also have a wait time between rows.
+.TP
 \f[B]-a\f[R]
 Switch off anti-aliasing.
 The images are scaled down to show on the minimal amount of pixels, so

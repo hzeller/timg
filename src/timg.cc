@@ -138,6 +138,7 @@ struct PresentationOptions {
     bool hide_cursor         = true;    // Hide cursor while emitting image
     ClearScreen clear_screen = ClearScreen::kNot;  // Clear between images ?
     Duration duration_between_images;  // How long to wait between images
+    Duration duration_for_row;         // Wait time for a grid row.
 };
 }  // namespace timg
 
@@ -189,6 +190,7 @@ static int usage(const char *progname, ExitCode exit_code, int width,
         "\t                 exceeds height.\n"
         "\t--grid=<cols>[x<rows>] : Arrange images in a grid (contact sheet).\n"
         "\t-w<seconds>    : Wait time between images (default: 0.0).\n"
+        "\t-wr<seconds>   : like above, but wait time between rows in grid.\n"
         "\t-a             : Switch off anti aliasing (default: on).\n"
         "\t-b<str>        : Background color to use behind alpha channel. "
         "Format\n"
@@ -335,7 +337,8 @@ static void PresentImages(LoadedImageSources *loaded_sources,
     }
 
     auto renderer = timg::Renderer::Create(
-        canvas.get(), display_opts, present.grid_cols, present.grid_rows);
+        canvas.get(), display_opts, present.grid_cols, present.grid_rows,
+        present.duration_between_images, present.duration_for_row);
 
     // Things to do before and after we show an image. Our goal is to keep
     // the terminal always in a good state (cursor on!) while also reacting
@@ -375,9 +378,7 @@ static void PresentImages(LoadedImageSources *loaded_sources,
                            renderer->render_cb(
                                source->FormatTitle(display_opts.title_format)));
         after_image_show();
-        if (!present.duration_between_images.is_zero()) {
-            (Time::Now() + present.duration_between_images).WaitUntil();
-        }
+        renderer->MaybeWaitBetweenImageSources();
         is_first = false;
     }
     sequencer->Flush();
@@ -489,8 +490,13 @@ int main(int argc, char *argv[]) {
             }
             break;
         case 'w':
-            present.duration_between_images =
-                Duration::Millis(roundf(atof(optarg) * 1000.0f));
+            if (optarg[0] == 'r') {
+                present.duration_for_row =
+                    Duration::Millis(roundf(atof(optarg+1) * 1000.0f));
+            } else {
+                present.duration_between_images =
+                    Duration::Millis(roundf(atof(optarg) * 1000.0f));
+            }
             break;
         case 't':
             present.duration_per_image =
