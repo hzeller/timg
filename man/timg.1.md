@@ -245,11 +245,11 @@ Most likely commonly needed options first.
 :    This is an image, don't attempt to fall back to video decoding. Somewhat
     the opposite of **-V**.
 
-**-w** &lt;*seconds*&gt;
+**-w**&lt;*seconds*&gt;
 :   Wait time in seconds between images when multiple images are given on
-    the command line. Fractional values are allowed.
+    the command line. Fractional values such as `-w0.3` are allowed.
 
-**-wr** &lt;*seconds*&gt;
+**-wr**&lt;*seconds*&gt;
 :   Similar to `-w`, but wait time between _rows_. If a `--grid` is chosen,
     this will wait at the end of a completed row. If no grid is chosen,
     then this is equivalent to `-w`. Both, `-w` and `-wr` can be provided to
