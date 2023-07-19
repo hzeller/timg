@@ -13,6 +13,8 @@ cat > "$OUTPUT" <<EOF
 
 static constexpr char kGzippedManpage[] =
 EOF
-man -Tascii "${INPUT}" | gzip -9 | od -tx1 -Anone | sed 's/ /\\x/g' \
+man -Tascii "${INPUT}" | gzip -9 | od -tx1 -Anone \
+    | sed 's/ \([0-9A-Fa-f][0-9A-Fa-f]\)/\\x\1/g' \
     | awk '{  printf("    \"%s\"\n", $0); } END { printf(";\n"); }' \
-    >> "${OUTPUT}"
+	  >> "${OUTPUT}"
+wc -l "${OUTPUT}"
