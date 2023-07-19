@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -e
+
 if [ $# -ne 2 ]; then
     echo "Usage: $0 <man-in> <inc-out>"
     exit 1

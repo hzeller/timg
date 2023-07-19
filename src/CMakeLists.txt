@@ -114,21 +114,12 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/timg-manpage.inc
   COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/create-manpage-inc.sh" ${CMAKE_CURRENT_SOURCE_DIR}/../man/timg.1 ${CMAKE_CURRENT_BINARY_DIR}/timg-manpage.inc
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../man/timg.1
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-    COMMENT "Generating built-in manpage")
+    COMMENT "Generating builtin manpage")
 add_custom_target(builtin-manpage DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/timg-manpage.inc)
 
-add_dependencies(timg builtin-manpage)
-install(TARGETS timg
-  RUNTIME DESTINATION bin
-)
+# Currently disabled. The ancient `man` command on MacOS is misbehaving, so
+# for now, it is checked into the repo at src/timg-manpage.inc
+#add_dependencies(timg builtin-manpage)
 
-# Local debian package creation until available natively in Debian.
-# Use
-#   cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ../
-#   cpack
-SET(CPACK_GENERATOR "DEB")
-SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "henner.zeller+unsupported-timg-deb@gmail.com")
-SET(CPACK_DEBIAN_PACKAGE_DESCRIPTION "A terminal image and video viewer.")
-SET(CPACK_DEBIAN_PACKAGE_HOMEPAGE "https://timg.sh/")
-SET(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
-INCLUDE(CPack)
+
+install(TARGETS timg RUNTIME DESTINATION bin)
