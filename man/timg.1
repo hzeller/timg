@@ -186,7 +186,7 @@ Look-up relative to the file list is provided with with uppercase
 \f[B]-F\f[R]).
 .RE
 .TP
-\f[B]-F\f[R]
+\f[B]-F\f[R] <\f[I]filelist-file\f[R]>
 Like \f[B]-f\f[R], but relative filenames are resolved relative to the
 \f[I]directory the file list resides in\f[R].
 This allows you to e.g.\ have a file list at the top of a directory
@@ -313,12 +313,12 @@ See link in EXAMPLES section for a an example.
 This is an image, don\[cq]t attempt to fall back to video decoding.
 Somewhat the opposite of \f[B]-V\f[R].
 .TP
-\f[B]-w\f[R] <\f[I]seconds\f[R]>
+\f[B]-w\f[R]<\f[I]seconds\f[R]>
 Wait time in seconds between images when multiple images are given on
 the command line.
-Fractional values are allowed.
+Fractional values such as \f[V]-w0.3\f[R] are allowed.
 .TP
-\f[B]-wr\f[R] <\f[I]seconds\f[R]>
+\f[B]-wr\f[R]<\f[I]seconds\f[R]>
 Similar to \f[V]-w\f[R], but wait time between \f[I]rows\f[R].
 If a \f[V]--grid\f[R] is chosen, this will wait at the end of a
 completed row.

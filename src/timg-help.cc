@@ -17,19 +17,7 @@
 
 #include <libdeflate.h>
 
-// Currently, this is populated manually. TODO: add to CMake as a generator,
-// and don't include timg-manpage.inc in the repository.
-// Requires pandoc to be installed to get the freshest.
-// Execute the following in the build/ dir.
-#if 0
-man -Tascii man/timg.1 | gzip -9       \
-    | od -tx1 -Anone | sed 's/ /\\x/g' \
-    | awk 'BEGIN { printf("/* auto generated */\nstatic constexpr char kGzippedManpage[] ="); } \
-          { printf("\n    \"%s\"", $0); } \
-          END { printf(";\n"); }' \
-    > ../src/timg-manpage.inc
-#endif
-
+// Build  from create-manpage-inc.sh
 #include "timg-manpage.inc"
 
 void InvokeHelpPager() {

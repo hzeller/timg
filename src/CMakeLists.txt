@@ -108,6 +108,16 @@ if(WITH_QOI_IMAGE)
     PkgConfig::SWSCALE)
 endif()
 
+# We always take the manpage from the checkout currently so that we don't
+# require pandoc to build.
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/timg-manpage.inc
+  COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/create-manpage-inc.sh" ${CMAKE_CURRENT_SOURCE_DIR}/../man/timg.1 ${CMAKE_CURRENT_BINARY_DIR}/timg-manpage.inc
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../man/timg.1
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    COMMENT "Generating built-in manpage")
+add_custom_target(builtin-manpage DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/timg-manpage.inc)
+
+add_dependencies(timg builtin-manpage)
 install(TARGETS timg
   RUNTIME DESTINATION bin
 )

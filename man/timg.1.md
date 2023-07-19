@@ -140,7 +140,7 @@ Most likely commonly needed options first.
      was resolving relative to the filelist; this changed to current directory.
      Look-up relative to the file list is provided with with uppercase **-F**).
 
-**-F**
+**-F** &lt;*filelist-file*&gt;
 :    Like **-f**, but relative filenames are resolved relative to the
      _directory the file list resides in_.
      This allows you to e.g. have a file list at the top of a directory
