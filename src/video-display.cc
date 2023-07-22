@@ -104,7 +104,11 @@ VideoLoader::~VideoLoader() {
 }
 
 const char *VideoLoader::VersionInfo() {
-    return "libav " AV_STRINGIFY(LIBAVFORMAT_VERSION);
+    return "libav " AV_STRINGIFY(LIBAVFORMAT_VERSION)
+#ifdef HAVE_AVDEVICE
+        "; avdevice " AV_STRINGIFY(LIBAVDEVICE_VERSION)
+#endif
+            ;
 }
 
 std::string VideoLoader::FormatTitle(const std::string &format_string) const {

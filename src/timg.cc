@@ -59,6 +59,7 @@
 #include <fcntl.h>
 #include <getopt.h>
 #include <inttypes.h>
+#include <libswscale/swscale.h>  // Only needed for version.
 #include <math.h>
 #include <signal.h>
 #include <stdio.h>
@@ -492,8 +493,9 @@ int main(int argc, char *argv[]) {
         case 'w':
             if (optarg[0] == 'r') {
                 present.duration_for_row =
-                    Duration::Millis(roundf(atof(optarg+1) * 1000.0f));
-            } else {
+                    Duration::Millis(roundf(atof(optarg + 1) * 1000.0f));
+            }
+            else {
                 present.duration_between_images =
                     Duration::Millis(roundf(atof(optarg) * 1000.0f));
             }
@@ -629,17 +631,25 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "Turbo JPEG\n");
 #endif
 #ifdef WITH_TIMG_QOI
-            fprintf(stderr, "QOI Image reader\n");
+            fprintf(stderr, "QOI image loading\n");
 #endif
 #ifdef WITH_TIMG_STB
-            fprintf(stderr, "STB image loading fallback\n");
+            fprintf(stderr,
+                    "STB image loading"
+#    ifdef WITH_TIMG_GRPAPHICSMAGICK
+                    // If we have graphics magic, that will take images first,
+                    // so STB will only really be called as fallback.
+                    " fallback"
+#    endif
+                    "\n");
 #endif
+            fprintf(stderr, "swscale %s\n", AV_STRINGIFY(LIBSWSCALE_VERSION));
 #ifdef WITH_TIMG_VIDEO
             fprintf(stderr, "Video decoding %s\n",
                     timg::VideoLoader::VersionInfo());
 #endif
             fprintf(stderr,
-                    "Half, quarter, iterm2, and kitty encoding "
+                    "Half, quarter, iterm2, and kitty graphics output: "
                     "timg builtin.\n");
 #ifdef WITH_TIMG_SIXEL
             fprintf(stderr, "Libsixel version %s\n", LIBSIXEL_VERSION);
