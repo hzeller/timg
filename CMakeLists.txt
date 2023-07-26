@@ -31,7 +31,12 @@ if(TIMG_VERSION_FROM_GIT)
   include(GetGitRevisionDescription)
 endif()
 
-pkg_check_modules(LIBDEFLATE REQUIRED IMPORTED_TARGET libdeflate)
+# Ubuntu 20.04 does not provide pkg-config, so use find_library() as fallback
+pkg_check_modules(LIBDEFLATE_PKGCONFIG IMPORTED_TARGET libdeflate)
+if (NOT LIBDEFLATE_PKGCONFIG_FOUND)
+  find_library(LIBDEFLATE_LIBRARY NAMES deflate)
+  message("Manual libdeflate lookup ${LIBDEFLATE_LIBRARY}")
+endif()
 
 if(WITH_LIBSIXEL)
   pkg_check_modules(LIBSIXEL REQUIRED IMPORTED_TARGET libsixel)

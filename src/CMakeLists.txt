@@ -19,7 +19,15 @@ target_sources(timg PRIVATE
   unicode-block-canvas.h unicode-block-canvas.cc
 )
 
-target_link_libraries(timg PkgConfig::LIBDEFLATE Threads::Threads)
+target_link_libraries(timg Threads::Threads)
+
+if (LIBDEFLATE_PKGCONFIG_FOUND)
+  target_link_libraries(timg PkgConfig::LIBDEFLATE_PKGCONFIG)
+else()
+  # Use fallback.
+  target_link_libraries(timg ${LIBDEFLATE_LIBRARY})
+endif()
+
 target_include_directories(timg PRIVATE ${CMAKE_BINARY_DIR}/src)
 
 target_compile_features(timg PRIVATE cxx_std_14)
