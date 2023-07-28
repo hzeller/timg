@@ -1,4 +1,4 @@
-<img src="img/logo.svg" align="left" width="165" alt="timg logo">
+<img src="img/logo.svg" align="left" width="165" alt="timg logo" title="timg">
 <!-- github markdown eats style, otherwise we could use em-units for width. -->
 
 Terminal Image and Video Viewer
