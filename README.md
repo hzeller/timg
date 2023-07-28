@@ -1,7 +1,8 @@
-<img src="img/logo.svg" align="left" width="180">
+<img src="img/logo.svg" align="left" width="165" alt="timg logo">
+<!-- github markdown eats style, otherwise we could use em-units for width. -->
 
-timg - Terminal Image and Video Viewer
-======================================
+Terminal Image and Video Viewer
+===============================
 
 [![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://github.com/hzeller/timg/blob/main/LICENSE) &nbsp;
 [![Ubuntu Build](../../workflows/CI/badge.svg)](../../actions/workflows/ubuntu.yml)
