@@ -24,6 +24,7 @@ AppDir:
 
    include:
     # Some libraries, we don't include, as they are too large.
+    # Also, see switched-off compile-options in CI.
     #- libgraphicsmagick-q16-3
     #- libgraphicsmagick++-q16-12
     #- libavcodec58

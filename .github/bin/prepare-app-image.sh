@@ -14,7 +14,7 @@ mkdir -p app-build AppDir
 )
 
 # We need an icon and the AppRun coming from
-install -D img/sunflower-term.png AppDir/usr/share/icons/timg.png
+install -D img/logo.svg AppDir/usr/share/icons/timg.svg
 
 cat > AppDir/timg.desktop <<EOF
 [Desktop Entry]

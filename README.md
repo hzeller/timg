@@ -1,3 +1,5 @@
+<img src="img/logo.svg" align="left" width="180">
+
 timg - Terminal Image and Video Viewer
 ======================================
 
