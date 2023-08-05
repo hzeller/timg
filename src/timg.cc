@@ -185,14 +185,14 @@ static int usage(const char *progname, ExitCode exit_code, int width,
         "\t                 Default: Auto-detect graphics, otherwise "
         "'quarter'.\n"
         "\t--compress[=level]: Only for -pk or -pi: Compress image data. More\n"
-        "\t                 CPU use, but less bandwidth. (default: 1)\n"
+        "\t                 CPU use, but less used bandwidth. (default: 1)\n"
         "\t-C, --center   : Center image horizontally.\n"
         "\t-W, --fit-width: Scale to fit width of available space, even if it\n"
         "\t                 exceeds height.\n"
         "\t--grid=<cols>[x<rows>] : Arrange images in a grid (contact sheet).\n"
         "\t-w<seconds>    : Wait time between images (default: 0.0).\n"
         "\t-wr<seconds>   : like above, but wait time between rows in grid.\n"
-        "\t-a             : Switch off anti aliasing (default: on).\n"
+        "\t-a             : Switch off anti-aliasing (default: on).\n"
         "\t-b<str>        : Background color to use behind alpha channel. "
         "Format\n"
         "\t                 'yellow', '#rrggbb', 'auto' or 'none' (default "
@@ -236,16 +236,17 @@ static int usage(const char *progname, ExitCode exit_code, int width,
         "show.\n"
         "\t                 Relative filenames are relative to current "
         "directory.\n"
-        "\t                 (Can be provided multiple times.)\n"
+        "\t                 (-f and -F can be provided multiple times.)\n"
         "\t-F<filelist>   : like -f, but relative filenames considered "
         "relative\n"
-        "\t                 to the directory containting the filelist.\n"
+        "\t                 to the directory containing the filelist.\n"
         "\t-o<outfile>    : Write to <outfile> instead of stdout.\n"
         "\t-E             : Don't hide the cursor while showing images.\n"
         "\t--threads=<n>  : Run image decoding in parallel with n threads\n"
         "\t                 (Default %d, 3/4 #cores on this machine)\n"
         "\t--color8       : Choose 8 bit color mode for -ph or -pq\n"
-        "\t--version      : Print version and exit.\n"
+        "\t--version      : Print detailed version including used libraries.\n"
+        "\t                 (%s)\n"
         "\t--verbose      : Print some stats after images shown.\n"
         "\t-h             : Print this help and exit.\n"
         "\t--help         : Page through detailed manpage-like help and exit.\n"
@@ -270,7 +271,7 @@ static int usage(const char *progname, ExitCode exit_code, int width,
         "--frames\n",
         width, height, default_title ? "='" : "",
         default_title ? default_title : "", default_title ? "'" : "",
-        kDefaultThreadCount);
+        kDefaultThreadCount, TIMG_VERSION);
     return (int)exit_code;
 }
 
