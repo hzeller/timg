@@ -73,24 +73,24 @@ grid uses `--grid=2` and is pixelated `-p iterm2`).
 
 ```
 usage: timg [options] <image/video> [<image/video>...]
-Options:
-        -g<w>x<h>      : Output geometry in character cells. Partial geometry
-                         leaving out one value -g<w>x or -gx<h> is possible,
-                         the other value it then derived from the terminal size.
-                         Default derived from terminal size is 160x50
+Options (most common first):
         -p<pixelation> : Pixelation: 'h' = half blocks    'q' = quarter blocks
                                      'k' = kitty graphics 'i' = iTerm2 graphics
                                      's' = sixel graphics
                          Default: Auto-detect graphics, otherwise 'quarter'.
-        --compress[=level]: Only for -pk or -pi: Compress image data. More
-                         CPU use, but less bandwidth. (default: 1)
-        -C, --center   : Center image horizontally.
-        -W, --fit-width: Scale to fit width of available space, even if it
-                         exceeds height.
-        --grid=<cols>[x<rows>] : Arrange images in a grid (contact sheet).
-        -w<seconds>    : Wait time between images (default: 0.0).
-        -wr<seconds>   : like above, but wait time between rows in grid.
-        -a             : Switch off anti aliasing (default: on).
+        --grid=<cols>[x<rows>] : Arrange images in a grid ("contact sheet").
+        -C, --center   : Center image horizontally in available cell.
+        --title[=<fmt_str>]: Print title above each image. Accepts the following
+                         format parameters: %f = full filename; %b = basename
+                                            %w = image width; %h = height
+                                            %D = internal decoder used
+                         If no parameter is given, defaults to "%f"
+                         Env-var override with TIMG_DEFAULT_TITLE
+        -f<filelist>   : Read newline-separated list of image files to show.
+                         Relative filenames are relative to current directory.
+                         (-f and -F can be provided multiple times.)
+        -F<filelist>   : like -f, but relative filenames considered relative
+                         to the directory containing the filelist.
         -b<str>        : Background color to use behind alpha channel. Format
                          'yellow', '#rrggbb', 'auto' or 'none' (default 'auto').
         -B<str>        : Checkerboard pattern color to use on alpha.
@@ -100,31 +100,32 @@ Options:
                          remove beforehand to get rid of an uneven border.
         --rotate=<exif|off> : Rotate according to included exif orientation.
                               or 'off'. Default: exif.
-        --clear        : Clear screen first. Optional argument 'every' will
-                         clear before every image (useful with -w)
+        -W, --fit-width: Scale to fit width of available space, even if it
+                         exceeds height.
         -U, --upscale[=i]: Allow Upscaling. If an image is smaller than the
                          available frame (e.g. an icon), enlarge it to fit.
                          Optional parameter 'i' only enlarges in integer steps.
+        --clear        : Clear screen first. Optional argument 'every' will
+                         clear before every image (useful with -w)
         -V             : Directly use Video subsystem. Don't probe image
                          decoding first (useful, if you stream video from stdin)
         -I             : Only  use Image subsystem. Don't attempt video decoding
-        --title[=<fmt_str>]: Print title above each image. Accepts the following
-                         format parameters: %f = full filename; %b = basename
-                                            %w = image width; %h = height
-                                            %D = internal decoder used
-                         If no parameter is given, defaults to "%f"
-                         Env-var override with TIMG_DEFAULT_TITLE
-        -f<filelist>   : Read newline-separated list of image files to show.
-                         Relative filenames are relative to current directory.
-                         (Can be provided multiple times.)
-        -F<filelist>   : like -f, but relative filenames considered relative
-                         to the directory containting the filelist.
+        -w<seconds>    : Wait time between images (default: 0.0).
+        -wr<seconds>   : like above, but wait time between rows in grid.
+        -a             : Switch off anti-aliasing (default: on).
+        -g<w>x<h>      : Output geometry in character cells. Partial geometry
+                         leaving out one value -g<w>x or -gx<h> is possible,
+                         the other value it then derived from the terminal size.
+                         Default derived from terminal size is 160x50
         -o<outfile>    : Write to <outfile> instead of stdout.
         -E             : Don't hide the cursor while showing images.
+        --compress[=level]: Only for -pk or -pi: Compress image data. More
+                         CPU use, but less used bandwidth. (default: 1)
         --threads=<n>  : Run image decoding in parallel with n threads
                          (Default 3, 3/4 #cores on this machine)
         --color8       : Choose 8 bit color mode for -ph or -pq
-        --version      : Print version and exit.
+        --version      : Print detailed version including used libraries.
+                         (v1.5.1+)
         --verbose      : Print some stats after images shown.
         -h             : Print this help and exit.
         --help         : Page through detailed manpage-like help and exit.
