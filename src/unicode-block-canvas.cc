@@ -419,13 +419,14 @@ char *UnicodeBlockCanvas::RequestBuffers(int width, int height) {
                                + SCREEN_END_OF_LINE_LEN);  // Finishing a line.
 
     // Depending on even/odd situation, we might need one extra row.
-    const size_t new_backing = width * (height + 1) * sizeof(rgba_t);
+    // For quarter, we have one extra possible pixel wider.
+    const size_t new_backing = (width + 1) * (height + 1) * sizeof(rgba_t);
     if (new_backing > backing_buffer_size_) {
         backing_buffer_      = (rgba_t *)realloc(backing_buffer_, new_backing);
         backing_buffer_size_ = new_backing;
     }
 
-    const size_t new_empty = width * sizeof(rgba_t);
+    const size_t new_empty = (width + 1) * sizeof(rgba_t);
     if (new_empty > empty_line_size_) {
         empty_line_      = (rgba_t *)realloc(empty_line_, new_empty);
         empty_line_size_ = new_empty;
