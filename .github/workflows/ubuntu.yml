@@ -173,7 +173,7 @@ jobs:
 
   Release:
     needs: [ AppImageBuild ]
-    if: needs.TagIfNeeded.release_tag != ''
+    if: needs.TagIfNeeded.RELEASE_TAG != ''
     runs-on: ubuntu-latest
     name: Create Release
     steps:
@@ -182,6 +182,6 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: artifact/timg-*.AppImage
-          tag: ${{ needs.TagIfNeeded.release_tag }}
+          tag: ${{ needs.TagIfNeeded.RELEASE_TAG }}
           overwrite: true
           file_glob: true
