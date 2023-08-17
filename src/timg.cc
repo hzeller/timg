@@ -177,7 +177,8 @@ static int usage(const char *progname, ExitCode exit_code, int width,
 #endif
         "\t                 Default: Auto-detect graphics, otherwise "
         "'quarter'.\n"
-        "\t--grid=<cols>[x<rows>] : Arrange images in a grid (\"contact sheet\").\n"
+        "\t--grid=<cols>[x<rows>] : Arrange images in a grid (\"contact "
+        "sheet\").\n"
         "\t-C, --center   : Center image horizontally in available cell.\n"
         "\t--title[=<fmt_str>]: Print title above each image. Accepts the "
         "following\n"
@@ -198,8 +199,10 @@ static int usage(const char *progname, ExitCode exit_code, int width,
         "\t                 to the directory containing the filelist.\n"
         "\t-b<str>        : Background color to use behind alpha channel. "
         "Format\n"
-        "\t                 'yellow', '#rrggbb', 'auto' or 'none' (default "
-        "'auto').\n"
+        "\t                 color name like 'yellow', '#rrggbb', 'auto' or "
+        "'none'.\n"
+        "\t                'auto' is terminal background color. "
+        "(default 'auto').\n"
         "\t-B<str>        : Checkerboard pattern color to use on alpha.\n"
         "\t--pattern-size=<n> : Integer factor scale of the checkerboard "
         "pattern.\n"
@@ -269,10 +272,9 @@ static int usage(const char *progname, ExitCode exit_code, int width,
         "\t--frame-offset=<num>: Start animation/video at this frame\n"
         "\t-t<seconds>   : Stop after this time, independent of --loops or "
         "--frames\n",
-        default_title ? "='" : "",
-        default_title ? default_title : "", default_title ? "'" : "",
-         width, height,
-        kDefaultThreadCount, TIMG_VERSION);
+        default_title ? "='" : "", default_title ? default_title : "",
+        default_title ? "'" : "", width, height, kDefaultThreadCount,
+        TIMG_VERSION);
     return (int)exit_code;
 }
 

@@ -41,8 +41,7 @@ namespace {
 class SingleColumnRenderer final : public Renderer {
 public:
     SingleColumnRenderer(timg::TerminalCanvas *canvas,
-                         const DisplayOptions &display_opts,
-                         Duration wait_time)
+                         const DisplayOptions &display_opts, Duration wait_time)
         : Renderer(canvas, display_opts), wait_time_(wait_time) {}
 
     WriteFramebufferFun render_cb(const std::string &title) final {
@@ -147,7 +146,7 @@ public:
         if (!wait_between_images_.is_zero()) {
             (Time::Now() + wait_between_images_).WaitUntil();
         }
-        if (current_column_ == columns_-1 && !wait_between_rows_.is_zero()) {
+        if (current_column_ == columns_ - 1 && !wait_between_rows_.is_zero()) {
             (Time::Now() + wait_between_rows_).WaitUntil();
         }
     }
