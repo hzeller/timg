@@ -54,8 +54,9 @@ void ITerm2GraphicsCanvas::Send(int x, int dy, const Framebuffer &fb_orig,
                                          png_buf.get(), png_buf_size);
 
         char *pos = offset;
-        pos += sprintf(pos, "\e]1337;File=width=%dpx;height=%dpx;inline=1:",
-                       fb->width(), fb->height());
+        pos += sprintf(pos,
+                       "\e]1337;File=size=%d;width=%dpx;height=%dpx;inline=1:",
+                       png_size, fb->width(), fb->height());
         pos = timg::EncodeBase64(png_buf.get(), png_size, pos);
 
         *pos++ = '\007';
