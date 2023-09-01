@@ -601,7 +601,13 @@ int main(int argc, char *argv[]) {
         case 'C': display_opts.center_horizontally = true; break;
         case 'U':
             display_opts.upscale         = !display_opts.upscale;
-            display_opts.upscale_integer = (optarg && optarg[0] == 'i');
+            if (optarg) {
+                if (optarg[0] == 'i' || optarg[0] == 'I') {
+                    display_opts.upscale_integer = true;
+                } else {
+                    fprintf(stderr, "Invalid parameter to --upscale\n");
+                }
+            }
             break;
         case OPT_AUTO_CROP:
             display_opts.auto_crop = true;
