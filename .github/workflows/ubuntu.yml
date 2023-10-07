@@ -56,6 +56,9 @@ jobs:
           cmake .. -DWITH_VIDEO_DECODING=On -DWITH_VIDEO_DEVICE=On -DWITH_OPENSLIDE_SUPPORT=On -DWITH_STB_IMAGE=On -DWITH_LIBSIXEL=On
           make -k
 
+      - name: Simple test
+        run: build/src/timg -g80x25 -ph img/logo.svg
+
   CodeFormatting:
     if: false   # currently, there is no clang-format-13 in ubuntu latest
     runs-on: ubuntu-latest
