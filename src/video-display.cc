@@ -100,6 +100,7 @@ VideoLoader::~VideoLoader() {
     avcodec_close(codec_context_);
     sws_freeContext(sws_context_);
     avformat_close_input(&format_context_);
+    avcodec_free_context(&codec_context_);
     delete terminal_fb_;
 }
 
