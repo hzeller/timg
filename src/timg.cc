@@ -402,7 +402,7 @@ int main(int argc, char *argv[]) {
     present.terminal_use_upper_block =
         timg::GetBoolenEnv("TIMG_USE_UPPER_BLOCK");
 
-    const char *bg_color         = "auto";
+    std::string bg_color         = "auto";
     const char *bg_pattern_color = nullptr;
     display_opts.allow_frame_skipping =
         timg::GetBoolenEnv("TIMG_ALLOW_FRAME_SKIP");
@@ -538,7 +538,7 @@ int main(int argc, char *argv[]) {
         case OPT_FRAME_OFFSET: frame_offset = atoi(optarg); break;
         case OPT_FRAME_COUNT: max_frames = atoi(optarg); break;
         case 'a': display_opts.antialias = false; break;
-        case 'b': bg_color = strdup(optarg); break;
+        case 'b': bg_color = std::string(optarg); break;
         case 'B': bg_pattern_color = strdup(optarg); break;
         case OPT_PATTERN_SIZE: display_opts.pattern_size = atoi(optarg); break;
         case OPT_SCROLL:
@@ -600,11 +600,12 @@ int main(int argc, char *argv[]) {
             break;
         case 'C': display_opts.center_horizontally = true; break;
         case 'U':
-            display_opts.upscale         = !display_opts.upscale;
+            display_opts.upscale = !display_opts.upscale;
             if (optarg) {
                 if (optarg[0] == 'i' || optarg[0] == 'I') {
                     display_opts.upscale_integer = true;
-                } else {
+                }
+                else {
                     fprintf(stderr, "Invalid parameter to --upscale\n");
                 }
             }
@@ -812,14 +813,14 @@ int main(int argc, char *argv[]) {
     // The high-res image terminals provide alpha-blending, no need to
     // query the terminal color for 'auto'
     if (is_pixel_direct_with_alpha(present.pixelation) &&
-        (strcasecmp(bg_color, "auto") == 0)) {
+        (strcasecmp(bg_color.c_str(), "auto") == 0)) {
         bg_color = "none";
     }
 
     // If 'none' is chosen for background color, then emitting the
     // PNG with alpha channels gives us compositing on client side.
     if (is_pixel_direct_p(present.pixelation) &&
-        (strcasecmp(bg_color, "none") == 0)) {
+        (strcasecmp(bg_color.c_str(), "none") == 0)) {
         display_opts.local_alpha_handling = false;
     }
 
@@ -914,26 +915,24 @@ int main(int argc, char *argv[]) {
         new timg::ThreadPool(std::min(thread_count, (int)filelist.size() + 1));
 
     std::future<rgba_t> background_color_future;
-    if (bg_color) {
-        if (strcasecmp(bg_color, "auto") == 0) {
+    if (strcasecmp(bg_color.c_str(), "auto") == 0) {
 #ifdef WITH_TIMG_TERMINAL_QUERY
-            std::function<rgba_t()> query_terminal = []() {
-                return rgba_t::ParseColor(timg::QueryBackgroundColor());
-            };
-            background_color_future     = pool->ExecAsync(query_terminal);
-            display_opts.bgcolor_getter = [&background_color_future]() {
-                static rgba_t value = background_color_future.get();  // once
-                return value;
-            };
+        std::function<rgba_t()> query_terminal = []() {
+            return rgba_t::ParseColor(timg::QueryBackgroundColor());
+        };
+        background_color_future     = pool->ExecAsync(query_terminal);
+        display_opts.bgcolor_getter = [&background_color_future]() {
+            static rgba_t value = background_color_future.get();  // once
+            return value;
+        };
 #else
-            const rgba_t bg             = rgba_t::ParseColor("#000000");
-            display_opts.bgcolor_getter = [bg]() { return bg; };
+        const rgba_t bg             = rgba_t::ParseColor("#000000");
+        display_opts.bgcolor_getter = [bg]() { return bg; };
 #endif
-        }
-        else {
-            const rgba_t bg             = rgba_t::ParseColor(bg_color);
-            display_opts.bgcolor_getter = [bg]() { return bg; };
-        }
+    }
+    else {
+        const rgba_t bg             = rgba_t::ParseColor(bg_color.c_str());
+        display_opts.bgcolor_getter = [bg]() { return bg; };
     }
 
     display_opts.bg_pattern_color = rgba_t::ParseColor(bg_pattern_color);
@@ -1052,8 +1051,9 @@ int main(int argc, char *argv[]) {
 #endif
         fprintf(stderr, ".\n");
         const rgba_t bg = display_opts.bgcolor_getter();
-        fprintf(stderr, "Background color for transparency '%s'", bg_color);
-        if (strcasecmp(bg_color, "none") != 0) {
+        fprintf(stderr, "Background color for transparency '%s'",
+                bg_color.c_str());
+        if (strcasecmp(bg_color.c_str(), "none") != 0) {
             fprintf(stderr, "; effective RGB #%02x%02x%02x", bg.r, bg.g, bg.b);
         }
         fprintf(stderr, "\n");
@@ -1102,6 +1102,8 @@ int main(int argc, char *argv[]) {
     // returned. If the result is already there, this will return immediately
     if (background_color_future.valid())
         background_color_future.wait_for(std::chrono::milliseconds(200));
+
+    free((void *)bg_pattern_color);
 
     // Deliberately leaking thread pool as we don't bother waiting for
     // lingering threads
