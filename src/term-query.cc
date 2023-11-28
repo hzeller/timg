@@ -87,11 +87,12 @@ static const char *QueryTerminal(const char *query, char *const buffer,
     atexit(clean_up_terminal);
 
     const int query_len = strlen(query);
-    if (write(s_tty_fd, query, query_len) != query_len)
+    if (write(s_tty_fd, query, query_len) != query_len) {
         return nullptr;  // Don't bother. We're best effort here.
+    }
 
     const char *found_pos     = nullptr;
-    size_t available          = buflen;
+    size_t available          = buflen - 1;  // Allow for nul termination.
     char *pos                 = buffer;
     timg::Time now            = Time::Now();
     const timg::Time deadline = now + time_budget;
@@ -107,6 +108,7 @@ static const char *QueryTerminal(const char *query, char *const buffer,
         pos += r;
         available -= r;
         const size_t total_read = pos - buffer;
+        *pos                    = '\0';  // nul-terminate for c-functions.
         found_pos               = response_found_p(buffer, total_read);
         if (found_pos) break;
         now = Time::Now();
@@ -240,6 +242,27 @@ TermGraphicsInfo QuerySupportedGraphicsProtocol() {
     return result;
 }
 
+static bool QueryCellWidthHeight(int *width, int *height) {
+    const Duration kTimeBudget      = Duration::Millis(50);
+    constexpr char query[]          = "\033[16t";
+    constexpr char response_start[] = "\e[6;";
+    char buffer[512];
+    const char *const result = QueryTerminal(
+        query, buffer, sizeof(buffer), kTimeBudget,
+        [response_start](const char *data, size_t len) -> const char * {
+            return (const char *)memmem(data, len, response_start,
+                                        strlen(response_start));
+        });
+    int w, h;
+    if (!result ||
+        sscanf(result + strlen(response_start), "%d;%dt", &h, &w) != 2) {
+        return false;
+    }
+    *width  = w;
+    *height = h;
+    return true;
+}
+
 // Probe all file descriptors that might be connect to tty for term size.
 TermSizeResult DetermineTermSize() {
     TermSizeResult result;
@@ -251,15 +274,19 @@ TermSizeResult DetermineTermSize() {
         // jump up the exact number of character cells needed for animations
         // and grid display.
         //
-        // TODO: if TIOCGWINSZ does not return ws_xpixel/ws_ypixel, attempt
-        // \033[14t call ?
-        //
-        // Infer the font size if we have window pixel size available.
-        // Do some basic plausibility check here.
+        // If TIOCGWINSZ does not return ws_xpixel/ws_ypixel, we attempt to
+        // query the terminal.
         if (w.ws_xpixel >= 2 * w.ws_col && w.ws_ypixel >= 4 * w.ws_row &&
             w.ws_col > 0 && w.ws_row > 0) {
+            // Infer the font size if we have window pixel size available
+            // after a plausibility check indicates that values look good.
             result.font_width_px  = w.ws_xpixel / w.ws_col;
             result.font_height_px = w.ws_ypixel / w.ws_row;
+        }
+        else {
+            // Alright, TIOCGWINSZ did not return the terminal size, let's
+            // see if it reports character cell size otherwise
+            QueryCellWidthHeight(&result.font_width_px, &result.font_height_px);
         }
         result.cols = w.ws_col;
         result.rows = w.ws_row;
