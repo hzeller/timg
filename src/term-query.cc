@@ -197,6 +197,15 @@ TermGraphicsInfo QuerySupportedGraphicsProtocol() {
         // Fall through, as we still have to determine if we're in tmux
     }
 
+    // vscode doesn't provide a way to query the terminal, but can do
+    // iterm graphics.
+    const char *const term_program = getenv("TERM_PROGRAM");
+    if (term_program && strcmp(term_program, "vscode") == 0) {
+        result.preferred_graphics = GraphicsProtocol::kIterm2;
+        // In case the user chooses sixel.
+        result.known_broken_sixel_cursor_placement = true;
+    }
+
     const Duration kTimeBudget = Duration::Millis(250);
 
     // We send out two queries: one CSI for terminal version detection that
