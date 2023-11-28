@@ -404,6 +404,20 @@ static std::optional<Pixelation> ParsePixelation(const char *as_text) {
     }
 }
 
+static const char *PixelationToString(Pixelation p) {
+    switch (p) {
+    case Pixelation::kHalfBlock: return "half block"; break;
+    case Pixelation::kQuarterBlock: return "quarter block"; break;
+    case Pixelation::kKittyGraphics: return "kitty graphics"; break;
+    case Pixelation::kiTerm2Graphics: return "iterm2 graphics"; break;
+#ifdef WITH_TIMG_SIXEL
+    case Pixelation::kSixelGraphics: return "sixel graphics"; break;
+#endif
+    case Pixelation::kNotChosen: return "(none)"; break;
+    }
+    return "";  // Make compiler happy.
+}
+
 int main(int argc, char *argv[]) {
 #ifdef WITH_TIMG_GRPAPHICSMAGICK
     Magick::InitializeMagick(*argv);
@@ -1042,18 +1056,8 @@ int main(int argc, char *argv[]) {
         }
         fprintf(stderr, "\n");
 
-        const char *pixelation = "";
-        switch (present.pixelation) {
-        case Pixelation::kHalfBlock: pixelation = "half block"; break;
-        case Pixelation::kQuarterBlock: pixelation = "quarter block"; break;
-        case Pixelation::kKittyGraphics: pixelation = "kitty graphics"; break;
-        case Pixelation::kiTerm2Graphics: pixelation = "iterm2 graphics"; break;
-#ifdef WITH_TIMG_SIXEL
-        case Pixelation::kSixelGraphics: pixelation = "sixel graphics"; break;
-#endif
-        case Pixelation::kNotChosen: pixelation = "(none)"; break;
-        }
-        fprintf(stderr, "Using %s pixels", pixelation);
+        fprintf(stderr, "Effective pixelation: Using %s",
+                PixelationToString(present.pixelation));
 #ifdef WITH_TIMG_SIXEL
         if (present.pixelation == Pixelation::kSixelGraphics) {
             if (present.sixel_cursor_workaround) {
@@ -1117,10 +1121,12 @@ int main(int argc, char *argv[]) {
     if (cell_size_unknown_in_pixel_mode && cell_size_warning_needed) {
         fprintf(stderr,
                 "Terminal does not support pixel size query, "
-                "but graphics protocol requested that needs that info.\n"
+                "but with %s this is needed to show animations or columns.\n"
                 "File an issue with your terminal implementation to implement "
                 "ws_xpixel, ws_ypixel on TIOCGWINSZ\n"
-                "Can't show animations or have columns in grid.\n");
+                "Can't show animations or have columns in grid.\n(Suggestion: "
+                "switch back to --pixelation=quarter for now)\n",
+                PixelationToString(present.pixelation));
     }
 
     // If we were super-fast decoding and showing images that didn't need
