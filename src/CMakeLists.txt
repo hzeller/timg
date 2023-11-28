@@ -10,7 +10,7 @@ target_sources(timg PRIVATE
   kitty-canvas.h    kitty-canvas.cc
   renderer.h        renderer.cc
   terminal-canvas.h terminal-canvas.cc
-  termutils.h       termutils.cc
+  utils.h           utils.cc
   thread-pool.h
   timg-base64.h
   timg-png.h        timg-png.cc

@@ -25,12 +25,12 @@
 #include "kitty-canvas.h"
 #include "renderer.h"
 #include "terminal-canvas.h"
-#include "termutils.h"
 #include "thread-pool.h"
 #include "timg-help.h"
 #include "timg-time.h"
 #include "timg-version.h"
 #include "unicode-block-canvas.h"
+#include "utils.h"
 #ifdef WITH_TIMG_SIXEL
 #    include "sixel-canvas.h"
 #endif

@@ -13,41 +13,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://gnu.org/licenses/gpl-2.0.txt>
 
-#include "termutils.h"
+#include "utils.h"
 
 #include <strings.h>
-#include <sys/ioctl.h>
-#include <termios.h>
 #include <unistd.h>
 
 namespace timg {
-// Probe all file descriptors that might be connect to tty for term size.
-TermSizeResult DetermineTermSize() {
-    TermSizeResult result;
-    for (int fd : {STDOUT_FILENO, STDERR_FILENO, STDIN_FILENO}) {
-        struct winsize w = {};
-        if (ioctl(fd, TIOCGWINSZ, &w) != 0) continue;
-        // If we get the size of the terminals in pixels, we can determine
-        // what aspect ratio the pixels. This is also needed to
-        // jump up the exact number of character cells needed for animations
-        // and grid display.
-        //
-        // TODO: if TIOCGWINSZ does not return ws_xpixel/ws_ypixel, attempt
-        // \033[14t call ?
-        //
-        // Infer the font size if we have window pixel size available.
-        // Do some basic plausibility check here.
-        if (w.ws_xpixel >= 2 * w.ws_col && w.ws_ypixel >= 4 * w.ws_row &&
-            w.ws_col > 0 && w.ws_row > 0) {
-            result.font_width_px  = w.ws_xpixel / w.ws_col;
-            result.font_height_px = w.ws_ypixel / w.ws_row;
-        }
-        result.cols = w.ws_col;
-        result.rows = w.ws_row;
-        break;
-    }
-    return result;
-}
 
 bool GetBoolenEnv(const char *env_name, bool default_value) {
     const char *const value = getenv(env_name);

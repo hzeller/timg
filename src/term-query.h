@@ -17,6 +17,17 @@
 #define TIMG_TERM_QUERY_H
 
 namespace timg {
+
+// Determine size of terminal in pixels we can display.
+struct TermSizeResult {
+    // Not available values will be negative.
+    int cols           = -1;  // cell rows and columns
+    int rows           = -1;
+    int font_width_px  = -1;  // cell width and height in screen pixels.
+    int font_height_px = -2;  // Negative, but right ratio if not available.
+};
+TermSizeResult DetermineTermSize();
+
 // Attempt to determine the background color of current termninal.
 // Returns static string if successful or nullptr if not.
 const char* QueryBackgroundColor();
