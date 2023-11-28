@@ -1041,7 +1041,7 @@ int main(int argc, char *argv[]) {
         if (term.font_width_px < 0 || term.font_height_px < 0) {
             fprintf(stderr,
                     "Note: Terminal does not return ws_xpixel and ws_ypixel "
-                    "in TIOCGWINSZ ioctl.\n"
+                    "in TIOCGWINSZ ioctl or \"\\033[16t\" query.\n"
                     "\t->Aspect ratio might be off.\n"
                     "\t->File a feature request with the terminal "
                     "emulator program you use\n");
@@ -1123,7 +1123,7 @@ int main(int argc, char *argv[]) {
                 "Terminal does not support pixel size query, "
                 "but with %s this is needed to show animations or columns.\n"
                 "File an issue with your terminal implementation to implement "
-                "ws_xpixel, ws_ypixel on TIOCGWINSZ\n"
+                "ws_xpixel, ws_ypixel on TIOCGWINSZ or \"\\033[16t\" query.\n"
                 "Can't show animations or have columns in grid.\n(Suggestion: "
                 "switch back to --pixelation=quarter for now)\n",
                 PixelationToString(present.pixelation));
