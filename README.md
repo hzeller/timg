@@ -314,7 +314,36 @@ while : ; do xzcat... ; done
 This section contains some details that you only might need to ever look at if
 the output is not as expected.
 
+#### Many terminals support direct image output
+
+The [Kitty], [iTerm2], and [wezterm] terminals as well as other
+modern terminals such as [Konsole] or the terminal in [vscode] allow to
+directly display high-resolution pictures.
+
+If `timg` is running in such a terminal, it will attempt to auto-detect that
+feature and use that mode. If your terminal does support the feature but
+can't be auto-detected, you can explicitly choose the pixelation option
+in question with command line flag or environment variable (see `timg --help`).
+(Please file an issue with `timg` if auto-detect does not work).
+
+Note, for the terminal in [vscode] to display images in high-resolution, you
+need to enable the _Terminal > Integrated: Enable Images_ setting in vscode.
+Otherwise you have to explicitly choose `-pq` to show the 'block' images.
+
+Other terminals support an older high-resolution [sixel]-protocol, which you
+can choose with `-ps`. Note, for this to work in xterm, you need to invoke it
+with `xterm -ti vt340`.
+
+Note, if watching videos remotely with this is too slow (due to high bandwidth
+requirements or simply because your terminal has to do more work), try
+setting the environment variable `TIMG_ALLOW_FRAME_SKIP=1` to allow timg
+leaving out frames to stay on track (see `timg --help`, environment variable
+section).
+
 #### Half block and quarter block rendering
+
+Terminals that do not support high-resolution image output can still show
+images by virtue of showing colored blocks.
 
 The half block pixelation (`-p half`) uses the the unicode
 character [▄](U+2584 - 'Lower Half Block')
@@ -340,22 +369,6 @@ Terminals that don't support Unicode or 24 bit color will probably not show
 a very pleasent output. For terminals that only do 8 bit color, use the
 `--color8` command line option.
 
-#### Some terminals support direct image output
-
-The [Kitty], [iTerm2], and [wezterm] terminals have a special feature that
-allows for directly displaying high-resolution pictures.
-If `timg` is running in such a terminal, it will automatically use that mode.
-(You can choose Kitty mode explicitly with `-pk`, iTerm and wezterm mode
-with `-pi`).
-
-All the features with arranging images (center, grid, adding titles) or
-transparency settings behave exactly the same.
-
-Note, if watching videos remotely with this is too slow (due to high bandwidth
-requirements or simply because your terminal has to do more work), try
-setting the environment variable `TIMG_ALLOW_FRAME_SKIP=1` to allow timg
-leaving out frames to stay on track (see `man timg`, environment variable
-section).
 
 #### Half block: Choice of rendering block
 
@@ -425,23 +438,6 @@ Terminal font too narrow   | Correct. Here with `TIMG_FONT_WIDTH_CORRECT=1.375`
 ---------------------------|-------------------------------|
 ![](img/aspect-wrong.png)  | ![](img/aspect-right.png)|
 
-
-#### Tested terminal emulators
-
-(Needs update; these comparisons are from 2016 when I tested this last with
-timg, so newer terminals are probably even better).
-
-Tested terminals: `konsole` >= 2.14.1, `gnome-terminal` > 3.6.2 look good,
-recent xterms also seem to work (albeit with less color richness).
-Like gnome-terminal, libvte based terminals in general should work, such as
-Xfte or termite.
-Also QTerminal is confirmed working.
-
-Linux console seems to be limited in colors and does not show the block
-character - if you know how to enable the unicode character or full color
-there, please let me know.
-
-For Mac users, at least the combination of macOS 11.2 and iTerm2 3.4.3 works.
 
 ### Install pre-built package
 
@@ -584,3 +580,4 @@ sudo make install
 [wezterm]: https://wezfurlong.org/wezterm/
 [sixel]: https://en.wikipedia.org/wiki/Sixel
 [QOI]: https://qoiformat.org/
+[vscode]: https://code.visualstudio.com/

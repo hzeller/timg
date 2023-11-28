@@ -92,7 +92,8 @@ Most likely commonly needed options first.
      : The iterm2 graphics is another image protocol that allows for full
      : 24 Bit RGB/32 Bit RGBA images. It originated on the popular macOS
      : OpenSource iTerm2 terminal but is now also implemented by `wezterm` and
-     : `konsole`.
+     : `konsole` as well as in the `VSCode`-terminal (enable in vscode settings
+     : at checkbox 'Terminal > Integrated: Enable images').
 
     If no option is given, default is taken from environment variable
     **TIMG_PIXELATION**. If that is not set, `timg` attempts to
