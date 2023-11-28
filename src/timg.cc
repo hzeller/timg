@@ -75,6 +75,7 @@
 #include <iostream>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <thread>
 #include <vector>
@@ -389,6 +390,20 @@ static void PresentImages(LoadedImageSources *loaded_sources,
     sequencer->Flush();
 }
 
+static std::optional<Pixelation> ParsePixelation(const char *as_text) {
+    if (!as_text) return std::nullopt;
+    switch (tolower(as_text[0])) {
+    case 'h': return Pixelation::kHalfBlock; break;
+    case 'q': return Pixelation::kQuarterBlock; break;
+    case 'k': return Pixelation::kKittyGraphics; break;
+    case 'i': return Pixelation::kiTerm2Graphics; break;
+#ifdef WITH_TIMG_SIXEL
+    case 's': return Pixelation::kSixelGraphics; break;
+#endif
+    default: return std::nullopt;
+    }
+}
+
 int main(int argc, char *argv[]) {
 #ifdef WITH_TIMG_GRPAPHICSMAGICK
     Magick::InitializeMagick(*argv);
@@ -417,6 +432,11 @@ int main(int argc, char *argv[]) {
     int geometry_width        = (term.cols - 2);
     int geometry_height       = (term.rows - 2);
     bool debug_no_frame_delay = false;
+
+    if (auto pixelation_from_env = ParsePixelation(getenv("TIMG_PIXELATION"));
+        pixelation_from_env.has_value()) {
+        present.pixelation = *pixelation_from_env;
+    }
 
     // Convenience predicates: pixelation sending high-res images, no blocks.
     const auto is_pixel_direct_with_alpha = [](Pixelation p) {
@@ -685,15 +705,10 @@ int main(int argc, char *argv[]) {
             }
             break;
         case 'p':
-            switch (tolower(optarg[0])) {  // NOLINT
-            case 'h': present.pixelation = Pixelation::kHalfBlock; break;
-            case 'q': present.pixelation = Pixelation::kQuarterBlock; break;
-            case 'k': present.pixelation = Pixelation::kKittyGraphics; break;
-            case 'i': present.pixelation = Pixelation::kiTerm2Graphics; break;
-#ifdef WITH_TIMG_SIXEL
-            case 's': present.pixelation = Pixelation::kSixelGraphics; break;
-#endif
-            default:
+            if (const auto p = ParsePixelation(optarg); p.has_value()) {
+                present.pixelation = *p;
+            }
+            else {
                 fprintf(stderr, "Unknown --pixelation/-p parameter '%s'\n",
                         optarg);
             }
@@ -1085,6 +1100,18 @@ int main(int argc, char *argv[]) {
                 100.0 * sequencer.frames_skipped() / sequencer.frames_total());
         }
         fprintf(stderr, "\n");
+
+        auto print_env = [](const char *env) {
+            const char *value = getenv(env);
+            fprintf(stderr, " %-23s%s", env, value ? " = " : "   (not set)\n");
+            if (value) fprintf(stderr, "\"%s\"\n", value);
+        };
+        fprintf(stderr, "Environment variables\n");
+        print_env("TIMG_PIXELATION");
+        print_env("TIMG_DEFAULT_TITLE");
+        print_env("TIMG_ALLOW_FRAME_SKIP");
+        print_env("TIMG_USE_UPPER_BLOCK");
+        print_env("TIMG_FONT_WIDTH_CORRECT");
     }
 
     if (cell_size_unknown_in_pixel_mode && cell_size_warning_needed) {

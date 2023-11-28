@@ -94,11 +94,12 @@ Most likely commonly needed options first.
      : OpenSource iTerm2 terminal but is now also implemented by `wezterm` and
      : `konsole`.
 
-     `timg` attempts to recognize the available terminal feature, but it might
-     not be able to auto-detect all full-resolution compatible terminals and
-     fall back to **quarter** in that case. In that case you'd pass the `-p`
-     option to choose the best pixelation. If you're always working in the
-     same terminal, maybe create an alias, e.g. `alias timg='timg -ps'`.
+    If no option is given, default is taken from environment variable
+    **TIMG_PIXELATION**. If that is not set, `timg` attempts to
+    auto-detect the available terminal feature. Not all full-resolution
+    compatible terminals can be auto-detected so it will fall back
+    to **quarter** in that case. Consider passing the `-p`
+    option or set the `TIMG_PIXELATION` environment variable in that case.
 
 **-\-grid**=&lt;*cols*&gt;[x&lt;*rows*&gt;]
 :    Arrange images in a grid. If only one parameter is given, arranges in a
@@ -381,6 +382,12 @@ Exit code is
 **TIMG_DEFAULT_TITLE**
 :   The default format string used for `--title`. If not given, the default
     title format string is \"`%f`\".
+
+**TIMG_PIXELATION**
+:   The default pixelation if not provided by the `-p` or `--pixelation`
+    option (see choice of values there). If neither the environment variable
+    nor the option is given, timg attempts to auto-detect the best pixelation
+    for the terminal.
 
 **TIMG_USE_UPPER_BLOCK**
 :    If this environment variable is set to the value **1**, `timg` will use the

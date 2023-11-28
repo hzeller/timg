@@ -30,7 +30,7 @@ endif()
 
 target_include_directories(timg PRIVATE ${CMAKE_BINARY_DIR}/src)
 
-target_compile_features(timg PRIVATE cxx_std_14)
+target_compile_features(timg PRIVATE cxx_std_17)
 
 if(TIMG_VERSION_FROM_GIT)
   git_describe(GIT_DESCRIBE_VERSION)

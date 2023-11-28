@@ -2,13 +2,8 @@
 
 set -e
 
-if [ $# -ne 2 ]; then
-    echo "Usage: $0 <man-in> <inc-out>"
-    exit 1
-fi
-
-INPUT=$1
-OUTPUT=$2
+INPUT=$(dirname $0)/../man/timg.1
+OUTPUT=$(dirname $0)/timg-manpage.inc
 
 cat > "$OUTPUT" <<EOF
 /* created with create-manpage-inc.sh from $INPUT */
