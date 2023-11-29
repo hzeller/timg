@@ -11,6 +11,7 @@ target_sources(timg PRIVATE
   renderer.h        renderer.cc
   terminal-canvas.h terminal-canvas.cc
   utils.h           utils.cc
+  term-query.h      term-query.cc
   thread-pool.h
   timg-base64.h
   timg-png.h        timg-png.cc
@@ -43,10 +44,6 @@ endif()
 
 configure_file(timg-version.h.in timg-version.h)
 
-if(WITH_TERMINAL_QUERY)
-  target_sources(timg PUBLIC term-query.h term-query.cc)
-  target_compile_definitions(timg PUBLIC WITH_TIMG_TERMINAL_QUERY)
-endif()
 
 if(WITH_LIBSIXEL)
   target_sources(timg PUBLIC sixel-canvas.h sixel-canvas.cc)

@@ -24,6 +24,7 @@
 #include "iterm2-canvas.h"
 #include "kitty-canvas.h"
 #include "renderer.h"
+#include "term-query.h"
 #include "terminal-canvas.h"
 #include "thread-pool.h"
 #include "timg-help.h"
@@ -31,12 +32,9 @@
 #include "timg-version.h"
 #include "unicode-block-canvas.h"
 #include "utils.h"
+
 #ifdef WITH_TIMG_SIXEL
 #    include "sixel-canvas.h"
-#endif
-
-#ifdef WITH_TIMG_TERMINAL_QUERY
-#    include "term-query.h"
 #endif
 
 // To display version number
@@ -48,7 +46,6 @@
 #endif
 #ifdef WITH_TIMG_GRPAPHICSMAGICK
 #    include <Magick++.h>
-
 #    include "image-display.h"
 #endif
 #ifdef WITH_TIMG_SIXEL
@@ -799,7 +796,6 @@ int main(int argc, char *argv[]) {
     // Determine best default to pixelate images.
     if (present.pixelation == Pixelation::kNotChosen) {
         present.pixelation = Pixelation::kQuarterBlock;  // Good default.
-#ifdef WITH_TIMG_TERMINAL_QUERY
         if (term.font_width_px > 0 && term.font_height_px > 0) {
             auto graphics_info      = timg::QuerySupportedGraphicsProtocol();
             present.tmux_workaround = graphics_info.in_tmux;
@@ -822,14 +818,13 @@ int main(int argc, char *argv[]) {
             case timg::GraphicsProtocol::kNone: break;
             }
         }
-#endif
     }
     else if (present.pixelation == Pixelation::kKittyGraphics) {
         // If the user manually chooses kitty, we still need to know if in tmux
         auto graphics_info      = timg::QuerySupportedGraphicsProtocol();
         present.tmux_workaround = graphics_info.in_tmux;
     }
-#if defined(WITH_TIMG_SIXEL) && defined(WITH_TIMG_TERMINAL_QUERY)
+#if defined(WITH_TIMG_SIXEL)
     // If the user manually choose sixel, we still can't avoid a terminal
     // query, as we have to figure out if it has a broken cursor implementation.
     else if (present.pixelation == Pixelation::kSixelGraphics) {
@@ -945,19 +940,17 @@ int main(int argc, char *argv[]) {
 
     std::future<rgba_t> background_color_future;
     if (strcasecmp(bg_color.c_str(), "auto") == 0) {
-#ifdef WITH_TIMG_TERMINAL_QUERY
         std::function<rgba_t()> query_terminal = []() {
             return rgba_t::ParseColor(timg::QueryBackgroundColor());
         };
+        // Finding the background color might take a while, so we query
+        // it asynchonously and only force a wait on it once an image display
+        // actually queries it.
         background_color_future     = pool->ExecAsync(query_terminal);
         display_opts.bgcolor_getter = [&background_color_future]() {
             static rgba_t value = background_color_future.get();  // once
             return value;
         };
-#else
-        const rgba_t bg             = rgba_t::ParseColor("#000000");
-        display_opts.bgcolor_getter = [bg]() { return bg; };
-#endif
     }
     else {
         const rgba_t bg             = rgba_t::ParseColor(bg_color.c_str());

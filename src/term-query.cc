@@ -254,7 +254,7 @@ TermGraphicsInfo QuerySupportedGraphicsProtocol() {
 static bool QueryCellWidthHeight(int *width, int *height) {
     const Duration kTimeBudget      = Duration::Millis(50);
     constexpr char query[]          = "\033[16t";
-    constexpr char response_start[] = "\e[6;";
+    constexpr char response_start[] = "\033[6;";
     char buffer[512];
     const char *const result = QueryTerminal(
         query, buffer, sizeof(buffer), kTimeBudget,
