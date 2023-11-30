@@ -309,12 +309,12 @@ while : ; do xzcat... ; done
 # (If you Ctrl-C that loop, you might need to use 'reset' for terminal sanity)
 ```
 
-### Terminal considerations
+## Terminal considerations
 
 This section contains some details that you only might need to ever look at if
 the output is not as expected.
 
-#### Many terminals support direct image output
+### Many terminals support direct hi-res image output
 
 The [Kitty], [iTerm2], and [wezterm] terminals as well as other
 modern terminals such as [Konsole] or the terminal in [vscode] allow to
@@ -326,21 +326,34 @@ can't be auto-detected, you can explicitly choose the pixelation option
 in question with command line flag or environment variable (see `timg --help`).
 (Please file an issue with `timg` if auto-detect does not work).
 
-Note, for the terminal in [vscode] to display images in high-resolution, you
+#### VSCode Terminal
+The terminal in [vscode] to display images in high-resolution, you
 need to enable the _Terminal > Integrated: Enable Images_ setting in vscode.
 Otherwise you have to explicitly choose `-pq` to show the 'block' images.
 
+#### In tmux
+The terminal multiplexer `tmux` prevents high-resolution images as it filters
+out the escape codes.
+However, with some ... workarounds, `timg` can show such pictures
+in `tmux` >= version 3.3 iff in a [kitty]-terminal.
+
+So if you need hi-res pictures in tmux, use a kitty terminal; you
+also have to explicitly set the pixelation to `-pk` (see `timg --help` for
+details).
+
+#### Sixel
 Other terminals support an older high-resolution [sixel]-protocol, which you
 can choose with `-ps`. Note, for this to work in xterm, you need to invoke it
 with `xterm -ti vt340`.
 
-Note, if watching videos remotely with this is too slow (due to high bandwidth
+#### High resolution and low bandwidth
+If watching hi-res videos remotely is too slow (due to high bandwidth
 requirements or simply because your terminal has to do more work), try
 setting the environment variable `TIMG_ALLOW_FRAME_SKIP=1` to allow timg
 leaving out frames to stay on track (see `timg --help`, environment variable
-section).
+section). You can also attempt to set the `--compress` level higher.
 
-#### Half block and quarter block rendering
+### Half block and quarter block rendering
 
 Terminals that do not support high-resolution image output can still show
 images by virtue of showing colored blocks.
@@ -439,6 +452,7 @@ Terminal font too narrow   | Correct. Here with `TIMG_FONT_WIDTH_CORRECT=1.375`
 ![](img/aspect-wrong.png)  | ![](img/aspect-right.png)|
 
 
+## Installation
 ### Install pre-built package
 
 <a href="https://repology.org/project/timg/versions">
@@ -470,18 +484,15 @@ If you have enabled support for snap packages in your Linux distribution, you ca
 sudo snap install timg
 ```
 
+#### Use AppImage
+
+The [timg release page](https://github.com/hzeller/timg/releases/latest) also
+has a minimal binary in the [AppImage package format][AppImage].
+To keep the size small, it does not include video decoding or some more
+fancy image formats. It is good for many contexts, but for a full-featured
+binary, use one from your distribution or build from source.
+
 ### Build and Install from source
-
-#### Get dependencies on fedora
-
-```bash
-sudo dnf install cmake git g++ pkg-config
-sudo dnf install GraphicsMagick-c++-devel turbojpeg-devel libexif-devel libswscale-free-devel
-
-# If you want to include video decoding, also install these additional libraries
-sudo dnf install libavcodec-free-devel libavformat-free-devel libavdevice-free-devel openslide-devel
-sudo dnf install pandoc  # If you want to recreate the man page
-```
 
 #### Get dependencies on Debian/Ubuntu
 
@@ -509,6 +520,17 @@ a nix shell
 
 ```bash
 nix-shell
+```
+
+#### Get dependencies on fedora
+
+```bash
+sudo dnf install cmake git g++ pkg-config
+sudo dnf install GraphicsMagick-c++-devel turbojpeg-devel libexif-devel libswscale-free-devel
+
+# If you want to include video decoding, also install these additional libraries
+sudo dnf install libavcodec-free-devel libavformat-free-devel libavdevice-free-devel openslide-devel
+sudo dnf install pandoc  # If you want to recreate the man page
 ```
 
 #### Get dependencies on macOS
@@ -581,3 +603,4 @@ sudo make install
 [sixel]: https://en.wikipedia.org/wiki/Sixel
 [QOI]: https://qoiformat.org/
 [vscode]: https://code.visualstudio.com/
+[AppImage]: https://appimage.org/

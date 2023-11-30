@@ -8,6 +8,7 @@ pkgs.mkShell {
     [
        stdenv
        cmake
+       git   # for TIMG_VERSION_FROM_GIT
        pkg-config
        graphicsmagick
        libjpeg

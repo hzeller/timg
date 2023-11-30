@@ -1061,6 +1061,11 @@ int main(int argc, char *argv[]) {
             }
         }
 #endif
+        if (present.pixelation == Pixelation::kKittyGraphics) {
+            if (present.tmux_workaround) {
+                fprintf(stderr, " (with tmux workaround)");
+            }
+        }
         fprintf(stderr, ".\n");
         const rgba_t bg = display_opts.bgcolor_getter();
         fprintf(stderr, "Background color for transparency '%s'",

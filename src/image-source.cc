@@ -226,7 +226,8 @@ ImageSource *ImageSource::Create(const std::string &filename,
 #ifndef WITH_TIMG_VIDEO
     if (error->empty()) {
         const char *const end_filename = filename.data() + filename.length();
-        for (const char *suffix : {".mov", ".mp4", ".mkv", ".avi", ".wmv"}) {
+        for (const char *suffix :
+             {".mov", ".mp4", ".mkv", ".avi", ".wmv", ".webm"}) {
             const size_t suffix_len = strlen(suffix);
             if (filename.length() < suffix_len) continue;
             if (strcasecmp(end_filename - suffix_len, suffix) == 0) {
