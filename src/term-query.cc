@@ -191,8 +191,14 @@ TermGraphicsInfo QuerySupportedGraphicsProtocol() {
     result.known_broken_sixel_cursor_placement = false;
     result.in_tmux                             = false;
 
+    // Environment variables can be changed, so guesses from environment
+    // variables are just that: guesses.
+    // They will help as a fallback if the [>q query does not work.
+    // Only testing environment variables with very specific content.
+
     const char *const term = getenv("TERM");
-    if (term && strcmp(term, "xterm-kitty") == 0) {
+    if (term && ((strcmp(term, "xterm-kitty") == 0) ||
+                 (strcmp(term, "xterm-ghostty") == 0))) {
         result.preferred_graphics = GraphicsProtocol::kKitty;
         // Fall through, as we still have to determine if we're in tmux
     }
@@ -233,6 +239,9 @@ TermGraphicsInfo QuerySupportedGraphicsProtocol() {
                           result.known_broken_sixel_cursor_placement = true;
                       }
                       if (contains(data, len, "kitty")) {
+                          result.preferred_graphics = GraphicsProtocol::kKitty;
+                      }
+                      if (contains(data, len, "ghostty")) {
                           result.preferred_graphics = GraphicsProtocol::kKitty;
                       }
                       if (contains(data, len, "mlterm")) {
