@@ -480,10 +480,11 @@ brew install timg
 #### Use AppImage
 
 The [timg release page](https://github.com/hzeller/timg/releases/latest) also
-has a minimal binary in the [AppImage package format][AppImage].
-To keep the size small, it does not include video decoding or some more
-fancy image formats. It is good for many contexts, but for a full-featured
-binary, use one from your distribution or build from source.
+has a _minimal_ binary in the [AppImage package format][AppImage].
+To keep the size small, it does _not_ include video decoding or some more
+fancy image formats. It is good for many contexts or if you want to try out
+`timg`, but for a full-featured binary, use one from your distribution or
+build from source.
 
 ### Build and Install from source
 
