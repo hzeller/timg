@@ -307,11 +307,11 @@ bool AppendToFileList(const std::string &filelist_file,
     return true;
 }
 
-static void PresentImages(LoadedImageSources *loaded_sources,
-                          const timg::DisplayOptions &display_opts,
-                          const timg::PresentationOptions &present,
-                          timg::BufferedWriteSequencer *sequencer,
-                          bool *any_animations_seen) {
+static int PresentImages(LoadedImageSources *loaded_sources,
+                         const timg::DisplayOptions &display_opts,
+                         const timg::PresentationOptions &present,
+                         timg::BufferedWriteSequencer *sequencer,
+                         bool *any_animations_seen) {
     using timg::ThreadPool;
     std::unique_ptr<ThreadPool> compression_pool;
     std::unique_ptr<TerminalCanvas> canvas;
@@ -374,10 +374,12 @@ static void PresentImages(LoadedImageSources *loaded_sources,
 
     // Showing them in order of files on the command line.
     bool is_first = true;
+    int valid_images = 0;
     for (auto &source_future : *loaded_sources) {
         if (interrupt_received) break;
         std::unique_ptr<timg::ImageSource> source(source_future.get());
         if (!source) continue;
+        valid_images++;
         *any_animations_seen |= source->IsAnimationBeforeFrameLimit();
         before_image_show(is_first);
         source->SendFrames(present.duration_per_image, present.loops,
@@ -389,6 +391,7 @@ static void PresentImages(LoadedImageSources *loaded_sources,
         is_first = false;
     }
     sequencer->Flush();
+    return valid_images;
 }
 
 static std::optional<Pixelation> ParsePixelation(const char *as_text) {
@@ -943,6 +946,10 @@ int main(int argc, char *argv[]) {
 
     // Asynconrous image loading (filelist.size()) and terminal query (+1)
     thread_count = (thread_count > 0 ? thread_count : kDefaultThreadCount);
+
+    // Note: this thread pool will be leaked explicitly to not unnecessarily
+    // have to wait on potentially blocking cleanup at program exit where it
+    // does not matter.
     timg::ThreadPool *const pool =
         new timg::ThreadPool(std::min(thread_count, (int)filelist.size() + 1));
 
@@ -1012,8 +1019,9 @@ int main(int argc, char *argv[]) {
         output_fd, buffer_allow_skipping, kAsyncWriteQueueSize,
         debug_no_frame_delay, interrupt_received);
     const Time start_show = Time::Now();
-    PresentImages(&loaded_sources, display_opts, present, &sequencer,
-                  &cell_size_warning_needed);
+    const int successful_images =
+        PresentImages(&loaded_sources, display_opts, present, &sequencer,
+                      &cell_size_warning_needed);
     const Time end_show = Time::Now();
 
     // Error messages have been collected to not clutter the image output
@@ -1093,9 +1101,10 @@ int main(int argc, char *argv[]) {
         const uint64_t written_bytes =
             sequencer.bytes_total() - sequencer.bytes_skipped();
         fprintf(stderr,
-                "%d file%s; %s written (%s/s) "
+                "%d file%s (%d successful); %s written (%s/s) "
                 "%" PRId64 " frames",
                 (int)filelist.size(), filelist.size() == 1 ? "" : "s",
+                successful_images,
                 timg::HumanReadableByteValue(written_bytes).c_str(),
                 timg::HumanReadableByteValue(written_bytes / d).c_str(),
                 sequencer.frames_total());

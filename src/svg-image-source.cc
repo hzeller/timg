@@ -50,6 +50,13 @@ bool SVGImageSource::LoadAndScale(const DisplayOptions &opts, int, int) {
         orig_height_ = svg_height.length;
     }
 
+    // Filter out suspicious dimensions
+    if (orig_width_ <= 0 || orig_width_ > 1e6 ||
+        orig_height_ <= 0 || orig_height_ > 1e6) {
+        g_object_unref(svg);
+        return false;
+    }
+
     int target_width;
     int target_height;
     CalcScaleToFitDisplay(orig_width_, orig_height_, opts, false, &target_width,
@@ -72,6 +79,7 @@ bool SVGImageSource::LoadAndScale(const DisplayOptions &opts, int, int) {
     };
 
     bool success = rsvg_handle_render_document(svg, cr, &viewport, nullptr);
+
     cairo_destroy(cr);
     cairo_surface_destroy(surface);
     g_object_unref(svg);
