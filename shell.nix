@@ -16,6 +16,13 @@ pkgs.mkShell {
        ffmpeg
        libexif
        libsixel
+       librsvg cairo
+
+       # Don't include qoi and stb by default to see if the cmake
+       # fallback to third_party/ works.
+       #qoi
+       #stb
+
        openslide
        pandoc
        clang-tools_13  # clang-format

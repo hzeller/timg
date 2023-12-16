@@ -46,10 +46,14 @@
 #endif
 #ifdef WITH_TIMG_GRPAPHICSMAGICK
 #    include <Magick++.h>
+
 #    include "image-display.h"
 #endif
 #ifdef WITH_TIMG_SIXEL
 #    include <sixel.h>
+#endif
+#ifdef WITH_TIMG_RSVG
+#    include <librsvg/rsvg.h>
 #endif
 
 #include <errno.h>
@@ -415,6 +419,51 @@ static const char *PixelationToString(Pixelation p) {
     return "";  // Make compiler happy.
 }
 
+// Print our version and various version numbers from our dependencies.
+static int PrintVersion(FILE *stream) {
+    fprintf(stream, "timg " TIMG_VERSION
+                    " <https://timg.sh/>\n"
+                    "Copyright (c) 2016..2023 Henner Zeller. "
+                    "This program is free software; license GPL 2.0.\n\n");
+#ifdef WITH_TIMG_GRPAPHICSMAGICK
+    fprintf(stream, "Image decoding %s\n", timg::ImageLoader::VersionInfo());
+#endif
+#ifdef WITH_TIMG_OPENSLIDE_SUPPORT
+    fprintf(stream, "Openslide %s\n", timg::OpenSlideSource::VersionInfo());
+#endif
+#ifdef WITH_TIMG_JPEG
+    fprintf(stream, "Turbo JPEG\n");
+#endif
+#ifdef WITH_TIMG_RSVG
+    fprintf(stream, "librsvg %d.%d.%d\n", LIBRSVG_MAJOR_VERSION,
+            LIBRSVG_MINOR_VERSION, LIBRSVG_MICRO_VERSION);
+#endif
+#ifdef WITH_TIMG_QOI
+    fprintf(stream, "QOI image loading\n");
+#endif
+#ifdef WITH_TIMG_STB
+    fprintf(stream,
+            "STB image loading"
+#    ifdef WITH_TIMG_GRPAPHICSMAGICK
+            // If we have graphics magic, that will take images first,
+            // so STB will only really be called as fallback.
+            " fallback"
+#    endif
+            "\n");
+#endif
+    fprintf(stream, "swscale %s\n", AV_STRINGIFY(LIBSWSCALE_VERSION));
+#ifdef WITH_TIMG_VIDEO
+    fprintf(stream, "Video decoding %s\n", timg::VideoLoader::VersionInfo());
+#endif
+    fprintf(stream,
+            "Half, quarter, iterm2, and kitty graphics output: "
+            "timg builtin.\n");
+#ifdef WITH_TIMG_SIXEL
+    fprintf(stream, "Libsixel version %s\n", LIBSIXEL_VERSION);
+#endif
+    return 0;
+}
+
 int main(int argc, char *argv[]) {
 #ifdef WITH_TIMG_GRPAPHICSMAGICK
     Magick::InitializeMagick(*argv);
@@ -655,48 +704,7 @@ int main(int argc, char *argv[]) {
             break;
         case 'E': present.hide_cursor = false; break;
         case 'W': display_opts.fill_width = true; break;
-        case OPT_VERSION:
-            fprintf(stderr,
-                    "timg " TIMG_VERSION
-                    " <https://timg.sh/>\n"
-                    "Copyright (c) 2016..2023 Henner Zeller. "
-                    "This program is free software; license GPL 2.0.\n\n");
-#ifdef WITH_TIMG_GRPAPHICSMAGICK
-            fprintf(stderr, "Image decoding %s\n",
-                    timg::ImageLoader::VersionInfo());
-#endif
-#ifdef WITH_TIMG_OPENSLIDE_SUPPORT
-            fprintf(stderr, "Openslide %s\n",
-                    timg::OpenSlideSource::VersionInfo());
-#endif
-#ifdef WITH_TIMG_JPEG
-            fprintf(stderr, "Turbo JPEG\n");
-#endif
-#ifdef WITH_TIMG_QOI
-            fprintf(stderr, "QOI image loading\n");
-#endif
-#ifdef WITH_TIMG_STB
-            fprintf(stderr,
-                    "STB image loading"
-#    ifdef WITH_TIMG_GRPAPHICSMAGICK
-                    // If we have graphics magic, that will take images first,
-                    // so STB will only really be called as fallback.
-                    " fallback"
-#    endif
-                    "\n");
-#endif
-            fprintf(stderr, "swscale %s\n", AV_STRINGIFY(LIBSWSCALE_VERSION));
-#ifdef WITH_TIMG_VIDEO
-            fprintf(stderr, "Video decoding %s\n",
-                    timg::VideoLoader::VersionInfo());
-#endif
-            fprintf(stderr,
-                    "Half, quarter, iterm2, and kitty graphics output: "
-                    "timg builtin.\n");
-#ifdef WITH_TIMG_SIXEL
-            fprintf(stderr, "Libsixel version %s\n", LIBSIXEL_VERSION);
-#endif
-            return 0;
+        case OPT_VERSION: return PrintVersion(stdout);
         case OPT_TITLE:
             display_opts.show_title = !display_opts.show_title;
             if (optarg) display_opts.title_format = optarg;
@@ -807,13 +815,13 @@ int main(int argc, char *argv[]) {
                 present.pixelation = Pixelation::kKittyGraphics;
                 break;
             case timg::GraphicsProtocol::kSixel:
-#    ifdef WITH_TIMG_SIXEL
+#ifdef WITH_TIMG_SIXEL
                 present.pixelation = Pixelation::kSixelGraphics;
                 present.sixel_cursor_workaround =
                     graphics_info.known_broken_sixel_cursor_placement;
-#    else
+#else
                 present.pixelation = Pixelation::kQuarterBlock;
-#    endif
+#endif
                 break;
             case timg::GraphicsProtocol::kNone: break;
             }

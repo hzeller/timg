@@ -4,17 +4,20 @@ project(timg VERSION 1.5.3 LANGUAGES CXX)
 
 option(WITH_VIDEO_DECODING "Enables video decoding feature" ON)
 option(WITH_VIDEO_DEVICE "Enables reading videos from devices e.g. v4l2 (requires WITH_VIDEO_DECODING)" ON)
-option(WITH_OPENSLIDE_SUPPORT "Enables support to scientific OpenSlide formats" OFF)
 
 # Options that should be typically on, but could be disabled for special
 # applications where less dependencies are required
 option(WITH_GRAPHICSMAGICK "Enable general image loading with Graphicsmagick. You typically want this." ON)
 option(WITH_TURBOJPEG "Optimized JPEG loading. You typically want this." ON)
-option(WITH_LIBSIXEL "Provide sixel output which is supported by some older terminals such as xterm" ON)
-
+option(WITH_RSVG "Use librsvg to open SVG images." ON)
 option(WITH_STB_IMAGE "Use STB image, a self-contained albeit limited image loading and lower quality. Use if WITH_GRAPHICSMAGICK is not possible and want to limit dependencies. Default on to be used as fallback." ON)
-
 option(WITH_QOI_IMAGE "QOI image format" ON)
+
+# Compile-time option for specialized
+option(WITH_OPENSLIDE_SUPPORT "Enables support to scientific OpenSlide formats" OFF)
+
+# Output formats
+option(WITH_LIBSIXEL "Provide sixel output which is supported by some older terminals such as xterm" ON)
 
 # Note: The version string can be ammended with -DDISTRIBUTION_VERSION, see src/timg-version.h.in
 option(TIMG_VERSION_FROM_GIT "Get the program version from the git repository" ON)
@@ -50,6 +53,11 @@ endif()
 
 if(WITH_GRAPHICSMAGICK)
   pkg_check_modules(GRAPHICSMAGICKXX IMPORTED_TARGET REQUIRED GraphicsMagick++)
+endif()
+
+if(WITH_RSVG)
+  pkg_check_modules(RSVG REQUIRED IMPORTED_TARGET librsvg-2.0)
+  pkg_check_modules(CAIRO REQUIRED IMPORTED_TARGET cairo)
 endif()
 
 if(WITH_OPENSLIDE_SUPPORT)
