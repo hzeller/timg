@@ -57,6 +57,12 @@ if(WITH_GRAPHICSMAGICK)
   target_link_libraries(timg PkgConfig::GRAPHICSMAGICKXX)
 endif()
 
+if(WITH_RSVG)
+  target_sources(timg PUBLIC svg-image-source.h svg-image-source.cc)
+  target_compile_definitions(timg PUBLIC WITH_TIMG_RSVG)
+  target_link_libraries(timg PkgConfig::RSVG PkgConfig::CAIRO)
+endif()
+
 if(WITH_TURBOJPEG)
   target_sources(timg PUBLIC jpeg-source.h jpeg-source.cc)
   target_compile_definitions(timg PUBLIC WITH_TIMG_JPEG)

@@ -558,6 +558,9 @@ compile-time choices:
     typically want this **ON** (default).
   * **`WITH_TURBOJPEG`** If enabled, uses this for faster jpeg file loading.
      You typically want this **ON** (default).
+  * **`WITH_RSVG`** High-quality SVG renderer. Needs librsvg and cairo.
+    If not compiled-in, will fallback to GraphicsMagick, but that typically
+    results in lower quality renderings. Typically want this **ON** (default).
   * **`WITH_OPENSLIDE_SUPPORT`** Openslide is an image format used in scientific
     applications. Rarely used, so default off, switch ON if needed.
   * **`WITH_QOI_IMAGE`** Allow decoding of Quite Ok Image format [QOI]. Small

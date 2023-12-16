@@ -36,7 +36,7 @@ jobs:
         run: |
           mkdir build-limitdep
           cd build-limitdep
-          cmake .. -DWITH_VIDEO_DECODING=Off -DWITH_VIDEO_DEVICE=Off -DWITH_OPENSLIDE_SUPPORT=Off -DWITH_GRAPHICSMAGICK=Off -DWITH_TURBOJPEG=Off -DWITH_LIBSIXEL=Off
+          cmake .. -DWITH_VIDEO_DECODING=Off -DWITH_VIDEO_DEVICE=Off -DWITH_OPENSLIDE_SUPPORT=Off -DWITH_GRAPHICSMAGICK=Off -DWITH_TURBOJPEG=Off -DWITH_RSVG=Off -DWITH_LIBSIXEL=Off
           make -k
 
       - name: Install Full Dependencies
@@ -45,6 +45,7 @@ jobs:
           sudo apt install libgraphicsmagick++-dev
           sudo apt install libturbojpeg-dev libexif-dev
           sudo apt install libsixel-dev
+          sudo apt install librsvg2-dev libcairo-dev
           sudo apt install libavcodec-dev libavformat-dev libavdevice-dev
           sudo apt install libopenslide-dev
           sudo apt install pandoc
@@ -53,8 +54,17 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. -DWITH_VIDEO_DECODING=On -DWITH_VIDEO_DEVICE=On -DWITH_OPENSLIDE_SUPPORT=On -DWITH_STB_IMAGE=On -DWITH_LIBSIXEL=On
+          cmake .. -DWITH_VIDEO_DECODING=On -DWITH_VIDEO_DEVICE=On -DWITH_OPENSLIDE_SUPPORT=On -DWITH_STB_IMAGE=On -DWITH_RSVG=On -DWITH_LIBSIXEL=On
           make -k
+
+      - name: Print timg Version string
+        run: |
+          echo "------------------- Limited dependency version string --------"
+          build-limitdep/src/timg --version
+          echo
+
+          echo "------------------- All dependencies version string ----------"
+          build/src/timg --version
 
   CodeFormatting:
     if: false   # currently, there is no clang-format-13 in ubuntu latest
@@ -131,6 +141,7 @@ jobs:
           sudo apt install cmake git g++ clang pkg-config
           sudo apt install libswscale-dev libavutil-dev libdeflate-dev
           sudo apt install libturbojpeg-dev libexif-dev
+          sudo apt install librsvg2-dev libcairo-dev
           sudo apt install libsixel-dev
           sudo apt install pandoc
 
@@ -144,6 +155,7 @@ jobs:
           # also check apt to include in .github/conf/AppImageBuilder.yml
           ./.github/bin/prepare-app-image.sh \
              -DWITH_GRAPHICSMAGICK=Off \
+             -DWITH_RSVG=On \
              -DWITH_VIDEO_DECODING=Off \
              -DWITH_VIDEO_DEVICE=Off \
              -DWITH_OPENSLIDE_SUPPORT=Off \

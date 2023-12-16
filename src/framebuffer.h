@@ -26,7 +26,7 @@
 namespace timg {
 struct rgba_t {
     uint8_t r, g, b;  // Color components, gamma corrected (non-linear)
-    uint8_t a;        // Alpha channel. Linear.
+    uint8_t a;        // Alpha channel. Linear. [transparent..opaque]=0..255
 
     inline bool operator==(const rgba_t &that) const {
         // Using memcmp() slower, so force uint-compare with type-punning.
