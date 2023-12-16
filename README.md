@@ -477,13 +477,6 @@ nix-env -i timg
 brew install timg
 ```
 
-#### Linux distributions that support snap packages
-
-If you have enabled support for snap packages in your Linux distribution, you can install `timg` with
-```
-sudo snap install timg
-```
-
 #### Use AppImage
 
 The [timg release page](https://github.com/hzeller/timg/releases/latest) also
