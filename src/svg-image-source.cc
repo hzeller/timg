@@ -19,6 +19,8 @@
 #include <librsvg/rsvg.h>
 #include <stdlib.h>
 
+#include <algorithm>
+
 #include "framebuffer.h"
 
 namespace timg {
@@ -83,6 +85,11 @@ bool SVGImageSource::LoadAndScale(const DisplayOptions &opts, int, int) {
     cairo_destroy(cr);
     cairo_surface_destroy(surface);
     g_object_unref(svg);
+
+    // Cairo stores A (high-byte), R, G, B (low-byte). We need ABGR.
+    for (rgba_t &pixel : *image_) {
+        std::swap(pixel.r, pixel.b);
+    }
 
     // TODO: for non-1:1 aspect ratio of the output (e.g. pixelation=quarter),
     //       the resulting aspect ratio is squished, as we have to do the
