@@ -23,7 +23,14 @@
 
 #include "framebuffer.h"
 
+extern "C" {
+#include <libavutil/pixfmt.h>
+#include <libswscale/swscale.h>
+}
+
 namespace timg {
+
+static void dummy_log(void *, int, const char *, va_list) {}
 
 std::string SVGImageSource::FormatTitle(
     const std::string &format_string) const {
@@ -64,20 +71,35 @@ bool SVGImageSource::LoadAndScale(const DisplayOptions &opts, int, int) {
     CalcScaleToFitDisplay(orig_width_, orig_height_, opts, false, &target_width,
                           &target_height);
 
+    // If we have block graphics with double resolution in one direction
+    // (-pquarter), then we got an aspect ratio from the
+    // CalcScaleToFitDisplay() that is twice as wide, so we need to stretch.
+    // TODO(hzeller): This is hacky, this predicate should be somehwere else.
+    const bool needs_x_double_resolution =
+        opts.cell_x_px == 2 && opts.cell_y_px == 2;
+
+    // In the case of a required x double resolution, just cairo_scale()
+    // the x-axis by 2 did not result in satisfactorial results, maybe due
+    // to rounding on an already heavily quantized size ? Let's just render
+    // in double resolution in both directions then manually scale down height.
+    const int render_width = target_width;
+    const int render_height =
+        needs_x_double_resolution ? target_height * 2 : target_height;
+
     const auto kCairoFormat = CAIRO_FORMAT_ARGB32;
-    int stride = cairo_format_stride_for_width(kCairoFormat, target_width);
-    image_.reset(new timg::Framebuffer(stride / 4, target_height));
+    int stride = cairo_format_stride_for_width(kCairoFormat, render_width);
+    image_.reset(new timg::Framebuffer(stride / 4, render_height));
 
     cairo_surface_t *surface = cairo_image_surface_create_for_data(
-        (uint8_t *)image_->begin(), kCairoFormat, target_width, target_height,
+        (uint8_t *)image_->begin(), kCairoFormat, render_width, render_height,
         stride);
     cairo_t *cr = cairo_create(surface);
 
     RsvgRectangle viewport = {
         .x      = 0.0,
         .y      = 0.0,
-        .width  = (double)target_width,
-        .height = (double)target_height,
+        .width  = (double)render_width,
+        .height = (double)render_height,
     };
 
     bool success = rsvg_handle_render_document(svg, cr, &viewport, nullptr);
@@ -91,10 +113,26 @@ bool SVGImageSource::LoadAndScale(const DisplayOptions &opts, int, int) {
         std::swap(pixel.r, pixel.b);
     }
 
-    // TODO: for non-1:1 aspect ratio of the output (e.g. pixelation=quarter),
-    //       the resulting aspect ratio is squished, as we have to do the
-    //       distortion ourself.
-    // TODO: if (int(stride / sizeof(rgba_t)) != target_width) : copy over
+    // TODO: if there ever could be the condition of
+    // int(stride / sizeof(rgba_t)) != render_width (for alignment?) : copy over
+
+    // In the case of the non 1:1 aspect ratio, un-stretch the height.
+    if (needs_x_double_resolution) {
+            av_log_set_callback(dummy_log);
+            SwsContext *swsCtx = sws_getContext(
+                render_width, render_height, AV_PIX_FMT_RGBA, target_width,
+                target_height, AV_PIX_FMT_RGBA, SWS_BILINEAR,
+                NULL, NULL, NULL);
+            if (!swsCtx) return false;
+            auto scaled =
+                std::make_unique<Framebuffer>(target_width, target_height);
+
+            sws_scale(swsCtx, image_->row_data(), image_->stride(), 0,
+                      render_height, scaled->row_data(), scaled->stride());
+            sws_freeContext(swsCtx);
+
+            image_ = std::move(scaled);
+    }
 
     // If requested, merge background with pattern.
     image_->AlphaComposeBackground(
