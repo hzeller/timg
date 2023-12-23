@@ -492,7 +492,7 @@ build from source.
 
 ```bash
 sudo apt install cmake git g++ pkg-config
-sudo apt install libgraphicsmagick++-dev libturbojpeg-dev libexif-dev libswscale-dev libdeflate-dev # needed libs
+sudo apt install libgraphicsmagick++-dev libturbojpeg-dev libexif-dev libswscale-dev libdeflate-dev librsvg2-dev libcairo-dev # needed libs
 
 # For sixel output.
 sudo apt install libsixel-dev
@@ -520,7 +520,7 @@ nix-shell
 
 ```bash
 sudo dnf install cmake git g++ pkg-config
-sudo dnf install GraphicsMagick-c++-devel turbojpeg-devel libexif-devel libswscale-free-devel
+sudo dnf install GraphicsMagick-c++-devel turbojpeg-devel libexif-devel libswscale-free-devel librsvg2-devel cairo-devel
 
 # If you want to include video decoding, also install these additional libraries
 sudo dnf install libavcodec-free-devel libavformat-free-devel libavdevice-free-devel openslide-devel
@@ -531,7 +531,7 @@ sudo dnf install pandoc  # If you want to recreate the man page
 
 ```bash
 # Homebrew needs to be available to install required dependencies
-brew install cmake git GraphicsMagick webp jpeg-turbo libexif  # needed libs
+brew install cmake git GraphicsMagick webp jpeg-turbo libexif librsvg cairo  # needed libs
 
 # If you want to include video decoding, install these additional libraries
 brew install ffmpeg
