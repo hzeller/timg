@@ -82,6 +82,7 @@ bool SVGImageSource::LoadAndScale(const DisplayOptions &opts, int, int) {
     // the x-axis by 2 did not result in satisfactorial results, maybe due
     // to rounding on an already heavily quantized size ? Let's just render
     // in double resolution in both directions then manually scale down height.
+    // TODO: figure out how to get good low-res rendering without detour.
     const int render_width = target_width;
     const int render_height =
         needs_x_double_resolution ? target_height * 2 : target_height;

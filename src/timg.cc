@@ -223,9 +223,10 @@ static int usage(const char *progname, ExitCode exit_code, int width,
         "fit.\n"
         "\t                 Optional parameter 'i' only enlarges in integer "
         "steps.\n"
-        "\t--clear        : Clear screen first. Optional argument 'every' "
+        "\t--clear[=every]: Clear draw area first. Optional argument 'every' "
         "will\n"
-        "\t                 clear before every image (useful with -w)\n"
+        "\t                 clear before every image (useful with -w/-wr,\n"
+        "\t                 but not with --grid)\n"
 #ifdef WITH_TIMG_VIDEO
         "\t-V             : Directly use Video subsystem. Don't probe image\n"
         "\t                 decoding first (useful, if you stream video from "
@@ -257,7 +258,7 @@ static int usage(const char *progname, ExitCode exit_code, int width,
         "\t--help         : Page through detailed manpage-like help and exit.\n"
 
         "\n  \e[1mScrolling\e[0m\n"
-        "\t--scroll=[<ms>]       : Scroll horizontally (optionally: delay ms "
+        "\t--scroll[=<ms>]       : Scroll horizontally (optionally: delay ms "
         "(60)).\n"
         "\t--delta-move=<dx:dy>  : delta x and delta y when scrolling "
         "(default:1:0)\n"

@@ -92,7 +92,8 @@ Options (most common first):
         -F<filelist>   : like -f, but relative filenames considered relative
                          to the directory containing the filelist.
         -b<str>        : Background color to use behind alpha channel. Format
-                         'yellow', '#rrggbb', 'auto' or 'none' (default 'auto').
+                         color name like 'yellow', '#rrggbb', 'auto' or 'none'.
+                        'auto' is terminal background color. (default 'auto').
         -B<str>        : Checkerboard pattern color to use on alpha.
         --pattern-size=<n> : Integer factor scale of the checkerboard pattern.
         --auto-crop[=<pre-crop>] : Crop away all same-color pixels around image.
@@ -105,8 +106,9 @@ Options (most common first):
         -U, --upscale[=i]: Allow Upscaling. If an image is smaller than the
                          available frame (e.g. an icon), enlarge it to fit.
                          Optional parameter 'i' only enlarges in integer steps.
-        --clear        : Clear screen first. Optional argument 'every' will
-                         clear before every image (useful with -w)
+        --clear[=every]: Clear draw area first. Optional argument 'every' will
+                         clear before every image (useful with -w/-wr,
+                         but not with --grid)
         -V             : Directly use Video subsystem. Don't probe image
                          decoding first (useful, if you stream video from stdin)
         -I             : Only  use Image subsystem. Don't attempt video decoding
@@ -125,13 +127,13 @@ Options (most common first):
                          (Default 3, 3/4 #cores on this machine)
         --color8       : Choose 8 bit color mode for -ph or -pq
         --version      : Print detailed version including used libraries.
-                         (v1.5.1+)
+                         (v1.5.3+)
         --verbose      : Print some stats after images shown.
         -h             : Print this help and exit.
         --help         : Page through detailed manpage-like help and exit.
 
   Scrolling
-        --scroll=[<ms>]       : Scroll horizontally (optionally: delay ms (60)).
+        --scroll[=<ms>]       : Scroll horizontally (optionally: delay ms (60)).
         --delta-move=<dx:dy>  : delta x and delta y when scrolling (default:1:0)
 
   For Animations, Scrolling, or Video

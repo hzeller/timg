@@ -1,6 +1,6 @@
 % timg(1)
 % Henner Zeller
-% Nov 2023
+% Dec 2023
 
 # NAME
 
@@ -113,7 +113,7 @@ Most likely commonly needed options first.
 **-C**, **-\-center**
 :    Center image(s) and title(s) horizontally in their alotted space.
 
-**-\-title=[format-string]**
+**-\-title**[=&lt;*format-string*&gt;]
 :    Print title above each image. It is possible to customize the
      title by giving a format string. In this string, the following format
      specifiers are expanded:
@@ -207,7 +207,7 @@ Most likely commonly needed options first.
      see the full picture.
      Default behavior is to fit within the allotted width *and* height.
 
-**-U**, **-\-upscale=[i]**
+**-U**, **-\-upscale**[=i]
 :   Allow Upscaling. If an image is smaller than the terminal size, scale
     it up to fit the terminal.
 
@@ -221,7 +221,7 @@ Most likely commonly needed options first.
     that forces the upscaling to be in integer increments to keep the 'blocky'
     appearance of an upscaled image without bilinear scale 'fuzzing'.
 
-**-\-clear**
+**-\-clear**[=every]
 :   Clear screen before *first* image. This places the image at the top of the
     screen.
 
