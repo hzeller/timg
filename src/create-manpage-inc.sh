@@ -2,8 +2,10 @@
 
 set -e
 
-INPUT=$(dirname $0)/../man/timg.1
-OUTPUT=$(dirname $0)/timg-manpage.inc
+cd $(dirname $0)
+
+INPUT=../man/timg.1
+OUTPUT=timg-manpage.inc
 
 cat > "$OUTPUT" <<EOF
 /* created with create-manpage-inc.sh from $INPUT */
