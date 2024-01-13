@@ -34,7 +34,8 @@ std::string PDFImageSource::FormatTitle(
                                 (int)orig_height_, "pdf");
 }
 
-bool PDFImageSource::LoadAndScale(const DisplayOptions &opts, int, int) {
+bool PDFImageSource::LoadAndScale(const DisplayOptions &opts,
+                                  int frame_offset, int frame_count) {
     options_        = opts;
 
     GError *error = nullptr;
@@ -50,8 +51,12 @@ bool PDFImageSource::LoadAndScale(const DisplayOptions &opts, int, int) {
     }
 
     const int page_count = poppler_document_get_n_pages(document);
-
-    for (int page_num = 0; page_num < page_count; ++page_num) {
+    const int start_page = std::max(0, frame_offset);
+    const int max_display_page =
+        (frame_count < 0) ? page_count
+                          : std::min(page_count, start_page + frame_count);
+    for (int page_num = start_page; page_num < max_display_page; ++page_num) {
+        fprintf(stderr, "%d\n", page_num);
         PopplerPage *page = poppler_document_get_page(document, page_num);
         if (page == nullptr) {
             return false;
