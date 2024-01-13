@@ -35,6 +35,9 @@ AppDir:
     - libswscale5
     - libdeflate0
     - libsixel1
+    #- libpoppler-glib8
+    #- librsvg2-2
+    #- libcairo-gobject2
 
   files:
     include:
