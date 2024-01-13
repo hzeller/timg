@@ -48,13 +48,14 @@ jobs:
           sudo apt install librsvg2-dev libcairo-dev
           sudo apt install libavcodec-dev libavformat-dev libavdevice-dev
           sudo apt install libopenslide-dev
+          sudo apt install libpoppler-glib-dev
           sudo apt install pandoc
 
       - name: Build timg with all options enabled
         run: |
           mkdir build
           cd build
-          cmake .. -DWITH_VIDEO_DECODING=On -DWITH_VIDEO_DEVICE=On -DWITH_OPENSLIDE_SUPPORT=On -DWITH_STB_IMAGE=On -DWITH_RSVG=On -DWITH_LIBSIXEL=On
+          cmake .. -DWITH_VIDEO_DECODING=On -DWITH_VIDEO_DEVICE=On -DWITH_OPENSLIDE_SUPPORT=On -DWITH_STB_IMAGE=On -DWITH_RSVG=On -DWITH_POPPLER=On -DWITH_LIBSIXEL=On
           make -k
 
       - name: Print timg Version string
@@ -143,6 +144,7 @@ jobs:
           sudo apt install libturbojpeg-dev libexif-dev
           sudo apt install librsvg2-dev libcairo-dev
           sudo apt install libsixel-dev
+          sudo apt install libpoppler-glib-dev
           sudo apt install pandoc
 
       - name: Set Version
@@ -155,7 +157,8 @@ jobs:
           # also check apt to include in .github/conf/AppImageBuilder.yml
           ./.github/bin/prepare-app-image.sh \
              -DWITH_GRAPHICSMAGICK=Off \
-             -DWITH_RSVG=On \
+             -DWITH_RSVG=Off \
+             -DWITH_POPPLER=Off \
              -DWITH_VIDEO_DECODING=Off \
              -DWITH_VIDEO_DEVICE=Off \
              -DWITH_OPENSLIDE_SUPPORT=Off \
