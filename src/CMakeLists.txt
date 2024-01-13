@@ -63,6 +63,12 @@ if(WITH_RSVG)
   target_link_libraries(timg PkgConfig::RSVG PkgConfig::CAIRO)
 endif()
 
+if(WITH_POPPLER)
+  target_sources(timg PUBLIC pdf-image-source.h pdf-image-source.cc)
+  target_compile_definitions(timg PUBLIC WITH_TIMG_POPPLER)
+  target_link_libraries(timg PkgConfig::POPPLER PkgConfig::CAIRO)
+endif()
+
 if(WITH_TURBOJPEG)
   target_sources(timg PUBLIC jpeg-source.h jpeg-source.cc)
   target_compile_definitions(timg PUBLIC WITH_TIMG_JPEG)

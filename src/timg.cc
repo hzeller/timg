@@ -55,6 +55,9 @@
 #ifdef WITH_TIMG_RSVG
 #    include <librsvg/rsvg.h>
 #endif
+#ifdef WITH_TIMG_POPPLER
+#    include <poppler.h>
+#endif
 
 #include <errno.h>
 #include <fcntl.h>
@@ -441,6 +444,10 @@ static int PrintVersion(FILE *stream) {
 #ifdef WITH_TIMG_RSVG
     fprintf(stream, "librsvg %d.%d.%d\n", LIBRSVG_MAJOR_VERSION,
             LIBRSVG_MINOR_VERSION, LIBRSVG_MICRO_VERSION);
+#endif
+#ifdef WITH_TIMG_POPPLER
+    fprintf(stream, "PDF rendering with poppler %s\n",
+            poppler_get_version());
 #endif
 #ifdef WITH_TIMG_QOI
     fprintf(stream, "QOI image loading\n");

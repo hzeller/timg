@@ -32,6 +32,7 @@
 #include "image-display.h"
 #include "jpeg-source.h"
 #include "openslide-source.h"
+#include "pdf-image-source.h"
 #include "qoi-image-source.h"
 #include "stb-image-source.h"
 #include "svg-image-source.h"
@@ -179,6 +180,13 @@ ImageSource *ImageSource::Create(const std::string &filename,
 
 #ifdef WITH_TIMG_RSVG
         result.reset(new SVGImageSource(filename));
+        if (result->LoadAndScale(options, frame_offset, frame_count)) {
+            return result.release();
+        }
+#endif
+
+#ifdef WITH_TIMG_POPPLER
+        result.reset(new PDFImageSource(filename));
         if (result->LoadAndScale(options, frame_offset, frame_count)) {
             return result.release();
         }

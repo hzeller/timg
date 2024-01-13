@@ -17,6 +17,7 @@ pkgs.mkShell {
        libexif
        libsixel
        librsvg cairo
+       poppler
 
        # Don't include qoi and stb by default to see if the cmake
        # fallback to third_party/ works.
