@@ -38,28 +38,26 @@ bool PDFImageSource::LoadAndScale(const DisplayOptions &opts,
                                   int frame_offset, int frame_count) {
     options_        = opts;
 
-    GError *error = nullptr;
-
     // Poppler wants a URI as input.
-    std::string uri = "file://" + fs::absolute(filename_).string();
+    const std::string uri = "file://" + fs::absolute(filename_).string();
 
-    PopplerDocument *document =
-        poppler_document_new_from_file(uri.c_str(), nullptr, &error);
+    PopplerDocument *const document =
+        poppler_document_new_from_file(uri.c_str(), nullptr, nullptr);
     if (!document) {
-        fprintf(stderr, "no dice %s\n", error->message);
         return false;
     }
 
+    bool success = true;
     const int page_count = poppler_document_get_n_pages(document);
     const int start_page = std::max(0, frame_offset);
     const int max_display_page =
         (frame_count < 0) ? page_count
                           : std::min(page_count, start_page + frame_count);
     for (int page_num = start_page; page_num < max_display_page; ++page_num) {
-        fprintf(stderr, "%d\n", page_num);
-        PopplerPage *page = poppler_document_get_page(document, page_num);
+        PopplerPage *const page = poppler_document_get_page(document, page_num);
         if (page == nullptr) {
-            return false;
+            success = false;
+            break;
         }
 
         poppler_page_get_size(page, &orig_width_, &orig_height_);
@@ -83,14 +81,16 @@ bool PDFImageSource::LoadAndScale(const DisplayOptions &opts,
         cairo_scale(cr, 1.0 * render_width / orig_width_,
                     1.0 * render_height / orig_height_);
         cairo_save(cr);
+
+        // Fill background with page color.
         cairo_set_source_rgb(cr, 1, 1, 1);
         cairo_paint(cr);
 
         poppler_page_render(page, cr);
+
         cairo_restore(cr);
         g_object_unref(page);
 
-        // render
         cairo_destroy(cr);
         cairo_surface_destroy(surface);
 
@@ -102,8 +102,9 @@ bool PDFImageSource::LoadAndScale(const DisplayOptions &opts,
         // TODO: implement auto-crop and crop-border
         pages_.emplace_back(std::move(image));
     }
+    g_object_unref(document);
 
-    return true;
+    return success && !pages_.empty();
 }
 
 int PDFImageSource::IndentationIfCentered(
