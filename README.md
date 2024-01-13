@@ -505,6 +505,7 @@ sudo apt install libavcodec-dev libavformat-dev
 sudo apt install libavdevice-dev # If you want to read from video devices such as v4l2
 
 sudo apt install libopenslide-dev # If you want to add OpenSlide images support
+sudo apt install libpoppler-glib-dev  # if WITH_POPPLER enabled.
 
 sudo apt install pandoc  # If you want to recreate the man page
 ```
@@ -560,6 +561,10 @@ compile-time choices:
     typically want this **ON** (default).
   * **`WITH_TURBOJPEG`** If enabled, uses this for faster jpeg file loading.
      You typically want this **ON** (default).
+  * **`WITH_POPPLER`** High-quality and faster PDF renderer. Needs poppler
+    and cairo.
+    If not compiled-in, will fallback to GraphicsMagick, but that typically
+    results in lower quality renderings. Currently **OFF** by default.
   * **`WITH_RSVG`** High-quality SVG renderer. Needs librsvg and cairo.
     If not compiled-in, will fallback to GraphicsMagick, but that typically
     results in lower quality renderings. Typically want this **ON** (default).
