@@ -52,7 +52,7 @@ if(WITH_LIBSIXEL)
 endif()
 
 if(WITH_GRAPHICSMAGICK)
-  target_sources(timg PUBLIC image-display.h image-display.cc)
+  target_sources(timg PUBLIC graphics-magick-source.h graphics-magick-source.cc)
   target_compile_definitions(timg PUBLIC WITH_TIMG_GRPAPHICSMAGICK)
   target_link_libraries(timg PkgConfig::GRAPHICSMAGICKXX)
 endif()

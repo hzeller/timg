@@ -47,7 +47,7 @@
 #ifdef WITH_TIMG_GRPAPHICSMAGICK
 #    include <Magick++.h>
 
-#    include "image-display.h"
+#    include "graphics-magick-source.h"
 #endif
 #ifdef WITH_TIMG_SIXEL
 #    include <sixel.h>
@@ -433,7 +433,8 @@ static int PrintVersion(FILE *stream) {
                     "Copyright (c) 2016..2023 Henner Zeller. "
                     "This program is free software; license GPL 2.0.\n\n");
 #ifdef WITH_TIMG_GRPAPHICSMAGICK
-    fprintf(stream, "Image decoding %s\n", timg::ImageLoader::VersionInfo());
+    fprintf(stream, "Image decoding %s\n",
+            timg::GraphicsMagickSource::VersionInfo());
 #endif
 #ifdef WITH_TIMG_OPENSLIDE_SUPPORT
     fprintf(stream, "Openslide %s\n", timg::OpenSlideSource::VersionInfo());

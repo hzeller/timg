@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://gnu.org/licenses/gpl-2.0.txt>
 
-#ifndef IMAGE_DISPLAY_H_
-#define IMAGE_DISPLAY_H_
+#ifndef GRAPHICS_MAGICK_SOURCE_H_
+#define GRAPHICS_MAGICK_SOURCE_H_
 
 #include <signal.h>
 
@@ -28,10 +28,11 @@
 
 namespace timg {
 
-class ImageLoader final : public ImageSource {
+class GraphicsMagickSource final : public ImageSource {
 public:
-    explicit ImageLoader(const std::string &filename) : ImageSource(filename) {}
-    ~ImageLoader() final;
+    explicit GraphicsMagickSource(const std::string &filename)
+        : ImageSource(filename) {}
+    ~GraphicsMagickSource() final;
 
     static const char *VersionInfo();
 
@@ -84,4 +85,4 @@ private:
 
 }  // namespace timg
 
-#endif  // IMAGE_DISPLAY_H_
+#endif  // GRAPHICS_MAGICK_SOURCE_H_

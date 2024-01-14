@@ -29,7 +29,7 @@
 #include <sstream>
 #include <utility>
 
-#include "image-display.h"
+#include "graphics-magick-source.h"
 #include "jpeg-source.h"
 #include "openslide-source.h"
 #include "pdf-image-source.h"
@@ -193,7 +193,7 @@ ImageSource *ImageSource::Create(const std::string &filename,
 #endif
 
 #ifdef WITH_TIMG_GRPAPHICSMAGICK
-        result.reset(new ImageLoader(filename));
+        result.reset(new GraphicsMagickSource(filename));
         if (result->LoadAndScale(options, frame_offset, frame_count)) {
             return result.release();
         }

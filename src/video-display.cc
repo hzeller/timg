@@ -22,7 +22,6 @@
 #include <thread>
 #include <utility>
 
-#include "image-display.h"
 #include "timg-time.h"
 
 // libav: "U NO extern C in header ?"

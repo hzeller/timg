@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://gnu.org/licenses/gpl-2.0.txt>
 
-#include "image-display.h"
+#include "graphics-magick-source.h"
 
 #include <Magick++.h>
 #include <assert.h>
@@ -51,7 +51,7 @@ static void CopyToFramebuffer(const Magick::Image &img,
 
 // Frame already prepared as the buffer to be sent, so copy to terminal-buffer
 // does not have to be done online. Also knows about the animation delay.
-class ImageLoader::PreprocessedFrame {
+class GraphicsMagickSource::PreprocessedFrame {
 public:
     PreprocessedFrame(const Magick::Image &img, const DisplayOptions &opt,
                       bool is_part_of_animation)
@@ -78,15 +78,15 @@ private:
     timg::Framebuffer framebuffer_;
 };
 
-ImageLoader::~ImageLoader() {
+GraphicsMagickSource::~GraphicsMagickSource() {
     for (PreprocessedFrame *f : frames_) delete f;
 }
 
-const char *ImageLoader::VersionInfo() {
+const char *GraphicsMagickSource::VersionInfo() {
     return "GraphicsMagick " MagickLibVersionText " (" MagickReleaseDate ")";
 }
 
-std::string ImageLoader::FormatTitle(const std::string &format_string) const {
+std::string GraphicsMagickSource::FormatTitle(const std::string &format_string) const {
     return FormatFromParameters(format_string, filename_, orig_width_,
                                 orig_height_, "image");
 }
@@ -145,7 +145,7 @@ static void readImagesWithTransparentBackground(
     Magick::throwException(exception_info);
 }
 
-bool ImageLoader::LoadAndScale(const DisplayOptions &opts, int frame_offset,
+bool GraphicsMagickSource::LoadAndScale(const DisplayOptions &opts, int frame_offset,
                                int frame_count) {
     options_ = opts;
 
@@ -266,13 +266,13 @@ bool ImageLoader::LoadAndScale(const DisplayOptions &opts, int frame_offset,
     return true;
 }
 
-int ImageLoader::IndentationIfCentered(const PreprocessedFrame *frame) const {
+int GraphicsMagickSource::IndentationIfCentered(const PreprocessedFrame *frame) const {
     return options_.center_horizontally
                ? (options_.width - frame->framebuffer().width()) / 2
                : 0;
 }
 
-void ImageLoader::SendFrames(const Duration &duration, int loops,
+void GraphicsMagickSource::SendFrames(const Duration &duration, int loops,
                              const volatile sig_atomic_t &interrupt_received,
                              const Renderer::WriteFramebufferFun &sink) {
     if (options_.scroll_animation) {
@@ -315,7 +315,7 @@ void ImageLoader::SendFrames(const Duration &duration, int loops,
 
 static int gcd(int a, int b) { return b == 0 ? a : gcd(b, a % b); }
 
-void ImageLoader::Scroll(const Duration &duration, int loops,
+void GraphicsMagickSource::Scroll(const Duration &duration, int loops,
                          const volatile sig_atomic_t &interrupt_received,
                          int dx, int dy, const Duration &scroll_delay,
                          const Renderer::WriteFramebufferFun &write_fb) {
