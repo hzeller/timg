@@ -111,7 +111,10 @@ bool STBImageSource::LoadAndScale(const DisplayOptions &options,
         int w, h;
         uint8_t *data = stbi__load_and_postprocess_8bit(
             &context, &w, &h, &channels, kDesiredChannels);
-        if (!data) return false;
+        if (!data) {
+            fclose(img_file);
+            return false;
+        }
 
         orig_width_  = w;
         orig_height_ = h;
@@ -129,6 +132,8 @@ bool STBImageSource::LoadAndScale(const DisplayOptions &options,
     max_frames_ = (frame_count < 0)
                       ? (int)frames_.size()
                       : std::min(frame_count, (int)frames_.size());
+
+    fclose(img_file);
 
     return !frames_.empty();
 }
