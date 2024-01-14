@@ -68,7 +68,6 @@ jobs:
           build/src/timg --version
 
   CodeFormatting:
-    if: false   # currently, there is no clang-format-13 in ubuntu latest
     runs-on: ubuntu-latest
 
     steps:
