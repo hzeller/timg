@@ -88,7 +88,7 @@ if(WITH_OPENSLIDE_SUPPORT)
 endif()
 
 if(WITH_VIDEO_DECODING)
-  target_sources(timg PUBLIC video-display.h video-display.cc)
+  target_sources(timg PUBLIC video-source.h video-source.cc)
   target_compile_definitions(timg PUBLIC WITH_TIMG_VIDEO)
   target_link_libraries(timg
     PkgConfig::LIBAV

@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://gnu.org/licenses/gpl-2.0.txt>
 
-#ifndef VIDEO_DISPLAY_H_
-#define VIDEO_DISPLAY_H_
+#ifndef VIDEO_SOURCE_H_
+#define VIDEO_SOURCE_H_
 
 #include <signal.h>
 
@@ -30,11 +30,11 @@ struct SwsContext;
 
 namespace timg {
 
-// Video loader, meant for one video to load, and if successful, Play().
-class VideoLoader final : public ImageSource {
+// Video source, meant for one video to load, and if successful, Play().
+class VideoSource final : public ImageSource {
 public:
-    explicit VideoLoader(const std::string &filename);
-    ~VideoLoader() final;
+    explicit VideoSource(const std::string &filename);
+    ~VideoSource() final;
 
     static const char *VersionInfo();
 
@@ -76,4 +76,4 @@ private:
 
 }  // namespace timg
 
-#endif  // VIDEO_DISPLAY_H_
+#endif  // VIDEO_SOURCE_H_

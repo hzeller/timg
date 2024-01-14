@@ -16,7 +16,7 @@
 // TODO; help needed.
 // * sound output ((platform independently ?)
 
-#include "video-display.h"
+#include "video-source.h"
 
 #include <mutex>
 #include <thread>
@@ -90,12 +90,12 @@ static void OnceInitialize() {
     av_log_set_callback(dummy_log);
 }
 
-VideoLoader::VideoLoader(const std::string &filename) : ImageSource(filename) {
+VideoSource::VideoSource(const std::string &filename) : ImageSource(filename) {
     static std::once_flag init;
     std::call_once(init, OnceInitialize);
 }
 
-VideoLoader::~VideoLoader() {
+VideoSource::~VideoSource() {
     sws_freeContext(sws_context_);
     avcodec_close(codec_context_);
     avcodec_free_context(&codec_context_);
@@ -103,7 +103,7 @@ VideoLoader::~VideoLoader() {
     delete terminal_fb_;
 }
 
-const char *VideoLoader::VersionInfo() {
+const char *VideoSource::VersionInfo() {
     return "libav " AV_STRINGIFY(LIBAVFORMAT_VERSION)
 #ifdef HAVE_AVDEVICE
         "; avdevice " AV_STRINGIFY(LIBAVDEVICE_VERSION)
@@ -111,12 +111,12 @@ const char *VideoLoader::VersionInfo() {
             ;
 }
 
-std::string VideoLoader::FormatTitle(const std::string &format_string) const {
+std::string VideoSource::FormatTitle(const std::string &format_string) const {
     return FormatFromParameters(format_string, filename_, orig_width_,
                                 orig_height_, "video");
 }
 
-bool VideoLoader::LoadAndScale(const DisplayOptions &display_options,
+bool VideoSource::LoadAndScale(const DisplayOptions &display_options,
                                int frame_offset, int frame_count) {
     options_      = display_options;
     frame_offset_ = frame_offset;
@@ -240,7 +240,7 @@ bool VideoLoader::LoadAndScale(const DisplayOptions &display_options,
     return true;
 }
 
-void VideoLoader::AlphaBlendFramebuffer() {
+void VideoSource::AlphaBlendFramebuffer() {
     if (!maybe_transparent_) return;
     terminal_fb_->AlphaComposeBackground(
         options_.bgcolor_getter, options_.bg_pattern_color,
@@ -248,7 +248,7 @@ void VideoLoader::AlphaBlendFramebuffer() {
         options_.pattern_size * options_.cell_y_px / 2);
 }
 
-void VideoLoader::SendFrames(const Duration &duration, int loops,
+void VideoSource::SendFrames(const Duration &duration, int loops,
                              const volatile sig_atomic_t &interrupt_received,
                              const Renderer::WriteFramebufferFun &sink) {
     const bool frame_limit = (frame_count_ > 0);

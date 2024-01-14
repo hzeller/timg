@@ -36,7 +36,7 @@
 #include "qoi-image-source.h"
 #include "stb-image-source.h"
 #include "svg-image-source.h"
-#include "video-display.h"
+#include "video-source.h"
 
 namespace timg {
 
@@ -210,7 +210,7 @@ ImageSource *ImageSource::Create(const std::string &filename,
 
 #ifdef WITH_TIMG_VIDEO
     if (attempt_video_loading) {
-        result.reset(new VideoLoader(filename));
+        result.reset(new VideoSource(filename));
         if (result->LoadAndScale(options, frame_offset, frame_count)) {
             return result.release();
         }

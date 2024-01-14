@@ -42,7 +42,7 @@
 #    include "openslide-source.h"
 #endif
 #ifdef WITH_TIMG_VIDEO
-#    include "video-display.h"
+#    include "video-source.h"
 #endif
 #ifdef WITH_TIMG_GRPAPHICSMAGICK
 #    include <Magick++.h>
@@ -465,7 +465,7 @@ static int PrintVersion(FILE *stream) {
 #endif
     fprintf(stream, "swscale %s\n", AV_STRINGIFY(LIBSWSCALE_VERSION));
 #ifdef WITH_TIMG_VIDEO
-    fprintf(stream, "Video decoding %s\n", timg::VideoLoader::VersionInfo());
+    fprintf(stream, "Video decoding %s\n", timg::VideoSource::VersionInfo());
 #endif
     fprintf(stream,
             "Half, quarter, iterm2, and kitty graphics output: "
