@@ -60,8 +60,8 @@ bool SVGImageSource::LoadAndScale(const DisplayOptions &opts, int, int) {
     }
 
     // Filter out suspicious dimensions
-    if (orig_width_ <= 0 || orig_width_ > 1e6 ||
-        orig_height_ <= 0 || orig_height_ > 1e6) {
+    if (orig_width_ <= 0 || orig_width_ > 1e6 || orig_height_ <= 0 ||
+        orig_height_ > 1e6) {
         g_object_unref(svg);
         return false;
     }
@@ -119,20 +119,19 @@ bool SVGImageSource::LoadAndScale(const DisplayOptions &opts, int, int) {
 
     // In the case of the non 1:1 aspect ratio, un-stretch the height.
     if (needs_x_double_resolution) {
-            av_log_set_callback(dummy_log);
-            SwsContext *swsCtx = sws_getContext(
-                render_width, render_height, AV_PIX_FMT_RGBA, target_width,
-                target_height, AV_PIX_FMT_RGBA, SWS_BILINEAR,
-                NULL, NULL, NULL);
-            if (!swsCtx) return false;
-            auto scaled =
-                std::make_unique<Framebuffer>(target_width, target_height);
+        av_log_set_callback(dummy_log);
+        SwsContext *swsCtx = sws_getContext(
+            render_width, render_height, AV_PIX_FMT_RGBA, target_width,
+            target_height, AV_PIX_FMT_RGBA, SWS_BILINEAR, NULL, NULL, NULL);
+        if (!swsCtx) return false;
+        auto scaled =
+            std::make_unique<Framebuffer>(target_width, target_height);
 
-            sws_scale(swsCtx, image_->row_data(), image_->stride(), 0,
-                      render_height, scaled->row_data(), scaled->stride());
-            sws_freeContext(swsCtx);
+        sws_scale(swsCtx, image_->row_data(), image_->stride(), 0,
+                  render_height, scaled->row_data(), scaled->stride());
+        sws_freeContext(swsCtx);
 
-            image_ = std::move(scaled);
+        image_ = std::move(scaled);
     }
 
     // If requested, merge background with pattern.

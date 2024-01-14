@@ -86,7 +86,8 @@ const char *GraphicsMagickSource::VersionInfo() {
     return "GraphicsMagick " MagickLibVersionText " (" MagickReleaseDate ")";
 }
 
-std::string GraphicsMagickSource::FormatTitle(const std::string &format_string) const {
+std::string GraphicsMagickSource::FormatTitle(
+    const std::string &format_string) const {
     return FormatFromParameters(format_string, filename_, orig_width_,
                                 orig_height_, "image");
 }
@@ -145,8 +146,8 @@ static void readImagesWithTransparentBackground(
     Magick::throwException(exception_info);
 }
 
-bool GraphicsMagickSource::LoadAndScale(const DisplayOptions &opts, int frame_offset,
-                               int frame_count) {
+bool GraphicsMagickSource::LoadAndScale(const DisplayOptions &opts,
+                                        int frame_offset, int frame_count) {
     options_ = opts;
 
 #ifdef WITH_TIMG_VIDEO
@@ -266,15 +267,17 @@ bool GraphicsMagickSource::LoadAndScale(const DisplayOptions &opts, int frame_of
     return true;
 }
 
-int GraphicsMagickSource::IndentationIfCentered(const PreprocessedFrame *frame) const {
+int GraphicsMagickSource::IndentationIfCentered(
+    const PreprocessedFrame *frame) const {
     return options_.center_horizontally
                ? (options_.width - frame->framebuffer().width()) / 2
                : 0;
 }
 
-void GraphicsMagickSource::SendFrames(const Duration &duration, int loops,
-                             const volatile sig_atomic_t &interrupt_received,
-                             const Renderer::WriteFramebufferFun &sink) {
+void GraphicsMagickSource::SendFrames(
+    const Duration &duration, int loops,
+    const volatile sig_atomic_t &interrupt_received,
+    const Renderer::WriteFramebufferFun &sink) {
     if (options_.scroll_animation) {
         Scroll(duration, loops, interrupt_received, options_.scroll_dx,
                options_.scroll_dy, options_.scroll_delay, sink);
@@ -315,10 +318,11 @@ void GraphicsMagickSource::SendFrames(const Duration &duration, int loops,
 
 static int gcd(int a, int b) { return b == 0 ? a : gcd(b, a % b); }
 
-void GraphicsMagickSource::Scroll(const Duration &duration, int loops,
-                         const volatile sig_atomic_t &interrupt_received,
-                         int dx, int dy, const Duration &scroll_delay,
-                         const Renderer::WriteFramebufferFun &write_fb) {
+void GraphicsMagickSource::Scroll(
+    const Duration &duration, int loops,
+    const volatile sig_atomic_t &interrupt_received, int dx, int dy,
+    const Duration &scroll_delay,
+    const Renderer::WriteFramebufferFun &write_fb) {
     if (frames_.size() > 1) {
         if (kDebug)
             fprintf(stderr,

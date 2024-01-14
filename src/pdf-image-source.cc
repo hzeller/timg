@@ -34,9 +34,9 @@ std::string PDFImageSource::FormatTitle(
                                 (int)orig_height_, "pdf");
 }
 
-bool PDFImageSource::LoadAndScale(const DisplayOptions &opts,
-                                  int frame_offset, int frame_count) {
-    options_        = opts;
+bool PDFImageSource::LoadAndScale(const DisplayOptions &opts, int frame_offset,
+                                  int frame_count) {
+    options_ = opts;
 
     // Poppler wants a URI as input.
     const std::string uri = "file://" + fs::absolute(filename_).string();
@@ -47,7 +47,7 @@ bool PDFImageSource::LoadAndScale(const DisplayOptions &opts,
         return false;
     }
 
-    bool success = true;
+    bool success         = true;
     const int page_count = poppler_document_get_n_pages(document);
     const int start_page = std::max(0, frame_offset);
     const int max_display_page =
@@ -118,7 +118,7 @@ void PDFImageSource::SendFrames(const Duration &duration, int loops,
                                 const Renderer::WriteFramebufferFun &sink) {
     for (const auto &page : pages_) {
         const int dx = IndentationIfCentered(*page);
-        sink(dx, 0, *page, SeqType::FrameImmediate,  {});
+        sink(dx, 0, *page, SeqType::FrameImmediate, {});
     }
 }
 

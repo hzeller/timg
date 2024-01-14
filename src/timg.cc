@@ -377,7 +377,7 @@ static int PresentImages(LoadedImageSources *loaded_sources,
     };
 
     // Showing them in order of files on the command line.
-    bool is_first = true;
+    bool is_first    = true;
     int valid_images = 0;
     for (auto &source_future : *loaded_sources) {
         if (interrupt_received) break;
@@ -447,8 +447,7 @@ static int PrintVersion(FILE *stream) {
             LIBRSVG_MINOR_VERSION, LIBRSVG_MICRO_VERSION);
 #endif
 #ifdef WITH_TIMG_POPPLER
-    fprintf(stream, "PDF rendering with poppler %s\n",
-            poppler_get_version());
+    fprintf(stream, "PDF rendering with poppler %s\n", poppler_get_version());
 #endif
 #ifdef WITH_TIMG_QOI
     fprintf(stream, "QOI image loading\n");
