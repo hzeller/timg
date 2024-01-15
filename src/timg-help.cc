@@ -16,6 +16,7 @@
 #include "timg-help.h"
 
 #include <libdeflate.h>
+#include <stdlib.h>
 
 // Build  from create-manpage-inc.sh
 #include "timg-manpage.inc"
@@ -32,6 +33,7 @@ void InvokeHelpPager() {
 
     libdeflate_free_decompressor(decompress);
     if (result == LIBDEFLATE_SUCCESS) {
+        setenv("LESS", "-R", 1);  // Output terminal escape codes.
         FILE *myout = popen("${PAGER:-less}", "w");
         fwrite(uncompressed, 1, uncompressed_size, myout);
         pclose(myout);
