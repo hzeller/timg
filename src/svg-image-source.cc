@@ -23,6 +23,23 @@
 
 #include "framebuffer.h"
 
+// There is a thread-safety issue with RSVG + Cairo that manifests
+// as we LoadAndScale() in a thread-pool.
+// Typically crashing at _cairo_ft_scaled_glyph_load_glyph in the
+// call stack of rsvg_handle_render_document().
+//
+// Workaound: add a global mutex around rsvg_handle_render_document(), which
+// fixes it.
+//
+// TODO: figure out what the issue is, file bug upstream and make this
+// macro dependent on Cairo and RSVG Version macros if it is known which
+// version fixed it.
+#define RSVG_THREADSAFE_ISSUE 1
+
+#if RSVG_THREADSAFE_ISSUE
+#    include <mutex>
+#endif
+
 namespace timg {
 
 std::string SVGImageSource::FormatTitle(
@@ -83,7 +100,16 @@ bool SVGImageSource::LoadAndScale(const DisplayOptions &opts, int, int) {
         .height = orig_height_,
     };
 
+#if RSVG_THREADSAFE_ISSUE
+    static std::mutex render_mutex;
+    render_mutex.lock();
+#endif
+
     bool success = rsvg_handle_render_document(svg, cr, &viewport, nullptr);
+
+#if RSVG_THREADSAFE_ISSUE
+    render_mutex.unlock();
+#endif
 
     cairo_destroy(cr);
     cairo_surface_destroy(surface);
