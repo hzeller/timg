@@ -21,14 +21,36 @@
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 // Least amount of fuzziness on upscaling
 #define STBIR_DEFAULT_FILTER_UPSAMPLE STBIR_FILTER_BOX
-#include "stb/stb_image_resize.h"
+
+// There is an old and a new version of stb resize. Prefer newer if available
+// (tested for in CMake), and provide adapter functions to use either.
+#if STB_RESIZE_VERSION2
+#    include "stb/stb_image_resize2.h"
+inline void stb_resize_image(const unsigned char *input_pixels, int input_w,
+                             int input_h, unsigned char *output_pixels,
+                             int output_w, int output_h) {
+    static constexpr stbir_pixel_layout kFramebufferFormat = STBIR_RGBA;
+    stbir_resize_uint8_linear(input_pixels, input_w, input_h, 0,  //
+                              output_pixels, output_w, output_h, 0,
+                              kFramebufferFormat);
+}
+
+#else
+#    include "stb/stb_image_resize.h"
+inline void stb_resize_image(const unsigned char *input_pixels, int input_w,
+                             int input_h, unsigned char *output_pixels,
+                             int output_w, int output_h) {
+    static constexpr int kFramebufferFormat = 4;  // RGBA.
+    stbir_resize_uint8(input_pixels, input_w, input_h, 0,     //
+                       output_pixels, output_w, output_h, 0,  //
+                       kFramebufferFormat);
+}
+#endif
 
 // TODO: preprocessed frame and SendFrames() are similar to
 // image-display.cc. Maybe things can be consolidated.
 
-// Normalize on RGBA, so that it fits our Framebuffer format.
-static constexpr int kDesiredChannels = 4;
-
+static constexpr int kDesiredChannels = 4;  // RGBA, our framebuffer format
 namespace timg {
 class STBImageSource::PreprocessedFrame {
 public:
@@ -36,9 +58,8 @@ public:
                       int target_w, int target_h, const Duration &delay,
                       const DisplayOptions &opt)
         : delay_(delay), framebuffer_(target_w, target_h) {
-        stbir_resize_uint8(image_data, source_w, source_h, 0,
-                           (uint8_t *)framebuffer_.begin(), target_w, target_h,
-                           0, kDesiredChannels /*RGBA*/);
+        stb_resize_image(image_data, source_w, source_h,
+                         (uint8_t *)framebuffer_.begin(), target_w, target_h);
         framebuffer_.AlphaComposeBackground(
             opt.bgcolor_getter, opt.bg_pattern_color,
             opt.pattern_size * opt.cell_x_px,
