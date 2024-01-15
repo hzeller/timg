@@ -53,9 +53,11 @@
 #    include <sixel.h>
 #endif
 #ifdef WITH_TIMG_RSVG
+#    include <cairo-version.h>
 #    include <librsvg/rsvg.h>
 #endif
 #ifdef WITH_TIMG_POPPLER
+#    include <cairo-version.h>
 #    include <poppler.h>
 #endif
 
@@ -443,11 +445,14 @@ static int PrintVersion(FILE *stream) {
     fprintf(stream, "Turbo JPEG\n");
 #endif
 #ifdef WITH_TIMG_RSVG
-    fprintf(stream, "librsvg %d.%d.%d\n", LIBRSVG_MAJOR_VERSION,
-            LIBRSVG_MINOR_VERSION, LIBRSVG_MICRO_VERSION);
+    fprintf(stream, "librsvg %d.%d.%d + cairo %d.%d.%d\n",
+            LIBRSVG_MAJOR_VERSION, LIBRSVG_MINOR_VERSION, LIBRSVG_MICRO_VERSION,
+            CAIRO_VERSION_MAJOR, CAIRO_VERSION_MINOR, CAIRO_VERSION_MICRO);
 #endif
 #ifdef WITH_TIMG_POPPLER
-    fprintf(stream, "PDF rendering with poppler %s\n", poppler_get_version());
+    fprintf(stream, "PDF rendering with poppler %s + cairo %d.%d.%d\n",
+            poppler_get_version(), CAIRO_VERSION_MAJOR, CAIRO_VERSION_MINOR,
+            CAIRO_VERSION_MICRO);
 #endif
 #ifdef WITH_TIMG_QOI
     fprintf(stream, "QOI image loading\n");
@@ -466,12 +471,12 @@ static int PrintVersion(FILE *stream) {
 #ifdef WITH_TIMG_VIDEO
     fprintf(stream, "Video decoding %s\n", timg::VideoSource::VersionInfo());
 #endif
-    fprintf(stream,
-            "Half, quarter, iterm2, and kitty graphics output: "
-            "timg builtin.\n");
 #ifdef WITH_TIMG_SIXEL
     fprintf(stream, "Libsixel version %s\n", LIBSIXEL_VERSION);
 #endif
+    fprintf(stream,
+            "Half, quarter, iterm2, and kitty graphics output: "
+            "timg builtin.\n");
     return 0;
 }
 

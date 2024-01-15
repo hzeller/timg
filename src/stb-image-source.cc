@@ -40,7 +40,7 @@ inline void stb_resize_image(const unsigned char *input_pixels, int input_w,
 inline void stb_resize_image(const unsigned char *input_pixels, int input_w,
                              int input_h, unsigned char *output_pixels,
                              int output_w, int output_h) {
-    static constexpr int kFramebufferFormat = 4;  // RGBA.
+    static constexpr int kFramebufferFormat = 4;              // RGBA.
     stbir_resize_uint8(input_pixels, input_w, input_h, 0,     //
                        output_pixels, output_w, output_h, 0,  //
                        kFramebufferFormat);
