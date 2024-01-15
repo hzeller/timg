@@ -432,7 +432,7 @@ static const char *PixelationToString(Pixelation p) {
 static int PrintVersion(FILE *stream) {
     fprintf(stream, "timg " TIMG_VERSION
                     " <https://timg.sh/>\n"
-                    "Copyright (c) 2016..2023 Henner Zeller. "
+                    "Copyright (c) 2016..2024 Henner Zeller. "
                     "This program is free software; license GPL 2.0.\n\n");
 #ifdef WITH_TIMG_GRPAPHICSMAGICK
     fprintf(stream, "Image decoding %s\n",
