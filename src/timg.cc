@@ -460,11 +460,11 @@ static int PrintVersion(FILE *stream) {
 #ifdef WITH_TIMG_STB
     fprintf(stream,
             "STB image loading; STB resize v"
-#ifdef STB_RESIZE_VERSION2
+#    ifdef STB_RESIZE_VERSION2
             "2"
-#else
+#    else
             "1"
-#endif
+#    endif
 #    ifdef WITH_TIMG_GRPAPHICSMAGICK
             // If we have graphics magic, that will take images first,
             // so STB will only really be called as fallback.
