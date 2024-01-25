@@ -18,6 +18,7 @@ jobs:
           brew install ffmpeg jpeg-turbo libexif libpng
           brew install openslide
           brew install librsvg cairo
+          brew install poppler
           brew install pandoc
 
       - name: Get the Source
