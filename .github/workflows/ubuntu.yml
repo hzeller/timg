@@ -36,7 +36,7 @@ jobs:
         run: |
           mkdir build-limitdep
           cd build-limitdep
-          cmake .. -DWITH_VIDEO_DECODING=Off -DWITH_VIDEO_DEVICE=Off -DWITH_OPENSLIDE_SUPPORT=Off -DWITH_GRAPHICSMAGICK=Off -DWITH_TURBOJPEG=Off -DWITH_RSVG=Off -DWITH_LIBSIXEL=Off
+          cmake .. -DWITH_VIDEO_DECODING=Off -DWITH_VIDEO_DEVICE=Off -DWITH_OPENSLIDE_SUPPORT=Off -DWITH_GRAPHICSMAGICK=Off -DWITH_TURBOJPEG=Off -DWITH_RSVG=Off -DWITH_POPPLER=Off -DWITH_LIBSIXEL=Off
           make -k
 
       - name: Install Full Dependencies
