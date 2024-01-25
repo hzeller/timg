@@ -564,7 +564,7 @@ compile-time choices:
   * **`WITH_POPPLER`** High-quality and faster PDF renderer. Needs poppler
     and cairo.
     If not compiled-in, will fallback to GraphicsMagick, but that typically
-    results in lower quality renderings. Currently **OFF** by default.
+    results in lower quality renderings. Typically want this **ON** (default).
   * **`WITH_RSVG`** High-quality SVG renderer. Needs librsvg and cairo.
     If not compiled-in, will fallback to GraphicsMagick, but that typically
     results in lower quality renderings. Typically want this **ON** (default).

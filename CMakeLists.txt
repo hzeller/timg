@@ -10,7 +10,7 @@ option(WITH_VIDEO_DEVICE "Enables reading videos from devices e.g. v4l2 (require
 option(WITH_GRAPHICSMAGICK "Enable general image loading with Graphicsmagick. You typically want this." ON)
 option(WITH_TURBOJPEG "Optimized JPEG loading. You typically want this." ON)
 option(WITH_RSVG "Use librsvg to open SVG images." ON)
-option(WITH_POPPLER "Use poppler to render PDFs" OFF)
+option(WITH_POPPLER "Use poppler to render PDFs" ON)
 option(WITH_STB_IMAGE "Use STB image, a self-contained albeit limited image loading and lower quality. Use if WITH_GRAPHICSMAGICK is not possible and want to limit dependencies. Default on to be used as fallback." ON)
 option(WITH_QOI_IMAGE "QOI image format" ON)
 
