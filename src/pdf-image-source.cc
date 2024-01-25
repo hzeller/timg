@@ -53,14 +53,23 @@ bool PDFImageSource::LoadAndScale(const DisplayOptions &opts, int frame_offset,
     const int max_display_page =
         (frame_count < 0) ? page_count
                           : std::min(page_count, start_page + frame_count);
+    PopplerRectangle bounding_box;
     for (int page_num = start_page; page_num < max_display_page; ++page_num) {
         PopplerPage *const page = poppler_document_get_page(document, page_num);
         if (page == nullptr) {
             success = false;
             break;
         }
-
         poppler_page_get_size(page, &orig_width_, &orig_height_);
+        bounding_box = PopplerRectangle{
+            .x1 = 0, .y1 = 0, .x2 = orig_width_, .y2 = orig_height_};
+#if POPPLER_CHECK_VERSION(0, 88, 0)
+        if (opts.auto_crop) {
+            poppler_page_get_bounding_box(page, &bounding_box);
+            orig_width_  = bounding_box.x2 - bounding_box.x1;
+            orig_height_ = bounding_box.y2 - bounding_box.y1;
+        }
+#endif
         int target_width;
         int target_height;
         CalcScaleToFitDisplay(orig_width_, orig_height_, opts, false,
@@ -77,9 +86,11 @@ bool PDFImageSource::LoadAndScale(const DisplayOptions &opts, int frame_offset,
         cairo_surface_t *surface = cairo_image_surface_create_for_data(
             (uint8_t *)image->begin(), kCairoFormat, render_width,
             render_height, stride);
+
         cairo_t *cr = cairo_create(surface);
         cairo_scale(cr, 1.0 * render_width / orig_width_,
                     1.0 * render_height / orig_height_);
+        cairo_translate(cr, -bounding_box.x1, -bounding_box.y1);
         cairo_save(cr);
 
         // Fill background with page color.
