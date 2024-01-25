@@ -75,13 +75,10 @@ bool PDFImageSource::LoadAndScale(const DisplayOptions &opts, int frame_offset,
                 .x1 = 0, .y1 = 0, .x2 = orig_width_, .y2 = orig_height_};
         }
 
-        int target_width;
-        int target_height;
+        int render_width;
+        int render_height;
         CalcScaleToFitDisplay(orig_width_, orig_height_, opts, false,
-                              &target_width, &target_height);
-
-        int render_width  = target_width;
-        int render_height = target_height;
+                              &render_width, &render_height);
 
         const auto kCairoFormat = CAIRO_FORMAT_ARGB32;
         int stride = cairo_format_stride_for_width(kCairoFormat, render_width);
