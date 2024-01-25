@@ -60,16 +60,21 @@ bool PDFImageSource::LoadAndScale(const DisplayOptions &opts, int frame_offset,
             success = false;
             break;
         }
-        poppler_page_get_size(page, &orig_width_, &orig_height_);
-        bounding_box = PopplerRectangle{
-            .x1 = 0, .y1 = 0, .x2 = orig_width_, .y2 = orig_height_};
+
 #if POPPLER_CHECK_VERSION(0, 88, 0)
         if (opts.auto_crop) {
             poppler_page_get_bounding_box(page, &bounding_box);
             orig_width_  = bounding_box.x2 - bounding_box.x1;
             orig_height_ = bounding_box.y2 - bounding_box.y1;
         }
+        else
 #endif
+        {
+            poppler_page_get_size(page, &orig_width_, &orig_height_);
+            bounding_box = PopplerRectangle{
+                .x1 = 0, .y1 = 0, .x2 = orig_width_, .y2 = orig_height_};
+        }
+
         int target_width;
         int target_height;
         CalcScaleToFitDisplay(orig_width_, orig_height_, opts, false,
@@ -110,7 +115,6 @@ bool PDFImageSource::LoadAndScale(const DisplayOptions &opts, int frame_offset,
             std::swap(pixel.r, pixel.b);
         }
 
-        // TODO: implement auto-crop and crop-border
         pages_.emplace_back(std::move(image));
     }
     g_object_unref(document);

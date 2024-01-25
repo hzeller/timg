@@ -450,9 +450,14 @@ static int PrintVersion(FILE *stream) {
             CAIRO_VERSION_MAJOR, CAIRO_VERSION_MINOR, CAIRO_VERSION_MICRO);
 #endif
 #ifdef WITH_TIMG_POPPLER
-    fprintf(stream, "PDF rendering with poppler %s + cairo %d.%d.%d\n",
+    fprintf(stream, "PDF rendering with poppler %s + cairo %d.%d.%d",
             poppler_get_version(), CAIRO_VERSION_MAJOR, CAIRO_VERSION_MINOR,
             CAIRO_VERSION_MICRO);
+#    if not POPPLER_CHECK_VERSION(0, 88, 0)
+    // Too old versions of poppler don't have a bounding-box function
+    fprintf(stream, " (no --auto-crop)");
+#    endif
+    fprintf(stream, "\n");
 #endif
 #ifdef WITH_TIMG_QOI
     fprintf(stream, "QOI image loading\n");
