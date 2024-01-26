@@ -232,10 +232,7 @@ TermGraphicsInfo QuerySupportedGraphicsProtocol() {
                           result.preferred_graphics = GraphicsProtocol::kIterm2;
                       }
                       if (contains(data, len, "WezTerm")) {
-                          // Kitty seems to work better with animations
-                          // on wezterm currently
-                          // https://github.com/wez/wezterm/issues/3882
-                          result.preferred_graphics = GraphicsProtocol::kKitty;
+                          result.preferred_graphics = GraphicsProtocol::kIterm2;
                           result.known_broken_sixel_cursor_placement = true;
                       }
                       if (contains(data, len, "kitty")) {
