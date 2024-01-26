@@ -251,6 +251,9 @@ TermGraphicsInfo QuerySupportedGraphicsProtocol() {
                           result.preferred_graphics = GraphicsProtocol::kSixel;
                           result.known_broken_sixel_cursor_placement = true;
                       }
+                      if (contains(data, len, "foot")) {
+                          result.preferred_graphics = GraphicsProtocol::kSixel;
+                      }
                       if (contains(data, len, "tmux")) {
                           result.in_tmux = true;
                       }
