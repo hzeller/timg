@@ -875,10 +875,10 @@ int main(int argc, char *argv[]) {
         bg_color = "none";
     }
 
-    // If 'none' is chosen for background color, then emitting the
-    // PNG with alpha channels gives us compositing on client side.
-    if (is_pixel_direct_p(present.pixelation) &&
-        (strcasecmp(bg_color.c_str(), "none") == 0)) {
+    // If 'none' is chosen for background color, that implies local alpha
+    // handling; an optimization to emit RGB instead of RGBA for hi-res
+    // terminals or sending whitespace for background cut-off in block-display.
+    if ((strcasecmp(bg_color.c_str(), "none") == 0)) {
         display_opts.local_alpha_handling = false;
     }
 
@@ -1119,6 +1119,14 @@ int main(int argc, char *argv[]) {
                     "\t-> Checker pattern color  '%s', "
                     "RGB #%02x%02x%02x\n",
                     bg_pattern_color, checker_bg.r, checker_bg.g, checker_bg.b);
+        }
+        if (display_opts.local_alpha_handling) {
+            fprintf(stderr,
+                    "Alpha-channel merging with "
+                    "background color done by timg.\n");
+        }
+        else {
+            fprintf(stderr, "Alpha-channel handled by terminal.\n");
         }
         const Duration d = end_show - start_show;
         const uint64_t written_bytes =
