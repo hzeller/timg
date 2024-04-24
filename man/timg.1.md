@@ -311,9 +311,9 @@ Most likely commonly needed options first.
 
 **-\-debug-no-frame-delay**
 :    Don't delay frames in videos or animations but emit as fast as possible.
-     This might be useful for developers of terminal emulations to do performace
-     tests or simply if you want to redirect the output to a file and don't
-     want to wait.
+     This might be useful for developers of terminal emulations to do
+     performance tests or simply if you want to redirect the output to a file
+     and don't want to wait.
 
 ## For Animations, Scrolling, or Video
 
