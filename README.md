@@ -381,7 +381,7 @@ also possible to just shorten to `-ph` and `-pq`. Default is `-pq`
 (see [above](#pixelation) how this looks like).
 
 Terminals that don't support Unicode or 24 bit color will probably not show
-a very pleasent output. For terminals that only do 8 bit color, use the
+a very pleasant output. For terminals that only do 8 bit color, use the
 `--color8` command line option.
 
 
