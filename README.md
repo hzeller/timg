@@ -519,14 +519,15 @@ a nix shell
 nix-shell
 ```
 
-#### Get dependencies on fedora
+#### Get dependencies on Fedora
 
 ```bash
 sudo dnf install cmake git g++ pkg-config
-sudo dnf install GraphicsMagick-c++-devel turbojpeg-devel libexif-devel libswscale-free-devel librsvg2-devel cairo-devel
+sudo dnf install GraphicsMagick-c++-devel turbojpeg-devel libexif-devel libswscale-free-devel librsvg2-devel cairo-devel libdeflate-devel poppler-glib-devel libsixel-devel qoi-devel
 
 # If you want to include video decoding, also install these additional libraries
 sudo dnf install libavcodec-free-devel libavformat-free-devel libavdevice-free-devel openslide-devel
+
 sudo dnf install pandoc  # If you want to recreate the man page
 ```
 
