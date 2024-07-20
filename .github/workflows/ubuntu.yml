@@ -68,7 +68,7 @@ jobs:
           build/src/timg --version
 
   CodeFormatting:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
 
@@ -79,7 +79,7 @@ jobs:
 
     - name: Install Dependencies
       run: |
-        sudo apt-get install clang-format-13
+        sudo apt-get install clang-format-17
 
     - name: Run formatting style check
       run: ./.github/bin/run-clang-format.sh
