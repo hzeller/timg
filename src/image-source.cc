@@ -293,12 +293,11 @@ std::string ImageSource::FormatFromParameters(const std::string &fmt_string,
 }
 
 static bool HasAPNGHeader(const std::string &filename) {
-    // Somewhat handwavy: the "acTL" chunk could of course be at other places as
-    // well, let's assume it is just after IHDR.
+    static constexpr size_t kPngHeaderLen = 8;
+
+    // Iterate through headers in the first kibibyte until we find an acTL one.
     int fd = open(filename.c_str(), O_RDONLY);
     if (fd < 0) return false;
-    // Iterate through headers until we find some acTL one.
-    static constexpr size_t kPngHeaderLen = 8;
     size_t pos = kPngHeaderLen;
     uint8_t buf[8];
     bool found_actl_header = false;
@@ -307,7 +306,7 @@ static bool HasAPNGHeader(const std::string &filename) {
         if (len < 0 || len != 8) break;  // Best effort.
         found_actl_header = (memcmp(buf + 4, "acTL", 4) == 0);
         // Header contains data length; add sizeof() for len, CRC, and ChunkType
-        pos += ntohl(*(uint32_t*)buf) + 12;
+        pos += ntohl(*(uint32_t *)buf) + 12;
     }
     close(fd);
     return found_actl_header;
