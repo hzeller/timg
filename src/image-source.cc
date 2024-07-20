@@ -15,7 +15,7 @@
 
 #include "image-source.h"
 
-// Various implementations we try in the constructor
+#include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <math.h>
@@ -297,12 +297,20 @@ static bool HasAPNGHeader(const std::string &filename) {
     // well, let's assume it is just after IHDR.
     int fd = open(filename.c_str(), O_RDONLY);
     if (fd < 0) return false;
-    char actl_sig[4]                   = {};
-    static constexpr int kPngHeaderLen = 8;
-    static constexpr int kPngIHDRLen   = 8 + 13 + 4;
-    const ssize_t len = pread(fd, actl_sig, 4, kPngHeaderLen + kPngIHDRLen + 4);
+    // Iterate through headers until we find some acTL one.
+    static constexpr size_t kPngHeaderLen = 8;
+    size_t pos = kPngHeaderLen;
+    uint8_t buf[8];
+    bool found_actl_header = false;
+    while (!found_actl_header && pos < 1024) {
+        const ssize_t len = pread(fd, buf, 8, pos);
+        if (len < 0 || len != 8) break;  // Best effort.
+        found_actl_header = (memcmp(buf + 4, "acTL", 4) == 0);
+        // Header contains data length; add sizeof() for len, CRC, and ChunkType
+        pos += ntohl(*(uint32_t*)buf) + 12;
+    }
     close(fd);
-    return len == 4 && memcmp(actl_sig, "acTL", 4) == 0;
+    return found_actl_header;
 }
 
 bool ImageSource::LooksLikeAPNG(const std::string &filename) {
