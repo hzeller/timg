@@ -64,9 +64,7 @@ public:
         return Duration(1000000000, 0);  // a few years; infinite enough :)
     }
 
-    struct timespec AsTimespec() const {
-        return duration_;
-    }
+    struct timespec AsTimespec() const { return duration_; }
     struct timeval AsTimeval() const {
         return {duration_.tv_sec, (suseconds_t)(duration_.tv_nsec / 1000)};
     }
