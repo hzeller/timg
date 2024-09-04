@@ -96,7 +96,7 @@ jobs:
 
     steps:
     - name: 📥 Download artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4.1.8
 
     - uses: actions/checkout@v3
       with:
