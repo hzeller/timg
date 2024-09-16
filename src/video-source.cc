@@ -43,19 +43,9 @@ extern "C" {
 #if HAVE_AVDEVICE
 #include <libavdevice/avdevice.h>
 #endif
-#include <libavcodec/codec.h>
-#include <libavcodec/codec_par.h>
-#include <libavcodec/packet.h>
 #include <libavformat/avformat.h>
-#include <libavformat/version.h>
-#include <libavutil/avutil.h>
-#include <libavutil/error.h>
-#include <libavutil/frame.h>
 #include <libavutil/log.h>
-#include <libavutil/macros.h>
 #include <libavutil/pixfmt.h>
-#include <libavutil/rational.h>
-#include <libavutil/version.h>
 #include <libswscale/swscale.h>
 }
 
