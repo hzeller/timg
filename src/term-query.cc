@@ -15,10 +15,9 @@
 
 #include "term-query.h"
 
-#include <asm-generic/ioctls.h>
 #include <bits/types/struct_timeval.h>
 #include <fcntl.h>
-#include <string.h>
+#include <string.h>  // for memmem()
 #include <sys/ioctl.h>
 #include <sys/select.h>
 #include <termios.h>
@@ -26,7 +25,6 @@
 
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
 #include <functional>
 
 #include "timg-time.h"

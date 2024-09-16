@@ -17,7 +17,6 @@
 #include "openslide-source.h"
 
 #include <openslide.h>
-#include <unistd.h>
 
 #include <csignal>
 #include <cstdarg>
