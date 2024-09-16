@@ -15,7 +15,6 @@
 
 #include "term-query.h"
 
-#include <bits/types/struct_timeval.h>
 #include <fcntl.h>
 #include <string.h>  // for memmem()
 #include <sys/ioctl.h>
@@ -25,6 +24,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <ctime>
 #include <functional>
 
 #include "timg-time.h"
