@@ -17,11 +17,15 @@
 #ifndef OPENSLIDE_SOURCE_H_
 #define OPENSLIDE_SOURCE_H_
 
+#include <csignal>
 #include <memory>
+#include <string>
 
 #include "display-options.h"
+#include "framebuffer.h"
 #include "image-source.h"
-#include "terminal-canvas.h"
+#include "renderer.h"
+#include "timg-time.h"
 
 namespace timg {
 // Special case for JPEG decoding, as we can make use of decode+rough_scale

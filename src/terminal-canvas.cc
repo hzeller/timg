@@ -15,12 +15,13 @@
 
 #include "terminal-canvas.h"
 
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/time.h>
-#include <unistd.h>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <utility>
+
+#include "buffered-write-sequencer.h"
 
 #define SCREEN_CURSOR_UP_FORMAT    "\033[%dA"  // Move cursor up given lines.
 #define SCREEN_CURSOR_DN_FORMAT    "\033[%dB"  // Move cursor down given lines.

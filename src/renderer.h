@@ -20,8 +20,11 @@
 #include <memory>
 #include <string>
 
+#include "buffered-write-sequencer.h"
 #include "display-options.h"
+#include "framebuffer.h"
 #include "terminal-canvas.h"
+#include "timg-time.h"
 
 namespace timg {
 // A renderer for framebuffers. The renderer provides a callback to which

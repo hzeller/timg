@@ -34,51 +34,63 @@
 #include "utils.h"
 
 #ifdef WITH_TIMG_SIXEL
-#    include "sixel-canvas.h"
+#include "sixel-canvas.h"
 #endif
 
 // To display version number
 #ifdef WITH_TIMG_OPENSLIDE_SUPPORT
-#    include "openslide-source.h"
+#include "openslide-source.h"
 #endif
 #ifdef WITH_TIMG_VIDEO
-#    include "video-source.h"
+#include "video-source.h"
 #endif
 #ifdef WITH_TIMG_GRPAPHICSMAGICK
-#    include <Magick++.h>
+#include <Magick++.h>
 
-#    include "graphics-magick-source.h"
+#include "graphics-magick-source.h"
 #endif
 #ifdef WITH_TIMG_SIXEL
-#    include <sixel.h>
+#include <sixel.h>
 #endif
 #ifdef WITH_TIMG_RSVG
-#    include <cairo-version.h>
-#    include <librsvg/rsvg.h>
+#include <cairo-version.h>
+#include <librsvg/rsvg.h>
 #endif
 #ifdef WITH_TIMG_POPPLER
-#    include <cairo-version.h>
-#    include <poppler.h>
+#include <cairo-version.h>
+#include <poppler.h>
 #endif
 
-#include <errno.h>
+// The following is to work around clang-tidy being confused and not
+// understanding that unistd.h indeed provides getopt(). So let's include
+// unistd.h for correctness, and then soothe clang-tidy with decls.
+// TODO: how make it just work with including unistd.h ?
+#include <unistd.h>                            // NOLINT
+extern "C" {                                   //
+extern char *optarg;                           // NOLINT
+extern int optind;                             // NOLINT
+int getopt(int, char *const *, const char *);  // NOLINT
+}
+
 #include <fcntl.h>
 #include <getopt.h>
-#include <inttypes.h>
 #include <libswscale/swscale.h>  // Only needed for version.
-#include <math.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <strings.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <unistd.h>
 
+#include <cctype>
+#include <cerrno>
+#include <cinttypes>
+#include <cmath>
+#include <csignal>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <fstream>
+#include <functional>
 #include <future>
-#include <iostream>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -86,8 +98,10 @@
 #include <thread>
 #include <vector>
 
+#include "framebuffer.h"
+
 #ifndef TIMG_VERSION
-#    define TIMG_VERSION "(unknown)"
+#define TIMG_VERSION "(unknown)"
 #endif
 
 using timg::Duration;
@@ -453,10 +467,10 @@ static int PrintVersion(FILE *stream) {
     fprintf(stream, "PDF rendering with poppler %s + cairo %d.%d.%d",
             poppler_get_version(), CAIRO_VERSION_MAJOR, CAIRO_VERSION_MINOR,
             CAIRO_VERSION_MICRO);
-#    if not POPPLER_CHECK_VERSION(0, 88, 0)
+#if not POPPLER_CHECK_VERSION(0, 88, 0)
     // Too old versions of poppler don't have a bounding-box function
     fprintf(stream, " (no --auto-crop)");
-#    endif
+#endif
     fprintf(stream, "\n");
 #endif
 #ifdef WITH_TIMG_QOI
@@ -465,16 +479,16 @@ static int PrintVersion(FILE *stream) {
 #ifdef WITH_TIMG_STB
     fprintf(stream,
             "STB image loading; STB resize v"
-#    ifdef STB_RESIZE_VERSION2
+#ifdef STB_RESIZE_VERSION2
             "2"
-#    else
+#else
             "1"
-#    endif
-#    ifdef WITH_TIMG_GRPAPHICSMAGICK
+#endif
+#ifdef WITH_TIMG_GRPAPHICSMAGICK
             // If we have graphics magic, that will take images first,
             // so STB will only really be called as fallback.
             " (fallback)"
-#    endif
+#endif
             "\n");
 #endif
     fprintf(stream, "swscale %s\n", AV_STRINGIFY(LIBSWSCALE_VERSION));

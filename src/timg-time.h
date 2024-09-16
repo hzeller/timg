@@ -16,24 +16,22 @@
 #ifndef TIMG_TIME_H_
 #define TIMG_TIME_H_
 
-#include <stdint.h>
-#include <stdio.h>
 #include <sys/time.h>
-#include <time.h>
+#include <time.h>  // NOLINT  needs to be time.h not ctime
 #include <unistd.h>
+
+#include <cstdint>
+
 // Type-safe representation of time and duration.
 // Inspired by golang and absl.
 
 namespace timg {
 class Duration {
 public:
-    constexpr Duration(const Duration &other) : duration_(other.duration_) {}
+    constexpr Duration(const Duration &other) = default;
     constexpr Duration() : duration_({0, 0}) {}
 
-    Duration &operator=(const Duration &other) {
-        duration_ = other.duration_;
-        return *this;
-    }
+    Duration &operator=(const Duration &other) = default;
 
     bool operator==(const Duration &other) const {
         return (duration_.tv_sec == other.duration_.tv_sec &&
@@ -52,16 +50,16 @@ public:
     }
 
     static constexpr Duration Millis(int64_t ms) {
-        return Duration(ms / 1000, (ms % 1000) * 1000000);
+        return {ms / 1000, (ms % 1000) * 1000000};
     }
     static constexpr Duration Micros(int64_t usec) {
-        return Duration(usec / 1000, (usec % 1000000) * 1000);
+        return {usec / 1000, (usec % 1000000) * 1000};
     }
     static constexpr Duration Nanos(int64_t nanos) {
-        return Duration(nanos / 1000000000, nanos % 1000000000);
+        return {nanos / 1000000000, nanos % 1000000000};
     }
     static constexpr Duration InfiniteFuture() {
-        return Duration(1000000000, 0);  // a few years; infinite enough :)
+        return {1000000000, 0};  // a few years; infinite enough :)
     }
 
     struct timespec AsTimespec() const { return duration_; }

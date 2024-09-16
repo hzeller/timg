@@ -17,11 +17,16 @@
 
 #include <cairo.h>
 #include <librsvg/rsvg.h>
-#include <stdlib.h>
 
 #include <algorithm>
+#include <csignal>
+#include <string>
 
+#include "buffered-write-sequencer.h"
+#include "display-options.h"
 #include "framebuffer.h"
+#include "renderer.h"
+#include "timg-time.h"
 
 // There is a thread-safety issue with RSVG + Cairo that manifests
 // as we LoadAndScale() in a thread-pool.
@@ -37,7 +42,7 @@
 #define RSVG_THREADSAFE_ISSUE 1
 
 #if RSVG_THREADSAFE_ISSUE
-#    include <mutex>
+#include <mutex>
 #endif
 
 namespace timg {

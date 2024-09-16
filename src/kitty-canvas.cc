@@ -17,10 +17,22 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstddef>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+#include <functional>
+#include <memory>
 
+#include "buffered-write-sequencer.h"
+#include "display-options.h"
+#include "terminal-canvas.h"
+#include "thread-pool.h"
 #include "timg-base64.h"
 #include "timg-png.h"
+#include "timg-time.h"
 
 #define SCREEN_CURSOR_UP_FORMAT    "\033[%dA"  // Move cursor up given lines.
 #define SCREEN_CURSOR_RIGHT_FORMAT "\033[%dC"  // Move cursor right given cols

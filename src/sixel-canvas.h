@@ -16,8 +16,11 @@
 #ifndef SIXEL_CANVAS_H
 #define SIXEL_CANVAS_H
 
+#include "buffered-write-sequencer.h"
 #include "display-options.h"
+#include "framebuffer.h"
 #include "terminal-canvas.h"
+#include "timg-time.h"
 
 namespace timg {
 class ThreadPool;

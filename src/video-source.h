@@ -16,10 +16,13 @@
 #ifndef VIDEO_SOURCE_H_
 #define VIDEO_SOURCE_H_
 
-#include <signal.h>
+#include <csignal>
+#include <string>
 
+#include "display-options.h"
+#include "framebuffer.h"
 #include "image-source.h"
-#include "terminal-canvas.h"
+#include "renderer.h"
 #include "timg-time.h"
 
 struct AVCodecContext;

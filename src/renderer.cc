@@ -15,10 +15,15 @@
 
 #include "renderer.h"
 
-#include <string.h>
-#include <unistd.h>
-
+#include <algorithm>
 #include <memory>
+#include <string>
+
+#include "buffered-write-sequencer.h"
+#include "display-options.h"
+#include "framebuffer.h"
+#include "terminal-canvas.h"
+#include "timg-time.h"
 
 namespace timg {
 std::string Renderer::TrimTitle(const std::string &title,

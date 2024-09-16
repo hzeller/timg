@@ -19,8 +19,16 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstring>
+#include <functional>
+#include <memory>
 
+#include "buffered-write-sequencer.h"
+#include "display-options.h"
+#include "framebuffer.h"
+#include "terminal-canvas.h"
 #include "thread-pool.h"
+#include "timg-time.h"
 
 #define CSI "\033["
 

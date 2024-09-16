@@ -15,9 +15,18 @@
 
 #include "buffered-write-sequencer.h"
 
-#include <assert.h>
-#include <stdint.h>
-#include <stdlib.h>
+#include <unistd.h>
+
+#include <cassert>
+#include <csignal>
+#include <cstdint>
+#include <cstdlib>
+#include <future>
+#include <mutex>
+#include <thread>
+#include <utility>
+
+#include "timg-time.h"
 
 namespace timg {
 

@@ -15,11 +15,12 @@
 
 #include "framebuffer.h"
 
-#include <assert.h>
-#include <math.h>
-#include <stdio.h>
-#include <string.h>
 #include <strings.h>
+
+#include <cassert>
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
 
 namespace timg {
 

@@ -18,21 +18,44 @@
 
 #include "video-source.h"
 
-#include <mutex>
-#include <thread>
-#include <utility>
+#include <strings.h>
 
+#include <algorithm>
+#include <csignal>
+#include <cstdarg>
+#include <cstddef>
+#include <cstdio>
+#include <cstring>
+#include <mutex>
+#include <string>
+#include <thread>
+
+#include "buffered-write-sequencer.h"
+#include "display-options.h"
+#include "framebuffer.h"
+#include "image-source.h"
+#include "renderer.h"
 #include "timg-time.h"
 
 // libav: "U NO extern C in header ?"
 extern "C" {
 #include <libavcodec/avcodec.h>
 #if HAVE_AVDEVICE
-#    include <libavdevice/avdevice.h>
+#include <libavdevice/avdevice.h>
 #endif
+#include <libavcodec/codec.h>
+#include <libavcodec/codec_par.h>
+#include <libavcodec/packet.h>
 #include <libavformat/avformat.h>
-#include <libavutil/imgutils.h>
+#include <libavformat/version.h>
+#include <libavutil/avutil.h>
+#include <libavutil/error.h>
+#include <libavutil/frame.h>
 #include <libavutil/log.h>
+#include <libavutil/macros.h>
+#include <libavutil/pixfmt.h>
+#include <libavutil/rational.h>
+#include <libavutil/version.h>
 #include <libswscale/swscale.h>
 }
 
@@ -55,9 +78,10 @@ static SwsContext *CreateSWSContext(const AVCodecContext *codec_ctx,
     case AV_PIX_FMT_YUVJ440P: src_pix_fmt = AV_PIX_FMT_YUV440P; break;
     default: src_range_extended_yuvj = false; src_pix_fmt = codec_ctx->pix_fmt;
     }
-    SwsContext *swsCtx = sws_getContext(
-        codec_ctx->width, codec_ctx->height, src_pix_fmt, display_width,
-        display_height, AV_PIX_FMT_RGBA, SWS_BILINEAR, NULL, NULL, NULL);
+    SwsContext *swsCtx =
+        sws_getContext(codec_ctx->width, codec_ctx->height, src_pix_fmt,
+                       display_width, display_height, AV_PIX_FMT_RGBA,
+                       SWS_BILINEAR, nullptr, nullptr, nullptr);
     if (src_range_extended_yuvj) {
         // Manually set the source range to be extended. Read modify write.
         int dontcare[4];
@@ -138,7 +162,8 @@ bool VideoSource::LoadAndScale(const DisplayOptions &display_options,
 
     format_context_ = avformat_alloc_context();
     int ret;
-    if ((ret = avformat_open_input(&format_context_, file, NULL, NULL)) != 0) {
+    if ((ret = avformat_open_input(&format_context_, file, nullptr, nullptr)) !=
+        0) {
         char msg[100];
         av_strerror(ret, msg, sizeof(msg));
         if (kDebug) fprintf(stderr, "%s: %s\n", file, msg);
@@ -153,7 +178,7 @@ bool VideoSource::LoadAndScale(const DisplayOptions &display_options,
         return false;
     }
 
-    if (avformat_find_stream_info(format_context_, NULL) < 0) {
+    if (avformat_find_stream_info(format_context_, nullptr) < 0) {
         if (kDebug) fprintf(stderr, "Couldn't find stream information\n");
         return false;
     }
@@ -185,7 +210,7 @@ bool VideoSource::LoadAndScale(const DisplayOptions &display_options,
     }
     if (avcodec_parameters_to_context(codec_context_, codec_parameters) < 0)
         return false;
-    if (avcodec_open2(codec_context_, av_codec, NULL) < 0 ||
+    if (avcodec_open2(codec_context_, av_codec, nullptr) < 0 ||
         codec_context_->width <= 0 || codec_context_->height <= 0)
         return false;
 

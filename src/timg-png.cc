@@ -15,10 +15,12 @@
 
 #include "timg-png.h"
 
-#include <arpa/inet.h>
-#include <assert.h>
 #include <libdeflate.h>
-#include <string.h>
+#include <netinet/in.h>
+
+#include <cassert>
+#include <cstdint>
+#include <cstring>
 
 #include "framebuffer.h"
 

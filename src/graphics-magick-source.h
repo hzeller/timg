@@ -16,14 +16,13 @@
 #ifndef GRAPHICS_MAGICK_SOURCE_H_
 #define GRAPHICS_MAGICK_SOURCE_H_
 
-#include <signal.h>
-
+#include <csignal>
+#include <string>
 #include <vector>
 
 #include "display-options.h"
 #include "image-source.h"
 #include "renderer.h"
-#include "terminal-canvas.h"
 #include "timg-time.h"
 
 namespace timg {

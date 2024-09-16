@@ -18,8 +18,7 @@
 
 // This implements a simple and fast PNG encoder https://w3.org/TR/png/
 
-#include <stdint.h>
-#include <unistd.h>
+#include <cstddef>
 
 namespace timg {
 class Framebuffer;

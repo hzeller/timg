@@ -16,10 +16,9 @@
 #ifndef TIMG_FRAMEBUFFER_H
 #define TIMG_FRAMEBUFFER_H
 
-#include <math.h>
-#include <stdint.h>
-#include <string.h>
-
+#include <cmath>
+#include <cstdint>
+#include <cstring>
 #include <functional>
 #include <initializer_list>
 

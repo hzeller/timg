@@ -16,12 +16,23 @@
 #include "qoi-image-source.h"
 
 #define QOI_IMPLEMENTATION
-#include <stdlib.h>
-
-#include "framebuffer.h"
 #include "qoi.h"
+//
+
+#include <csignal>
+#include <cstdarg>
+#include <cstdlib>
+#include <cstring>
+#include <string>
+
+#include "buffered-write-sequencer.h"
+#include "display-options.h"
+#include "framebuffer.h"
+#include "renderer.h"
+#include "timg-time.h"
 
 extern "C" {
+#include <libavutil/log.h>
 #include <libavutil/pixfmt.h>
 #include <libswscale/swscale.h>
 }

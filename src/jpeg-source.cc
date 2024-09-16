@@ -16,20 +16,36 @@
 #include "jpeg-source.h"
 
 #include <fcntl.h>
+#include <libexif/exif-content.h>
 #include <libexif/exif-data.h>
-#include <stdint.h>
-#include <string.h>
+#include <libexif/exif-entry.h>
+#include <libexif/exif-format.h>
+#include <libexif/exif-ifd.h>
+#include <libexif/exif-tag.h>
+#include <libexif/exif-utils.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 #include <turbojpeg.h>
 #include <unistd.h>
 
+#include <csignal>
+#include <cstdarg>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <functional>
+#include <memory>
+#include <string>
 #include <utility>
 
-#include "terminal-canvas.h"
+#include "buffered-write-sequencer.h"
+#include "display-options.h"
+#include "framebuffer.h"
+#include "renderer.h"
+#include "timg-time.h"
 
-extern "C" {
+extern "C" {  // avutil is missing extern "C"
+#include <libavutil/log.h>
 #include <libavutil/pixfmt.h>
 #include <libswscale/swscale.h>
 }
@@ -200,9 +216,10 @@ bool JPEGSource::LoadAndScale(const DisplayOptions &opts, int, int) {
 
     // Further scaling to desired target width/height
     av_log_set_callback(dummy_log);
-    SwsContext *swsCtx = sws_getContext(
-        decode_width, decode_height, AV_PIX_FMT_RGBA, target_width,
-        target_height, AV_PIX_FMT_RGBA, SWS_BILINEAR, NULL, NULL, NULL);
+    SwsContext *swsCtx =
+        sws_getContext(decode_width, decode_height, AV_PIX_FMT_RGBA,
+                       target_width, target_height, AV_PIX_FMT_RGBA,
+                       SWS_BILINEAR, nullptr, nullptr, nullptr);
     if (!swsCtx) return false;
     image_.reset(new timg::Framebuffer(target_width, target_height));
 

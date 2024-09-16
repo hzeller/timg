@@ -18,8 +18,11 @@
 #ifndef TIMG_THREAD_POOL
 #define TIMG_THREAD_POOL
 
+#include <condition_variable>
 #include <deque>
+#include <functional>
 #include <future>
+#include <mutex>
 #include <thread>
 #include <vector>
 

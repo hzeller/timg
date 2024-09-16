@@ -16,10 +16,14 @@
 #ifndef TIMG_STB_IMAGE_SOURCE_H
 #define TIMG_STB_IMAGE_SOURCE_H
 
-#include <memory>
+#include <csignal>
+#include <string>
+#include <vector>
 
 #include "display-options.h"
 #include "image-source.h"
+#include "renderer.h"
+#include "timg-time.h"
 
 namespace timg {
 // STB image loader fallback. Not pretty and should only be used as fallback.

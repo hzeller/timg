@@ -16,17 +16,23 @@
 #include "graphics-magick-source.h"
 
 #include <Magick++.h>
-#include <assert.h>
 #include <magick/image.h>
-#include <math.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
+#include <strings.h>
 
 #include <algorithm>
+#include <cassert>
+#include <cmath>
+#include <csignal>
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
+#include <exception>
+#include <string>
 
-#include "terminal-canvas.h"
+#include "buffered-write-sequencer.h"
+#include "display-options.h"
+#include "framebuffer.h"
+#include "renderer.h"
 #include "timg-time.h"
 
 static constexpr bool kDebug = false;

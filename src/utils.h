@@ -16,6 +16,7 @@
 #ifndef TIMG_UTILS_H
 #define TIMG_UTILS_H
 
+#include <cstdint>
 #include <string>
 
 namespace timg {

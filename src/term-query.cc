@@ -15,19 +15,19 @@
 
 #include "term-query.h"
 
+#include <asm-generic/ioctls.h>
+#include <bits/types/struct_timeval.h>
 #include <fcntl.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/select.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <termios.h>
 #include <unistd.h>
 
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <functional>
-#include <initializer_list>
 
 #include "timg-time.h"
 

@@ -15,10 +15,10 @@
 #ifndef BUFFERED_WRITE_SEQUENCER_H_
 #define BUFFERED_WRITE_SEQUENCER_H_
 
-#include <signal.h>
-#include <stddef.h>
-
 #include <condition_variable>
+#include <csignal>
+#include <cstddef>
+#include <cstdint>
 #include <future>
 #include <mutex>
 #include <queue>

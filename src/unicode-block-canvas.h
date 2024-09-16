@@ -16,12 +16,13 @@
 #ifndef UNICODE_BLOCK_CANVAS_H_
 #define UNICODE_BLOCK_CANVAS_H_
 
-#include <stddef.h>
-#include <sys/types.h>
-
 #include <cassert>
+#include <cstddef>
 
+#include "buffered-write-sequencer.h"
+#include "framebuffer.h"
 #include "terminal-canvas.h"
+#include "timg-time.h"
 
 namespace timg {
 

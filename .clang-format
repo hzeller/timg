@@ -16,5 +16,4 @@ BraceWrapping:
 ContinuationIndentWidth: 4
 IndentAccessModifiers: false
 IndentCaseLabels: false
-IndentPPDirectives: AfterHash
 IndentWidth: 4

@@ -15,20 +15,23 @@
 
 #include "image-source.h"
 
-#include <arpa/inet.h>
-#include <errno.h>
 #include <fcntl.h>
-#include <math.h>
-#include <string.h>
+#include <netinet/in.h>
 #include <strings.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 #include <unistd.h>
 
+#include <cerrno>
+#include <cmath>
+#include <cstdint>
+#include <cstring>
 #include <memory>
 #include <sstream>
+#include <string>
 #include <utility>
 
+// Various implementations for the factory.
+#include "display-options.h"
 #include "graphics-magick-source.h"
 #include "jpeg-source.h"
 #include "openslide-source.h"

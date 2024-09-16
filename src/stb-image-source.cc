@@ -16,7 +16,18 @@
 #include "stb-image-source.h"
 
 #define STB_IMAGE_IMPLEMENTATION
+#include <csignal>
+#include <cstdint>
+#include <cstdio>
+#include <string>
+
+#include "buffered-write-sequencer.h"
+#include "display-options.h"
+#include "framebuffer.h"
+#include "image-source.h"
+#include "renderer.h"
 #include "stb/stb_image.h"
+#include "timg-time.h"
 
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 // Least amount of fuzziness on upscaling
@@ -25,7 +36,7 @@
 // There is an old and a new version of stb resize. Prefer newer if available
 // (tested for in CMake), and provide adapter functions to use either.
 #if STB_RESIZE_VERSION2
-#    include "stb/stb_image_resize2.h"
+#include "stb/stb_image_resize2.h"
 inline void stb_resize_image(const unsigned char *input_pixels, int input_w,
                              int input_h, unsigned char *output_pixels,
                              int output_w, int output_h) {
@@ -36,7 +47,7 @@ inline void stb_resize_image(const unsigned char *input_pixels, int input_w,
 }
 
 #else
-#    include "stb/stb_image_resize.h"
+#include "stb/stb_image_resize.h"
 inline void stb_resize_image(const unsigned char *input_pixels, int input_w,
                              int input_h, unsigned char *output_pixels,
                              int output_w, int output_h) {

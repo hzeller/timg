@@ -17,12 +17,16 @@
 
 #include <cairo.h>
 #include <poppler.h>
-#include <stdlib.h>
 
 #include <algorithm>
+#include <csignal>
 #include <filesystem>
+#include <string>
 
+#include "display-options.h"
 #include "framebuffer.h"
+#include "renderer.h"
+#include "timg-time.h"
 
 namespace fs = std::filesystem;
 

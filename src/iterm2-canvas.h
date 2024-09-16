@@ -16,9 +16,12 @@
 #ifndef ITERM2_CANVAS_H
 #define ITERM2_CANVAS_H
 
+#include "buffered-write-sequencer.h"
 #include "display-options.h"
+#include "framebuffer.h"
 #include "terminal-canvas.h"
 #include "thread-pool.h"
+#include "timg-time.h"
 
 namespace timg {
 // Implements https://iterm2.com/documentation-images.html

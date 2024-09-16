@@ -19,15 +19,24 @@
 #include <openslide.h>
 #include <unistd.h>
 
+#include <csignal>
+#include <cstdarg>
+#include <cstdint>
 #include <cstdio>
+#include <cstring>
+#include <functional>
 #include <limits>
 #include <string>
-#include <utility>
 
+#include "buffered-write-sequencer.h"
+#include "display-options.h"
 #include "framebuffer.h"
-#include "terminal-canvas.h"
+#include "renderer.h"
+#include "timg-time.h"
 
 extern "C" {
+#include <libavutil/log.h>
+#include <libavutil/pixfmt.h>
 #include <libswscale/swscale.h>
 }
 

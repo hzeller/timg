@@ -16,7 +16,11 @@
 #include "timg-help.h"
 
 #include <libdeflate.h>
+#include <stdio.h>
 #include <stdlib.h>
+
+#include <cstdio>
+#include <cstdlib>
 
 // Build  from create-manpage-inc.sh
 #include "timg-manpage.inc"

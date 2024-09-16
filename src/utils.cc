@@ -16,7 +16,11 @@
 #include "utils.h"
 
 #include <strings.h>
-#include <unistd.h>
+
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <string>
 
 namespace timg {
 

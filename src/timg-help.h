@@ -16,8 +16,6 @@
 #ifndef TIMG_HELP_H
 #define TIMG_HELP_H
 
-#include <stdio.h>
-
 // Print help, a compiled-in version of the manpage.
 void InvokeHelpPager();
 

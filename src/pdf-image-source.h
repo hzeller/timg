@@ -16,12 +16,16 @@
 #ifndef PDF_SOURCE_H_
 #define PDF_SOURCE_H_
 
+#include <csignal>
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "display-options.h"
+#include "framebuffer.h"
 #include "image-source.h"
-#include "terminal-canvas.h"
+#include "renderer.h"
+#include "timg-time.h"
 
 namespace timg {
 class PDFImageSource final : public ImageSource {
