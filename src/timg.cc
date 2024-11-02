@@ -61,6 +61,10 @@
 #include <poppler.h>
 #endif
 
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS
+#endif
+
 // The following is to work around clang-tidy being confused and not
 // understanding that unistd.h indeed provides getopt(). So let's include
 // unistd.h for correctness, and then soothe clang-tidy with decls.
