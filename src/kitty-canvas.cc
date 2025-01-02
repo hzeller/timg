@@ -157,8 +157,10 @@ void KittyGraphicsCanvas::Send(int x, int dy, const Framebuffer &fb_orig,
     case SeqType::StartOfAnimation:
         // Sending a bunch of images with different IDs overwhelms some
         // terminals. So, for animations, just use two IDs back/forth.
-        id           = CreateId();
+        id = CreateId();
+        CreateId();  // Also, reserve the next ID that we use in the flip-buffer
         animation_id = id;
+        flip_buffer  = 0;
         break;
     case SeqType::AnimationFrame:
         ++flip_buffer;
