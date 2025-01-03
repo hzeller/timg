@@ -279,22 +279,24 @@ TermGraphicsInfo QuerySupportedGraphicsProtocol() {
     // Still not known. Let's see if if we can at determine if this might
     // be sixel as some terminals implement DA1 (primary device attributes)
     // with ";4" in its response if it supports sixel.
-    QueryTerminal(
-        TERM_CSI "c", buffer, sizeof(buffer), kTimeBudget,
-        [&result](const char *data, size_t len) {
-            // https://vt100.net/docs/vt510-rm/DA1.html
-            // says CSI ?64 is returned, but I've only encountered
-            // CSI ?62 in various terminals.
-            // So, let's just watch for common prefix CSI ?6
-            const char *const end    = data + len;
-            constexpr char kExpect[] = TERM_CSI "?6";
-            const char *start        = find_str(data, len, kExpect);
-            if (!start) return start;
-            if (find_str(start + strlen(kExpect), end - start, ";4")) {
-                result.preferred_graphics = GraphicsProtocol::kSixel;
-            }
-            return data;
-        });
+    QueryTerminal(TERM_CSI "c", buffer, sizeof(buffer), kTimeBudget,
+                  [&result](const char *data, size_t len) {
+                      // https://vt100.net/docs/vt510-rm/DA1.html
+                      // says CSI ?64 is returned, but not all terminals do
+                      // that. So, let's just watch for CSI ?
+                      const char *const end    = data + len;
+                      constexpr char kExpect[] = TERM_CSI "?";
+                      const char *start        = find_str(data, len, kExpect);
+                      if (!start) return start;
+                      // Look for length - 1 as we expect another char we test
+                      // below.
+                      const char *found_4 =
+                          find_str(start, end - start - 1, ";4");
+                      if (found_4 && (found_4[2] == ';' || found_4[2] == 'c')) {
+                          result.preferred_graphics = GraphicsProtocol::kSixel;
+                      }
+                      return data;
+                  });
     return result;
 }
 
