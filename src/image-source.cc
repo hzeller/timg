@@ -263,8 +263,7 @@ ImageSource *ImageSource::Create(const std::string &filename,
 }
 
 static std::string Basename(const std::string &filename) {
-    size_t last_slash_pos = filename.find_last_of("/\\");
-
+    const size_t last_slash_pos = filename.find_last_of("/\\");
     return last_slash_pos == std::string::npos
                ? filename
                : filename.substr(last_slash_pos + 1);
@@ -299,7 +298,7 @@ static bool HasAPNGHeader(const std::string &filename) {
     static constexpr size_t kPngHeaderLen = 8;
 
     // Iterate through headers in the first kibibyte until we find an acTL one.
-    int fd = open(filename.c_str(), O_RDONLY);
+    const int fd = open(filename.c_str(), O_RDONLY);
     if (fd < 0) return false;
     size_t pos = kPngHeaderLen;
     uint8_t buf[8];

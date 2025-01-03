@@ -121,7 +121,7 @@ void SixelCanvas::Send(int x, int dy, const Framebuffer &fb_orig,
     // avoid capture whole 'this', so copy values locally
     const char *const cursor_handling_start = cursor_move_before_;
     const char *const cursor_handling_end   = cursor_move_after_;
-    std::function<OutBuffer()> encode_fun =
+    const std::function<OutBuffer()> encode_fun =
         [fb, buffer, offset, cursor_handling_start, cursor_handling_end]() {
             std::unique_ptr<const Framebuffer> auto_delete(fb);
 

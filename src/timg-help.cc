@@ -30,8 +30,8 @@ void InvokeHelpPager() {
 
     // TODO(hzeller): include in the inc-file the original size.
     char uncompressed[1 << 16];
-    size_t uncompressed_size = 0;
-    libdeflate_result result = libdeflate_gzip_decompress(
+    size_t uncompressed_size       = 0;
+    const libdeflate_result result = libdeflate_gzip_decompress(
         decompress, kGzippedManpage, sizeof(kGzippedManpage), uncompressed,
         sizeof(uncompressed), &uncompressed_size);
 

@@ -319,7 +319,6 @@ bool AppendToFileList(const std::string &filelist_file,
     const size_t last_slash = filelist_file.find_last_of('/');
     // Following works as expected if last_slash == npos (lsat_slash+1 == 0)
     const std::string prefix = filelist_file.substr(0, last_slash + 1);
-    std::string filename;
     for (std::string filename; std::getline(filelist_stream, filename); /**/) {
         if (filename.empty()) continue;
         if (consider_relative_to_filelist &&  //
@@ -996,7 +995,7 @@ int main(int argc, char *argv[]) {
 
     std::future<rgba_t> background_color_future;
     if (strcasecmp(bg_color.c_str(), "auto") == 0) {
-        std::function<rgba_t()> query_terminal = []() {
+        const std::function<rgba_t()> query_terminal = []() {
             return rgba_t::ParseColor(timg::QueryBackgroundColor());
         };
         // Finding the background color might take a while, so we query
@@ -1004,7 +1003,7 @@ int main(int argc, char *argv[]) {
         // actually queries it.
         background_color_future     = pool->ExecAsync(query_terminal);
         display_opts.bgcolor_getter = [&background_color_future]() {
-            static rgba_t value = background_color_future.get();  // once
+            static const rgba_t value = background_color_future.get();  // once
             return value;
         };
     }
@@ -1028,7 +1027,7 @@ int main(int argc, char *argv[]) {
     LoadedImageSources loaded_sources;
     for (const std::string &filename : filelist) {
         if (interrupt_received) break;
-        std::function<timg::ImageSource *()> f =
+        const std::function<timg::ImageSource *()> f =
             [filename, frame_offset, max_frames, do_img_loading, do_vid_loading,
              &display_opts, &exit_code, &errors_lock,
              &errors]() -> timg::ImageSource * {

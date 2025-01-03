@@ -34,8 +34,8 @@ bool GetBoolenEnv(const char *env_name, bool default_value) {
 float GetFloatEnv(const char *env_var, float default_value) {
     const char *value = getenv(env_var);
     if (!value) return default_value;
-    char *err    = nullptr;
-    float result = strtof(value, &err);
+    char *err          = nullptr;
+    const float result = strtof(value, &err);
     return (*err == '\0' ? result : default_value);
 }
 

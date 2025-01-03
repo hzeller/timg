@@ -171,10 +171,10 @@ void KittyGraphicsCanvas::Send(int x, int dy, const Framebuffer &fb_orig,
     }
     }
 
-    const int cols   = fb->width() / opts.cell_x_px;
-    const int rows   = -cell_height_for_pixels(-fb->height());
-    const int indent = x / opts.cell_x_px;
-    bool wrap_tmux   = tmux_passthrough_needed_;
+    const int cols       = fb->width() / opts.cell_x_px;
+    const int rows       = -cell_height_for_pixels(-fb->height());
+    const int indent     = x / opts.cell_x_px;
+    const bool wrap_tmux = tmux_passthrough_needed_;
     std::function<OutBuffer()> encode_fun = [opts, fb, id, buffer, offset, rows,
                                              cols, indent, wrap_tmux]() {
         std::unique_ptr<const Framebuffer> auto_delete(fb);
@@ -205,8 +205,8 @@ void KittyGraphicsCanvas::Send(int x, int dy, const Framebuffer &fb_orig,
         // Write out binary data base64-encoded in chunks of limited size.
         const char *png_data = png_buf.get();
         while (png_size) {
-            int chunk_bytes = std::min(png_size, kByteChunk);
-            pos             = timg::EncodeBase64(png_data, chunk_bytes, pos);
+            const int chunk_bytes = std::min(png_size, kByteChunk);
+            pos = timg::EncodeBase64(png_data, chunk_bytes, pos);
             png_data += chunk_bytes;
             png_size -= chunk_bytes;
             if (png_size) {  // More to come. Finish chunk and start next.

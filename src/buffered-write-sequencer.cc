@@ -102,7 +102,7 @@ void BufferedWriteSequencer::ProcessQueue() {
         }
         work_sync_.notify_all();
 
-        OutBuffer block = work_item.block.get();
+        const OutBuffer block = work_item.block.get();
         if (block.data == nullptr) return;  // Exit condition.
 
         if (interrupt_received_ &&
