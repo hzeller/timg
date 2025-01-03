@@ -16,18 +16,21 @@
 #include "term-query.h"
 
 #include <fcntl.h>
-#include <string.h>  // for memmem()
+#include <string.h>  // NOLINT for memmem()
 #include <sys/ioctl.h>
 #include <sys/select.h>
 #include <termios.h>
 #include <unistd.h>
 
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
 #include <functional>
 
 #include "timg-time.h"
+
+#define TERM_CSI "\033["
 
 namespace timg {
 static struct termios s_orig_terminal_setting;
@@ -56,8 +59,10 @@ static const char *QueryTerminal(const char *query, char *const buffer,
     // Let's see if we have at least one file descriptor that is connected
     // to our terminal. We can then open that terminal directly RD/WR.
     const char *ttypath = nullptr;
-    for (int fd : {STDOUT_FILENO, STDERR_FILENO, STDIN_FILENO}) {
-        if (isatty(fd) && (ttypath = ttyname(fd)) != nullptr) break;
+    for (const int fd : {STDOUT_FILENO, STDERR_FILENO, STDIN_FILENO}) {
+        if (!isatty(fd)) continue;
+        ttypath = ttyname(fd);
+        if (ttypath != nullptr) break;
     }
     if (!ttypath) return nullptr;
     s_tty_fd = open(ttypath, O_RDWR);
@@ -77,9 +82,9 @@ static const char *QueryTerminal(const char *query, char *const buffer,
     raw_terminal_setting.c_iflag     = 0;
     raw_terminal_setting.c_lflag &= ~(ICANON | ECHO);
 
-    if (tcsetattr(s_tty_fd, TCSANOW, &raw_terminal_setting) != 0)
+    if (tcsetattr(s_tty_fd, TCSANOW, &raw_terminal_setting) != 0) {
         return nullptr;
-
+    }
     // No matter what happens exiting early for some reason, make sure we
     // leave the terminal in a good state.
     atexit(clean_up_terminal);
@@ -99,8 +104,9 @@ static const char *QueryTerminal(const char *query, char *const buffer,
         fd_set read_fds;
         FD_ZERO(&read_fds);
         FD_SET(s_tty_fd, &read_fds);
-        if (select(s_tty_fd + 1, &read_fds, nullptr, nullptr, &timeout) <= 0)
+        if (select(s_tty_fd + 1, &read_fds, nullptr, nullptr, &timeout) <= 0) {
             break;
+        }
         const int r = read(s_tty_fd, pos, available);
         if (r < 0) break;
         pos += r;
@@ -115,6 +121,14 @@ static const char *QueryTerminal(const char *query, char *const buffer,
     clean_up_terminal();
 
     return found_pos;
+}
+
+// Return pointer to substring in "haystack" of known length. The substring
+// "s" we look for is nul-terminated.
+// Not found is nullptr/false; if found, returns the start of the match.
+static const char *find_str(const char *haystack, int64_t len, const char *s) {
+    if (len < 0) return nullptr;
+    return (const char*)memmem(haystack, len, s, strlen(s));
 }
 
 // Read background color queried from terminal emulator.
@@ -159,10 +173,11 @@ const char *QueryBackgroundColor() {
         [](const char *data, size_t len) -> const char * {
             // We might've gotten some spurious bytes in the beginning from
             // keypresses, so find where the color starts.
-            const char *found = (const char *)memmem(data, len, "rgb:", 4);
-            if (found && len - (found - data) > kColorLen)  // at least 1 more
+            const char *found = find_str(data, len, "rgb:");
+            if (found && len - (found - data) > kColorLen) { // at least 1 more
                 return found;  // Found start of color sequence and enough
                                // bytes.
+            }
             return nullptr;
         });
 
@@ -177,10 +192,6 @@ const char *QueryBackgroundColor() {
     result[7] = '\0';
 
     return result;
-}
-
-static inline bool contains(const char *data, size_t len, const char *str) {
-    return memmem(data, len, str, strlen(str)) != nullptr;
 }
 
 TermGraphicsInfo QuerySupportedGraphicsProtocol() {
@@ -210,7 +221,13 @@ TermGraphicsInfo QuerySupportedGraphicsProtocol() {
         result.known_broken_sixel_cursor_placement = true;
     }
 
+    // Note, there is a kitty protocol way to determine if kitty is supported,
+    // unfortunately that escape sequence messes up some other terminals, so
+    // we don't do that here. Instead, we match known terminals and then
+    // fall back to sixel detection.
+
     const Duration kTimeBudget = Duration::Millis(250);
+    char buffer[512];
 
     // We send out two queries: one CSI for terminal version detection that
     // is supported at least by the terminals we're interested in. From the
@@ -219,60 +236,82 @@ TermGraphicsInfo QuerySupportedGraphicsProtocol() {
     // This is followed by DSR 5 that is always expected to work.
     // If we only get a response to the innocuous status report request,
     // we don't have a terminal that supports the CSI >q
-    constexpr char term_query[] =
-        "\033[>q"   // terminal version query
-        "\033[5n";  // general status report.
-    char buffer[512];
-    QueryTerminal(term_query, buffer, sizeof(buffer), kTimeBudget,
+    constexpr char kTermVersionQuery[] =
+        TERM_CSI ">q"   // terminal version query
+        TERM_CSI "5n";  // general status report.
+    QueryTerminal(kTermVersionQuery, buffer, sizeof(buffer), kTimeBudget,
                   [&result](const char *data, size_t len) {
-                      if (contains(data, len, "iTerm2") ||
-                          contains(data, len, "Konsole 2")) {
+                      if (find_str(data, len, "iTerm2") ||
+                          find_str(data, len, "Konsole 2")) {
                           result.preferred_graphics = GraphicsProtocol::kIterm2;
                       }
-                      if (contains(data, len, "WezTerm")) {
+                      if (find_str(data, len, "WezTerm")) {
                           result.preferred_graphics = GraphicsProtocol::kIterm2;
                           result.known_broken_sixel_cursor_placement = true;
                       }
-                      if (contains(data, len, "kitty")) {
+                      if (find_str(data, len, "kitty")) {
                           result.preferred_graphics = GraphicsProtocol::kKitty;
                       }
-                      if (contains(data, len, "ghostty")) {
+                      if (find_str(data, len, "ghostty")) {
                           result.preferred_graphics = GraphicsProtocol::kKitty;
                       }
-                      if (contains(data, len, "mlterm")) {
+                      if (find_str(data, len, "mlterm")) {
                           result.preferred_graphics = GraphicsProtocol::kSixel;
                       }
-                      if (contains(data, len, "XTerm")) {
+                      if (find_str(data, len, "XTerm")) {
                           result.preferred_graphics = GraphicsProtocol::kSixel;
                           result.known_broken_sixel_cursor_placement = true;
                       }
-                      if (contains(data, len, "foot")) {
+                      if (find_str(data, len, "foot")) {
                           result.preferred_graphics = GraphicsProtocol::kSixel;
                           result.known_broken_sixel_cursor_placement = true;
                       }
-                      if (contains(data, len, "tmux")) {
+                      if (find_str(data, len, "tmux")) {
                           result.in_tmux = true;
                       }
                       // We finish once we found the response to DSR5
-                      return (const char *)memmem(data, len, "\033[0n", 3);
+                      return find_str(data, len, TERM_CSI "0");
                   });
+    if (result.preferred_graphics != GraphicsProtocol::kNone) {
+        return result;
+    }
+
+    // Still not known. Let's see if if we can at determine if this might
+    // be sixel as some terminals implement DA1 (primary device attributes)
+    // with ";4" in its response if it supports sixel.
+    QueryTerminal(
+        TERM_CSI "c", buffer, sizeof(buffer), kTimeBudget,
+        [&result](const char *data, size_t len) {
+            // https://vt100.net/docs/vt510-rm/DA1.html
+            // says CSI ?64 is returned, but I've only encountered
+            // CSI ?62 in various terminals.
+            // So, let's just watch for common prefix CSI ?6
+            const char *const end    = data + len;
+            constexpr char kExpect[] = TERM_CSI "?6";
+            const char *start        = find_str(data, len, kExpect);
+            if (!start) return start;
+            if (find_str(start + strlen(kExpect), end - start, ";4")) {
+                result.preferred_graphics = GraphicsProtocol::kSixel;
+            }
+            return data;
+        });
     return result;
 }
 
 static bool QueryCellWidthHeight(int *width, int *height) {
     const Duration kTimeBudget      = Duration::Millis(50);
-    constexpr char query[]          = "\033[16t";
-    constexpr char response_start[] = "\033[6;";
+    constexpr char kQuery[]         = TERM_CSI "16t";
+    constexpr char kResponseStart[] = TERM_CSI "6;";
     char buffer[512];
     const char *const result = QueryTerminal(
-        query, buffer, sizeof(buffer), kTimeBudget,
-        [response_start](const char *data, size_t len) -> const char * {
-            return (const char *)memmem(data, len, response_start,
-                                        strlen(response_start));
+        kQuery, buffer, sizeof(buffer), kTimeBudget,
+        [kResponseStart](const char *data, size_t len) -> const char * {
+            return find_str(data, len, kResponseStart);
         });
-    int w, h;
+    int w;
+    int h;
     if (!result ||
-        sscanf(result + strlen(response_start), "%d;%dt", &h, &w) != 2) {
+        sscanf(result + strlen(kResponseStart), "%d;%dt", &h, &w) != 2) {
         return false;
     }
     *width  = w;
@@ -283,7 +322,7 @@ static bool QueryCellWidthHeight(int *width, int *height) {
 // Probe all file descriptors that might be connect to tty for term size.
 TermSizeResult DetermineTermSize() {
     TermSizeResult result;
-    for (int fd : {STDOUT_FILENO, STDERR_FILENO, STDIN_FILENO}) {
+    for (const int fd : {STDOUT_FILENO, STDERR_FILENO, STDIN_FILENO}) {
         struct winsize w = {};
         if (ioctl(fd, TIOCGWINSZ, &w) != 0) continue;
         // If we get the size of the terminals in pixels, we can determine

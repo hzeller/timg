@@ -40,7 +40,7 @@ enum class GraphicsProtocol {
 };
 struct TermGraphicsInfo {
     GraphicsProtocol preferred_graphics;
-    bool known_broken_sixel_cursor_placement;
+    bool known_broken_sixel_cursor_placement;  // see SixelCanvas impl. doc
     bool in_tmux;
 };
 
