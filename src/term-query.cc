@@ -128,7 +128,7 @@ static const char *QueryTerminal(const char *query, char *const buffer,
 // Not found is nullptr/false; if found, returns the start of the match.
 static const char *find_str(const char *haystack, int64_t len, const char *s) {
     if (len < 0) return nullptr;
-    return (const char*)memmem(haystack, len, s, strlen(s));
+    return (const char *)memmem(haystack, len, s, strlen(s));
 }
 
 // Read background color queried from terminal emulator.
@@ -174,7 +174,7 @@ const char *QueryBackgroundColor() {
             // We might've gotten some spurious bytes in the beginning from
             // keypresses, so find where the color starts.
             const char *found = find_str(data, len, "rgb:");
-            if (found && len - (found - data) > kColorLen) { // at least 1 more
+            if (found && len - (found - data) > kColorLen) {  // at least 1 more
                 return found;  // Found start of color sequence and enough
                                // bytes.
             }
