@@ -127,7 +127,6 @@ void SixelCanvas::Send(int x, int dy, const Framebuffer &fb_orig,
 
             OutBuffer out(buffer, offset - buffer);
             WriteStringToOutBuffer(cursor_handling_start, &out);
-            WriteStringToOutBuffer("\033Pq", &out);  // Start sixel data
             sixel_output_t *sixel_out = nullptr;
             sixel_output_new(&sixel_out, WriteToOutBuffer, &out, nullptr);
 
@@ -144,7 +143,6 @@ void SixelCanvas::Send(int x, int dy, const Framebuffer &fb_orig,
             sixel_dither_destroy(sixel_dither);
             sixel_output_destroy(sixel_out);
 
-            WriteStringToOutBuffer("\033\\", &out);  // end sixel data
             WriteStringToOutBuffer(cursor_handling_end, &out);
             return out;
         };
