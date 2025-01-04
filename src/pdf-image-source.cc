@@ -21,7 +21,9 @@
 #include <algorithm>
 #include <csignal>
 #include <filesystem>
+#include <memory>
 #include <string>
+#include <utility>
 
 #include "display-options.h"
 #include "framebuffer.h"

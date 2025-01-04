@@ -18,6 +18,11 @@
 // To compile this image viewer, first get image-magick development files
 // $ sudo apt-get install libgraphicsmagick++-dev
 
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS
+#endif
+#include <cinttypes>
+
 #include "buffered-write-sequencer.h"
 #include "display-options.h"
 #include "image-source.h"
@@ -28,42 +33,10 @@
 #include "terminal-canvas.h"
 #include "thread-pool.h"
 #include "timg-help.h"
+#include "timg-print-version.h"
 #include "timg-time.h"
-#include "timg-version.h"
 #include "unicode-block-canvas.h"
 #include "utils.h"
-
-#ifdef WITH_TIMG_SIXEL
-#include "sixel-canvas.h"
-#endif
-
-// To display version number
-#ifdef WITH_TIMG_OPENSLIDE_SUPPORT
-#include "openslide-source.h"
-#endif
-#ifdef WITH_TIMG_VIDEO
-#include "video-source.h"
-#endif
-#ifdef WITH_TIMG_GRPAPHICSMAGICK
-#include <Magick++.h>
-
-#include "graphics-magick-source.h"
-#endif
-#ifdef WITH_TIMG_SIXEL
-#include <sixel.h>
-#endif
-#ifdef WITH_TIMG_RSVG
-#include <cairo-version.h>
-#include <librsvg/rsvg.h>
-#endif
-#ifdef WITH_TIMG_POPPLER
-#include <cairo-version.h>
-#include <poppler.h>
-#endif
-
-#ifndef __STDC_FORMAT_MACROS
-#define __STDC_FORMAT_MACROS
-#endif
 
 // The following is to work around clang-tidy being confused and not
 // understanding that unistd.h indeed provides getopt(). So let's include
@@ -76,22 +49,31 @@ extern int optind;                             // NOLINT
 int getopt(int, char *const *, const char *);  // NOLINT
 }
 
+#ifdef WITH_TIMG_SIXEL
+#include "sixel-canvas.h"
+#endif
+
+#ifdef WITH_TIMG_GRPAPHICSMAGICK
+#include <Magick++.h>
+#endif
+
 #include <fcntl.h>
 #include <getopt.h>
-#include <libswscale/swscale.h>  // Only needed for version.
 #include <string.h>
 #include <strings.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include <algorithm>
 #include <cctype>
 #include <cerrno>
-#include <cinttypes>
+#include <chrono>
 #include <cmath>
 #include <csignal>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <deque>
 #include <fstream>
 #include <functional>
 #include <future>
@@ -103,10 +85,6 @@ int getopt(int, char *const *, const char *);  // NOLINT
 #include <vector>
 
 #include "framebuffer.h"
-
-#ifndef TIMG_VERSION
-#define TIMG_VERSION "(unknown)"
-#endif
 
 using timg::Duration;
 using timg::ImageSource;
@@ -300,7 +278,7 @@ static int usage(const char *progname, ExitCode exit_code, int width,
         "--frames\n",
         default_title ? "='" : "", default_title ? default_title : "",
         default_title ? "'" : "", width, height, kDefaultThreadCount,
-        TIMG_VERSION);
+        timg::timgVersion());
     return (int)exit_code;
 }
 
@@ -443,68 +421,6 @@ static const char *PixelationToString(Pixelation p) {
     case Pixelation::kNotChosen: return "(none)"; break;
     }
     return "";  // Make compiler happy.
-}
-
-// Print our version and various version numbers from our dependencies.
-static int PrintVersion(FILE *stream) {
-    fprintf(stream, "timg " TIMG_VERSION
-                    " <https://timg.sh/>\n"
-                    "Copyright (c) 2016..2024 Henner Zeller. "
-                    "This program is free software; license GPL 2.0.\n\n");
-#ifdef WITH_TIMG_GRPAPHICSMAGICK
-    fprintf(stream, "Image decoding %s\n",
-            timg::GraphicsMagickSource::VersionInfo());
-#endif
-#ifdef WITH_TIMG_OPENSLIDE_SUPPORT
-    fprintf(stream, "Openslide %s\n", timg::OpenSlideSource::VersionInfo());
-#endif
-#ifdef WITH_TIMG_JPEG
-    fprintf(stream, "Turbo JPEG\n");
-#endif
-#ifdef WITH_TIMG_RSVG
-    fprintf(stream, "librsvg %d.%d.%d + cairo %d.%d.%d\n",
-            LIBRSVG_MAJOR_VERSION, LIBRSVG_MINOR_VERSION, LIBRSVG_MICRO_VERSION,
-            CAIRO_VERSION_MAJOR, CAIRO_VERSION_MINOR, CAIRO_VERSION_MICRO);
-#endif
-#ifdef WITH_TIMG_POPPLER
-    fprintf(stream, "PDF rendering with poppler %s + cairo %d.%d.%d",
-            poppler_get_version(), CAIRO_VERSION_MAJOR, CAIRO_VERSION_MINOR,
-            CAIRO_VERSION_MICRO);
-#if not POPPLER_CHECK_VERSION(0, 88, 0)
-    // Too old versions of poppler don't have a bounding-box function
-    fprintf(stream, " (no --auto-crop)");
-#endif
-    fprintf(stream, "\n");
-#endif
-#ifdef WITH_TIMG_QOI
-    fprintf(stream, "QOI image loading\n");
-#endif
-#ifdef WITH_TIMG_STB
-    fprintf(stream,
-            "STB image loading; STB resize v"
-#ifdef STB_RESIZE_VERSION2
-            "2"
-#else
-            "1"
-#endif
-#ifdef WITH_TIMG_GRPAPHICSMAGICK
-            // If we have graphics magic, that will take images first,
-            // so STB will only really be called as fallback.
-            " (fallback)"
-#endif
-            "\n");
-#endif
-    fprintf(stream, "swscale %s\n", AV_STRINGIFY(LIBSWSCALE_VERSION));
-#ifdef WITH_TIMG_VIDEO
-    fprintf(stream, "Video decoding %s\n", timg::VideoSource::VersionInfo());
-#endif
-#ifdef WITH_TIMG_SIXEL
-    fprintf(stream, "Libsixel version %s\n", LIBSIXEL_VERSION);
-#endif
-    fprintf(stream,
-            "Half, quarter, iterm2, and kitty graphics output: "
-            "timg builtin.\n");
-    return 0;
 }
 
 int main(int argc, char *argv[]) {
@@ -747,7 +663,7 @@ int main(int argc, char *argv[]) {
             break;
         case 'E': present.hide_cursor = false; break;
         case 'W': display_opts.fill_width = true; break;
-        case OPT_VERSION: return PrintVersion(stdout);
+        case OPT_VERSION: return timg::PrintComponentVersions(stdout);
         case OPT_TITLE:
             display_opts.show_title = !display_opts.show_title;
             if (optarg) display_opts.title_format = optarg;
@@ -1202,9 +1118,9 @@ int main(int argc, char *argv[]) {
     // transparency, the query might still be running. Wait a tiny bit so
     // that the terminal does not spill the result on the screen once we've
     // returned. If the result is already there, this will return immediately
-    if (background_color_future.valid())
+    if (background_color_future.valid()) {
         background_color_future.wait_for(std::chrono::milliseconds(200));
-
+    }
     free((void *)bg_pattern_color);
 
     // Deliberately leaking thread pool as we don't bother waiting for

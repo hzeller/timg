@@ -28,6 +28,7 @@
 #include <cstring>
 #include <exception>
 #include <string>
+#include <vector>
 
 #include "buffered-write-sequencer.h"
 #include "display-options.h"

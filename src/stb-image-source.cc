@@ -16,10 +16,12 @@
 #include "stb-image-source.h"
 
 #define STB_IMAGE_IMPLEMENTATION
+#include <algorithm>
 #include <csignal>
 #include <cstdint>
 #include <cstdio>
 #include <string>
+#include <utility>
 
 #include "buffered-write-sequencer.h"
 #include "display-options.h"

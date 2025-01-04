@@ -144,8 +144,8 @@ static const char *QueryTerminal(const char *query, char *const buffer,
     if (s_log_terminal_queries) {
         debug_data(stderr, "Query: ", query, query_len);
         debug_data(stderr, " Response: ", buffer, pos - buffer);
-        fprintf(stderr, " (%ldms)\n",
-                (timg::Time() - start).nanoseconds() / 1'000'000);
+        fprintf(stderr, " (%dms)\n",
+                (int)((timg::Time() - start).nanoseconds() / 1'000'000));
     }
     return found_pos;
 }
