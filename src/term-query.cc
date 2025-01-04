@@ -286,7 +286,7 @@ TermGraphicsInfo QuerySupportedGraphicsProtocol() {
                           result.preferred_graphics = GraphicsProtocol::kSixel;
                       }
                       if (find_str(data, len, "XTerm")) {
-                          result.preferred_graphics = GraphicsProtocol::kSixel;
+                          // Don't know yet if supports sixel, will query below
                           result.known_broken_sixel_cursor_placement = true;
                       }
                       if (find_str(data, len, "foot")) {
