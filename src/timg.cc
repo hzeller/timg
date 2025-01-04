@@ -802,6 +802,10 @@ int main(int argc, char *argv[]) {
     }
 
     timg::EnableTerminalQueryLogging(verbose);
+    if (verbose) {
+        // Called this earlier, but now that verbose enabled, again for logging
+        timg::DetermineTermSize();
+    }
 
     // -- A sieve of sanity checks and configuration refinement.
 

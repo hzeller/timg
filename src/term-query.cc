@@ -353,7 +353,12 @@ TermSizeResult DetermineTermSize() {
     TermSizeResult result;
     for (const int fd : {STDOUT_FILENO, STDERR_FILENO, STDIN_FILENO}) {
         struct winsize w = {};
-        if (ioctl(fd, TIOCGWINSZ, &w) != 0) continue;
+        if (ioctl(fd, TIOCGWINSZ, &w) != 0) {
+            if (s_log_terminal_queries) {
+                fprintf(stderr, "ioctl(%d, TIOCGWINSZ) failing.\n", fd);
+            }
+            continue;
+        }
         // If we get the size of the terminals in pixels, we can determine
         // what aspect ratio the pixels. This is also needed to
         // jump up the exact number of character cells needed for animations
@@ -370,7 +375,7 @@ TermSizeResult DetermineTermSize() {
         }
         else {
             if (s_log_terminal_queries) {
-                fprintf(stderr, "no usable TIOCGWINSZ, trying cell query.\n");
+                fprintf(stderr, "No usable TIOCGWINSZ, trying cell query.\n");
             }
             // Alright, TIOCGWINSZ did not return the terminal size, let's
             // see if it reports character cell size otherwise
