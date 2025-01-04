@@ -276,7 +276,7 @@ static int usage(const char *progname, ExitCode exit_code, int width,
         "\t--color8       : Choose 8 bit color mode for -ph or -pq\n"
         "\t--version      : Print detailed version including used libraries.\n"
         "\t                 (%s)\n"
-        "\t--verbose      : Print some stats after images shown.\n"
+        "\t--verbose      : Print some terminal query info and stats.\n"
         "\t-h             : Print this help and exit.\n"
         "\t--help         : Page through detailed manpage-like help and exit.\n"
 
@@ -800,6 +800,8 @@ int main(int argc, char *argv[]) {
                 geometry_width, geometry_height);
         }
     }
+
+    timg::EnableTerminalQueryLogging(verbose);
 
     // -- A sieve of sanity checks and configuration refinement.
 

@@ -42,6 +42,27 @@ static void clean_up_terminal() {
     s_tty_fd = -1;
 }
 
+// Global variable; ok for debug logging cause.
+static bool s_log_terminal_queries = false;
+void EnableTerminalQueryLogging(bool on) { s_log_terminal_queries = on; }
+
+// Debug print a message and c-escaped data.
+static void debug_data(FILE *f, const char *msg, const char *data, size_t len) {
+    fprintf(f, "\033[1m%s\033[0m'", msg);
+    for (const char *const end = data + len; data < end; ++data) {
+        if (*data == '\\') {
+            fprintf(f, "\\\\");
+        }
+        else if (*data < 0x20) {
+            fprintf(f, "\\%03o", *data);
+        }
+        else {
+            fprintf(f, "%c", *data);
+        }
+    }
+    fprintf(f, "'");
+}
+
 // Send "query" to terminal and wait for response to arrive within
 // "time_budget". Use "buffer" with "len" to store results.
 // Whenever new data arrives, the caller's "response_found_p" response finder
@@ -97,8 +118,9 @@ static const char *QueryTerminal(const char *query, char *const buffer,
     const char *found_pos     = nullptr;
     size_t available          = buflen - 1;  // Allow for nul termination.
     char *pos                 = buffer;
-    timg::Time now            = Time::Now();
-    const timg::Time deadline = now + time_budget;
+    const timg::Time start    = Time::Now();
+    const timg::Time deadline = start + time_budget;
+    timg::Time now            = start;
     do {
         struct timeval timeout = (deadline - now).AsTimeval();
         fd_set read_fds;
@@ -119,7 +141,12 @@ static const char *QueryTerminal(const char *query, char *const buffer,
     } while (available && now < deadline);
 
     clean_up_terminal();
-
+    if (s_log_terminal_queries) {
+        debug_data(stderr, "Query: ", query, query_len);
+        debug_data(stderr, " Response: ", buffer, pos - buffer);
+        fprintf(stderr, " (%ldms)\n",
+                (timg::Time() - start).nanoseconds() / 1'000'000);
+    }
     return found_pos;
 }
 
@@ -342,6 +369,9 @@ TermSizeResult DetermineTermSize() {
             result.font_height_px = w.ws_ypixel / w.ws_row;
         }
         else {
+            if (s_log_terminal_queries) {
+                fprintf(stderr, "no usable TIOCGWINSZ, trying cell query.\n");
+            }
             // Alright, TIOCGWINSZ did not return the terminal size, let's
             // see if it reports character cell size otherwise
             QueryCellWidthHeight(&result.font_width_px, &result.font_height_px);

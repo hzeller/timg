@@ -18,6 +18,9 @@
 
 namespace timg {
 
+// Debugging help.
+void EnableTerminalQueryLogging(bool on);
+
 // Determine size of terminal in pixels we can display.
 struct TermSizeResult {
     // Not available values will be negative.
