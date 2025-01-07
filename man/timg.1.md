@@ -424,8 +424,8 @@ Exit code is
     slow CPU.
 
 **TIMG_SIXEL_NEWLINE_WORKAROUND**
-:   Set this environment variable if you are on a Sixel terminal and notice
-    that videos 'scroll' or grid-view items are not perfectly aligned
+:   Set this environment variable to 1 if you are on a Sixel terminal and
+    notice that videos 'scroll' or grid-view items are not perfectly aligned
     vertically.
 
 # EXAMPLES
