@@ -454,6 +454,15 @@ Terminal font too narrow   | Correct. Here with `TIMG_FONT_WIDTH_CORRECT=1.375`
 ![](img/aspect-wrong.png)  | ![](img/aspect-right.png)|
 
 
+#### Sixel videos scroll or grid view looks like staircase
+
+If you have a Sixel terminal in which you observe artifacts such as videos
+'scrolling' or the grid view not having images vertically aligned, you might
+need to set the `TIMG_SIXEL_NEWLINE_WORKAROUND=1` environment variable.
+
+Unfortuantely, some Sixel terminals disagree if there is a newline after an
+image or not.
+
 ## Installation
 ### Install pre-built package
 

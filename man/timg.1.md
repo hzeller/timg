@@ -423,6 +423,11 @@ Exit code is
     connection that can't keep up with playing videos. Or if you have a very
     slow CPU.
 
+**TIMG_SIXEL_NEWLINE_WORKAROUND**
+:   Set this environment variable if you are on a Sixel terminal and notice
+    that videos 'scroll' or grid-view items are not perfectly aligned
+    vertically.
+
 # EXAMPLES
 
 Some example invocations including scrolling text or streaming an

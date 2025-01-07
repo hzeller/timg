@@ -29,6 +29,7 @@
 #include <functional>
 
 #include "timg-time.h"
+#include "utils.h"
 
 #define TERM_CSI "\033["
 
@@ -223,9 +224,10 @@ const char *QueryBackgroundColor() {
 
 TermGraphicsInfo QuerySupportedGraphicsProtocol() {
     TermGraphicsInfo result;
-    result.preferred_graphics                  = GraphicsProtocol::kNone;
-    result.known_broken_sixel_cursor_placement = false;
-    result.in_tmux                             = false;
+    result.preferred_graphics = GraphicsProtocol::kNone;
+    result.known_broken_sixel_cursor_placement =
+        timg::GetBoolenEnv("TIMG_SIXEL_NEWLINE_WORKAROUND");
+    result.in_tmux = false;
 
     // Environment variables can be changed, so guesses from environment
     // variables are just that: guesses.
