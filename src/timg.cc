@@ -1092,7 +1092,7 @@ int main(int argc, char *argv[]) {
 
         auto print_env = [](const char *env) {
             const char *value = getenv(env);
-            fprintf(stderr, " %-23s%s", env, value ? " = " : "   (not set)\n");
+            fprintf(stderr, " %-29s%s", env, value ? " = " : "   (not set)\n");
             if (value) fprintf(stderr, "\"%s\"\n", value);
         };
         fprintf(stderr, "Environment variables\n");
@@ -1101,6 +1101,7 @@ int main(int argc, char *argv[]) {
         print_env("TIMG_ALLOW_FRAME_SKIP");
         print_env("TIMG_USE_UPPER_BLOCK");
         print_env("TIMG_FONT_WIDTH_CORRECT");
+        print_env("TIMG_SIXEL_NEWLINE_WORKAROUND");
     }
 
     if (cell_size_unknown_in_pixel_mode && cell_size_warning_needed) {
