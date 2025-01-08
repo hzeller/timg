@@ -15,14 +15,26 @@
 
 #include "image-scaler.h"
 
+#ifdef WITH_TIMG_SWS_RESIZE
 extern "C" {  // avutil is missing extern "C"
 #include <libavutil/log.h>
 #include <libavutil/pixfmt.h>
 #include <libswscale/swscale.h>
 }
+#endif
+
+#ifdef WITH_TIMG_STB_RESIZE
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+// Least amount of fuzziness on upscaling
+#define STBIR_DEFAULT_FILTER_UPSAMPLE STBIR_FILTER_BOX
+#include "stb/stb_image_resize2.h"
+#endif
+
+// TODO: there is also zimg.
 
 namespace timg {
 namespace {
+#if WITH_TIMG_SWS_RESIZE
 static void dummy_log(void *, int, const char *, va_list) {}
 
 class SWSImageScaler final : public ImageScaler {
@@ -53,13 +65,47 @@ private:
 
     SwsContext *const sws_context_;
 };
+#endif
+#if WITH_TIMG_STB_RESIZE
+class STBImageScaler final : public ImageScaler {
+public:
+    static STBImageScaler *Create(int in_width, int in_height,
+                                  ColorFmt in_color_format, int out_width,
+                                  int out_height) {
+        return new STBImageScaler(in_color_format);
+    }
+
+    void Scale(Framebuffer &in, Framebuffer *out) final {
+        struct STBIR_RESIZE context {};
+        stbir_resize_init(&context, (uint8_t *)in.begin(), in.width(),
+                          in.height(), 0, (uint8_t *)out->begin(), out->width(),
+                          out->height(), 0, STBIR_RGBA, STBIR_TYPE_UINT8);
+        stbir_set_pixel_layouts(
+            &context, in_fmt_ == ColorFmt::kRGBA ? STBIR_RGBA : STBIR_BGRA,
+            STBIR_RGBA);
+        stbir_resize_extended(&context);
+    }
+
+private:
+    explicit STBImageScaler(ColorFmt in_fmt) : in_fmt_(in_fmt) {}
+    const ColorFmt in_fmt_;
+};
+#endif
 }  // namespace
 
 std::unique_ptr<ImageScaler> ImageScaler::Create(int in_width, int in_height,
                                                  ColorFmt in_color_format,
                                                  int out_width,
                                                  int out_height) {
+#if WITH_TIMG_SWS_RESIZE
     return std::unique_ptr<ImageScaler>(SWSImageScaler::Create(
         in_width, in_height, in_color_format, out_width, out_height));
+#elif WITH_TIMG_STB_RESIZE
+    return std::unique_ptr<ImageScaler>(STBImageScaler::Create(
+        in_width, in_height, in_color_format, out_width, out_height));
+#else
+#error "Configure issue: no image scaler available"
+    return nullptr;
+#endif
 }
 }  // namespace timg

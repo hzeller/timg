@@ -26,39 +26,11 @@
 #include "buffered-write-sequencer.h"
 #include "display-options.h"
 #include "framebuffer.h"
+#include "image-scaler.h"
 #include "image-source.h"
 #include "renderer.h"
 #include "stb/stb_image.h"
 #include "timg-time.h"
-
-#define STB_IMAGE_RESIZE_IMPLEMENTATION
-// Least amount of fuzziness on upscaling
-#define STBIR_DEFAULT_FILTER_UPSAMPLE STBIR_FILTER_BOX
-
-// There is an old and a new version of stb resize. Prefer newer if available
-// (tested for in CMake), and provide adapter functions to use either.
-#if STB_RESIZE_VERSION2
-#include "stb/stb_image_resize2.h"
-inline void stb_resize_image(const unsigned char *input_pixels, int input_w,
-                             int input_h, unsigned char *output_pixels,
-                             int output_w, int output_h) {
-    static constexpr stbir_pixel_layout kFramebufferFormat = STBIR_RGBA;
-    stbir_resize_uint8_linear(input_pixels, input_w, input_h, 0,  //
-                              output_pixels, output_w, output_h, 0,
-                              kFramebufferFormat);
-}
-
-#else
-#include "stb/stb_image_resize.h"
-inline void stb_resize_image(const unsigned char *input_pixels, int input_w,
-                             int input_h, unsigned char *output_pixels,
-                             int output_w, int output_h) {
-    static constexpr int kFramebufferFormat = 4;              // RGBA.
-    stbir_resize_uint8(input_pixels, input_w, input_h, 0,     //
-                       output_pixels, output_w, output_h, 0,  //
-                       kFramebufferFormat);
-}
-#endif
 
 // TODO: preprocessed frame and SendFrames() are similar to
 // image-display.cc. Maybe things can be consolidated.
@@ -71,8 +43,15 @@ public:
                       int target_w, int target_h, const Duration &delay,
                       const DisplayOptions &opt)
         : delay_(delay), framebuffer_(target_w, target_h) {
-        stb_resize_image(image_data, source_w, source_h,
-                         (uint8_t *)framebuffer_.begin(), target_w, target_h);
+        const size_t len = source_w * source_h * 4;
+        Framebuffer source_img(source_w, source_h);  // TODO: avoid copy.
+        std::copy(image_data, image_data + len, (uint8_t *)source_img.begin());
+        auto scaler = ImageScaler::Create(source_w, source_h,
+                                          ImageScaler::ColorFmt::kRGBA,
+                                          target_w, target_h);
+        if (scaler) {
+            scaler->Scale(source_img, &framebuffer_);
+        }
         framebuffer_.AlphaComposeBackground(
             opt.bgcolor_getter, opt.bg_pattern_color,
             opt.pattern_size * opt.cell_x_px,

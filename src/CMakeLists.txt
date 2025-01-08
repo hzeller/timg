@@ -76,17 +76,13 @@ if(WITH_TURBOJPEG)
   target_compile_definitions(timg PUBLIC WITH_TIMG_JPEG)
   target_link_libraries(timg
     PkgConfig::TURBOJPEG
-    PkgConfig::EXIF
-    PkgConfig::AVUTIL
-    PkgConfig::SWSCALE)
+    PkgConfig::EXIF)
 endif()
 
 if(WITH_OPENSLIDE_SUPPORT)
   target_sources(timg PUBLIC openslide-source.h openslide-source.cc)
   target_compile_definitions(timg PUBLIC WITH_TIMG_OPENSLIDE_SUPPORT)
-  target_link_libraries(timg PkgConfig::OPENSLIDE
-    PkgConfig::AVUTIL
-    PkgConfig::SWSCALE)
+  target_link_libraries(timg PkgConfig::OPENSLIDE)
 endif()
 
 if(WITH_VIDEO_DECODING)
@@ -100,24 +96,35 @@ if(WITH_VIDEO_DECODING)
     target_link_libraries(timg PkgConfig::LIBAV_DEVICE)
     add_definitions(-DHAVE_AVDEVICE)
   endif()
+  set(SHOULD_SCALE_SWS ON)  # we link it anyway
 endif()
 
 if(WITH_STB_IMAGE)
   # STB usuall does not come with pkg-config. Just check if we see the include
+  # Always want image resize2, if not, use third_party/
   include(CheckIncludeFileCXX)
-  CHECK_INCLUDE_FILE_CXX(stb/stb_image.h HAVE_STB)
+  CHECK_INCLUDE_FILE_CXX(stb/stb_image.h HAVE_SYSTEM_STB)
   target_sources(timg PUBLIC stb-image-source.h stb-image-source.cc)
-  if(NOT HAVE_STB)
-    message("--> Using STB from third_party/ instead")
+  if(NOT HAVE_SYSTEM_STB)
+    message("--> Using STB from third_party/")
     target_include_directories(timg PRIVATE ${CMAKE_SOURCE_DIR}/third_party)
-    set(STB_RESIZE_VERSION2 true)  # distributing resize2 in third_party/
-  else()
-    CHECK_INCLUDE_FILE_CXX(stb/stb_image_resize2.h STB_RESIZE_VERSION2)
-  endif()
-  if(STB_RESIZE_VERSION2)
-    target_compile_definitions(timg PUBLIC STB_RESIZE_VERSION2)
   endif()
   target_compile_definitions(timg PUBLIC WITH_TIMG_STB)
+endif()
+
+# TODO: for scaling, there is also zimg to explore
+if(SHOULD_SCALE_SWS)
+  target_link_libraries(timg
+    PkgConfig::AVUTIL
+    PkgConfig::SWSCALE)
+  target_compile_definitions(timg PUBLIC WITH_TIMG_SWS_RESIZE)
+else()
+  CHECK_INCLUDE_FILE_CXX(stb/stb_image_resize2.h HAVE_SYSTEM_STB_RESIZE2)
+  if(NOT HAVE_SYSTEM_STB_RESIZE2)
+    message("--> Using STB resize2 from third_party/")
+    target_include_directories(timg PRIVATE ${CMAKE_SOURCE_DIR}/third_party)
+  endif()
+  target_compile_definitions(timg PUBLIC WITH_TIMG_STB_RESIZE)
 endif()
 
 if(WITH_QOI_IMAGE)
@@ -129,9 +136,6 @@ if(WITH_QOI_IMAGE)
     target_include_directories(timg PRIVATE ${CMAKE_SOURCE_DIR}/third_party/qoi)
   endif()
   target_compile_definitions(timg PUBLIC WITH_TIMG_QOI)
-  target_link_libraries(timg
-    PkgConfig::AVUTIL
-    PkgConfig::SWSCALE)
 endif()
 
 # We always take the manpage from the checkout currently so that we don't

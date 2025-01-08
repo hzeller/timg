@@ -43,7 +43,10 @@
 #include <jconfig.h>
 #endif
 #include <libdeflate.h>
+
+#ifdef WITH_TIMG_SWS_RESIZE
 #include <libswscale/swscale.h>  // NOLINT used for version.
+#endif
 
 #include "timg-version.h"  // generated.
 #ifndef TIMG_VERSION
@@ -95,12 +98,8 @@ int PrintComponentVersions(FILE *stream) {
 #endif
 #ifdef WITH_TIMG_STB
     fprintf(stream,
-            "STB image loading; STB resize v"
-#ifdef STB_RESIZE_VERSION2
-            "2"
-#else
-            "1"
-#endif
+            "STB image loading"
+
 #ifdef WITH_TIMG_GRPAPHICSMAGICK
             // If we have graphics magic, that will take images first,
             // so STB will only really be called as fallback.
@@ -108,7 +107,13 @@ int PrintComponentVersions(FILE *stream) {
 #endif
             "\n");
 #endif
-    fprintf(stream, "swscale %s\n", AV_STRINGIFY(LIBSWSCALE_VERSION));
+
+#ifdef WITH_TIMG_SWS_RESIZE
+    fprintf(stream, "Resize: swscale %s\n", AV_STRINGIFY(LIBSWSCALE_VERSION));
+#else
+    fprintf(stream, "Resize: STB resize\n");
+#endif
+
 #ifdef WITH_TIMG_VIDEO
     fprintf(stream, "Video decoding %s\n", timg::VideoSource::VersionInfo());
 #endif
