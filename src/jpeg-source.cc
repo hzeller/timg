@@ -41,14 +41,9 @@
 #include "buffered-write-sequencer.h"
 #include "display-options.h"
 #include "framebuffer.h"
+#include "image-scaler.h"
 #include "renderer.h"
 #include "timg-time.h"
-
-extern "C" {  // avutil is missing extern "C"
-#include <libavutil/log.h>
-#include <libavutil/pixfmt.h>
-#include <libswscale/swscale.h>
-}
 
 namespace timg {
 namespace {
@@ -58,8 +53,6 @@ struct ScopeGuard {
     ~ScopeGuard() { f_(); }
     std::function<void()> f_;
 };
-
-static void dummy_log(void *, int, const char *, va_list) {}
 
 // Note, ExifImageOp is slightly different here than in image-source, as
 // that is using graphics-magick operations, where 'flip' has a different
@@ -215,17 +208,12 @@ bool JPEGSource::LoadAndScale(const DisplayOptions &opts, int, int) {
     }
 
     // Further scaling to desired target width/height
-    av_log_set_callback(dummy_log);
-    SwsContext *swsCtx =
-        sws_getContext(decode_width, decode_height, AV_PIX_FMT_RGBA,
-                       target_width, target_height, AV_PIX_FMT_RGBA,
-                       SWS_BILINEAR, nullptr, nullptr, nullptr);
-    if (!swsCtx) return false;
+    auto scaler = ImageScaler::Create(decode_width, decode_height,
+                                      ImageScaler::ColorFmt::kRGBA,
+                                      target_width, target_height);
+    if (!scaler) return false;
     image_.reset(new timg::Framebuffer(target_width, target_height));
-
-    sws_scale(swsCtx, decode_image.row_data(), decode_image.stride(), 0,
-              decode_height, image_->row_data(), image_->stride());
-    sws_freeContext(swsCtx);
+    scaler->Scale(decode_image, image_.get());
 
     image_.reset(ApplyExifOp(image_.release(), exif_op));
     return true;

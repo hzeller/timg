@@ -241,6 +241,9 @@ bool VideoSource::LoadAndScale(const DisplayOptions &display_options,
         center_indentation_ = (display_options.width - target_width) / 2;
     }
     // initialize SWS context for software scaling
+    // Note: right now, we can't use ImageScaler in the video context, as there
+    // is a vast variety of image formats that we can't support universally.
+    // However, once we link video libraries, the overhead for sws is minimal.
     sws_context_ =
         CreateSWSContext(codec_context_, target_width, target_height);
     if (!sws_context_) {

@@ -17,6 +17,7 @@ target_sources(timg PRIVATE
   timg-png.h        timg-png.cc
   timg-time.h
   timg-print-version.h timg-print-version.cc
+  image-scaler.h    image-scaler.cc
   timg-help.h       timg-help.cc
   unicode-block-canvas.h unicode-block-canvas.cc
 )

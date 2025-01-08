@@ -30,14 +30,9 @@
 #include "buffered-write-sequencer.h"
 #include "display-options.h"
 #include "framebuffer.h"
+#include "image-scaler.h"
 #include "renderer.h"
 #include "timg-time.h"
-
-extern "C" {
-#include <libavutil/log.h>
-#include <libavutil/pixfmt.h>
-#include <libswscale/swscale.h>
-}
 
 namespace timg {
 const char *OpenSlideSource::VersionInfo() { return openslide_get_version(); }
@@ -47,8 +42,6 @@ std::string OpenSlideSource::FormatTitle(
     return FormatFromParameters(format_string, filename_, orig_width_,
                                 orig_height_, "openslide");
 }
-
-static void dummy_log(void *, int, const char *, va_list) {}
 
 // Scoped clean-up of c objects.
 struct ScopeGuard {
@@ -132,15 +125,12 @@ bool OpenSlideSource::LoadAndScale(const DisplayOptions &opts, int, int) {
     }
 
     // Further scaling to desired target width/height
-    av_log_set_callback(dummy_log);
-    SwsContext *swsCtx = sws_getContext(
-        width, height, AV_PIX_FMT_RGB32, target_width, target_height,
-        AV_PIX_FMT_RGBA, SWS_BILINEAR, NULL, NULL, NULL);
-    if (!swsCtx) return false;
+    auto scaler =
+        ImageScaler::Create(width, height, ImageScaler::ColorFmt::kRGB32,
+                            target_width, target_height);
+    if (!scaler) return false;
     image_.reset(new timg::Framebuffer(target_width, target_height));
-    sws_scale(swsCtx, source_image->row_data(), source_image->stride(), 0,
-              height, image_->row_data(), image_->stride());
-    sws_freeContext(swsCtx);
+    scaler->Scale(*source_image, image_.get());
     image_->AlphaComposeBackground(opts.bgcolor_getter, opts.bg_pattern_color,
                                    opts.pattern_size * options_.cell_x_px,
                                    opts.pattern_size * options_.cell_y_px / 2);
