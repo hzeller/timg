@@ -32,7 +32,7 @@ AppDir:
     #- libopenslide0
     - libturbojpeg
     - libexif12
-    - libswscale5
+    #- libswscale5
     - libdeflate0
     - libsixel1
     #- libpoppler-glib8

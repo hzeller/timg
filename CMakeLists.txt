@@ -48,8 +48,6 @@ endif()
 if(WITH_TURBOJPEG)
   pkg_check_modules(TURBOJPEG REQUIRED IMPORTED_TARGET libturbojpeg)
   pkg_check_modules(EXIF REQUIRED IMPORTED_TARGET libexif)
-  pkg_check_modules(AVUTIL REQUIRED IMPORTED_TARGET libavutil)
-  pkg_check_modules(SWSCALE IMPORTED_TARGET REQUIRED libswscale)
 endif()
 
 if(WITH_GRAPHICSMAGICK)
@@ -68,8 +66,6 @@ endif()
 
 if(WITH_OPENSLIDE_SUPPORT)
   pkg_check_modules(OPENSLIDE IMPORTED_TARGET REQUIRED openslide)
-  pkg_check_modules(AVUTIL REQUIRED IMPORTED_TARGET libavutil)
-  pkg_check_modules(SWSCALE IMPORTED_TARGET REQUIRED libswscale)
 endif()
 
 if(WITH_VIDEO_DECODING)
@@ -79,12 +75,6 @@ if(WITH_VIDEO_DECODING)
   if (WITH_VIDEO_DEVICE)
     pkg_check_modules(LIBAV_DEVICE IMPORTED_TARGET REQUIRED libavdevice)
   endif()
-endif()
-
-# TODO: allow for fallback if that is not available.
-if(WITH_QOI_IMAGE)
-  pkg_check_modules(AVUTIL REQUIRED IMPORTED_TARGET libavutil)
-  pkg_check_modules(SWSCALE IMPORTED_TARGET REQUIRED libswscale)
 endif()
 
 find_package(Threads)

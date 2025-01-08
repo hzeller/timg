@@ -20,7 +20,7 @@ jobs:
       - name: Install minimal dependencies
         run: |
           sudo apt update
-          sudo apt install cmake git g++ clang pkg-config libswscale-dev libavutil-dev libdeflate-dev
+          sudo apt install cmake git g++ clang pkg-config libdeflate-dev
 
       - name: Get the Source
         uses: actions/checkout@v3
@@ -139,11 +139,9 @@ jobs:
         run: |
           sudo apt update
           sudo apt install cmake git g++ clang pkg-config
-          sudo apt install libswscale-dev libavutil-dev libdeflate-dev
+          sudo apt install libdeflate-dev
           sudo apt install libturbojpeg-dev libexif-dev
-          sudo apt install librsvg2-dev libcairo-dev
           sudo apt install libsixel-dev
-          sudo apt install libpoppler-glib-dev
           sudo apt install pandoc
 
       - name: Set Version
@@ -166,10 +164,17 @@ jobs:
              -DWITH_QOI_IMAGE=On \
              -DWITH_LIBSIXEL=On
           strip AppDir/usr/bin/timg
-          ldd AppDir/usr/bin/timg
+
           sed "s/@VERSION@/$PACKAGE_VERSION/" \
               < .github/conf/AppImageBuilder.yml.in \
               > AppImageBuilder.yml
+
+          echo "--- Binary size ---"
+          du -hs AppDir/usr/bin/timg
+          size AppDir/usr/bin/timg
+
+          echo "--- Libraries linked ---"
+          ldd AppDir/usr/bin/timg
 
       - name: Package
         uses: AppImageCrafters/build-appimage@master
