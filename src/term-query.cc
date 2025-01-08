@@ -22,6 +22,7 @@
 #include <termios.h>
 #include <unistd.h>
 
+#include <cctype>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -177,7 +178,6 @@ const char *QueryBackgroundColor() {
     const Duration kTimeBudget = Duration::Millis(1500);
 
     constexpr char query_background_color[] = "\033]11;?\033\\";
-    constexpr size_t kColorLen = 18;  // strlen("rgb:1234/1234/1234")
 
     // Query and testing the response. It is the query-string with the
     // question mark replaced with the requested information.
@@ -196,27 +196,28 @@ const char *QueryBackgroundColor() {
     //    Make sure to accumulate reads in a more spacious buffer than the
     //    expected response and finish once we found what we're looking for.
     char buffer[512];
-    const char *const start_color = QueryTerminal(
+    const char *start_color = QueryTerminal(
         query_background_color, buffer, sizeof(buffer), kTimeBudget,
         [](const char *data, size_t len) -> const char * {
             // We might've gotten some spurious bytes in the beginning from
             // keypresses, so find where the color starts.
             const char *found = find_str(data, len, "rgb:");
-            if (found && len - (found - data) > kColorLen) {  // at least 1 more
-                return found;  // Found start of color sequence and enough
-                               // bytes.
-            }
-            return nullptr;
+            return strchr(found, '\\') ? found : nullptr;
         });
 
     if (!start_color) return nullptr;
 
     // Assemble a standard #rrggbb string into global static buffer.
     static char result[8];
+    strcpy(result, "#000000");  // Some default.
     result[0] = '#';
-    memcpy(&result[1], &start_color[4], 2);
-    memcpy(&result[3], &start_color[9], 2);
-    memcpy(&result[5], &start_color[14], 2);
+    start_color += strlen("rgb:");
+    for (int pos = 1; pos < 6 && isxdigit(*start_color); pos += 2) {
+        memcpy(&result[pos], start_color, 2);
+        start_color = strchr(start_color, '/');  // color separator.
+        if (!start_color) return result;
+        start_color += 1;
+    }
     result[7] = '\0';
 
     return result;
