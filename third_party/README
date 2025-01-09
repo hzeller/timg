@@ -3,6 +3,7 @@ Header-only third_party image decoding implementations
  * STB: Public domain header-only image loading and manipulation. Find
    Full repo on https://github.com/nothings/stb
    This is from git submit 5c205738c191bcb0abc65c4febfa9bd25ff35234
+   with applied patch https://github.com/nothings/stb/pull/1736
  * QOI: MIT licensed header-only implementation of https://qoiformat.org/
    Full repo on https://github.com/phoboslab/qoi
    This is from git submit f65b365318df43cd0d7de8b51473dabcbefc04a6
