@@ -23,7 +23,7 @@ jobs:
           sudo apt install cmake git g++ clang pkg-config libdeflate-dev
 
       - name: Get the Source
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Configure shell
         run: |
@@ -73,7 +73,7 @@ jobs:
     steps:
 
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
@@ -98,7 +98,7 @@ jobs:
     - name: 📥 Download artifacts
       uses: actions/download-artifact@v4.1.8
 
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
        fetch-depth: 0
        token: ${{ secrets.GITHUB_TOKEN }}
@@ -130,7 +130,7 @@ jobs:
     name: Build AppImage
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -184,7 +184,7 @@ jobs:
           recipe: "AppImageBuilder.yml"
 
       - name: 📤 Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: timg-${{ env.PACKAGE_VERSION }}-x86_64.AppImage
           path: timg-${{ env.PACKAGE_VERSION }}-x86_64.AppImage
