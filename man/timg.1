@@ -499,9 +499,13 @@ connection that can\[cq]t keep up with playing videos.
 Or if you have a very slow CPU.
 .TP
 \f[B]TIMG_SIXEL_NEWLINE_WORKAROUND\f[R]
-Set this environment variable to 1 if you are on a Sixel terminal and
-notice that videos `scroll' or grid\-view items are not perfectly
-aligned vertically.
+Set this environment variable if you are on a Sixel terminal and notice
+that videos `scroll' or grid\-view items are not perfectly aligned
+vertically.
+Sometimes this manifests only for pictures of a particular height.
+Valid values are 0, 1, 2, 3 which address various subtle differences in
+which sixel terminals behave.
+Default 0.
 .SH EXAMPLES
 Some example invocations including scrolling text or streaming an online
 video are put together at \c

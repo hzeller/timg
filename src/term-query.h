@@ -44,6 +44,7 @@ enum class GraphicsProtocol {
 struct TermGraphicsInfo {
     GraphicsProtocol preferred_graphics;
     bool known_broken_sixel_cursor_placement;  // see SixelCanvas impl. doc
+    bool sixel_full_cell_jump;
     bool in_tmux;
 };
 

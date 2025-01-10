@@ -28,7 +28,7 @@ class ThreadPool;
 class SixelCanvas final : public TerminalCanvas {
 public:
     SixelCanvas(BufferedWriteSequencer *ws, ThreadPool *thread_pool,
-                bool required_cursor_placement_workaround,
+                bool required_cursor_placement_workaround, bool full_cell_jump,
                 const DisplayOptions &opts);
 
     int cell_height_for_pixels(int pixels) const final;
@@ -38,6 +38,7 @@ public:
 
 private:
     const DisplayOptions &options_;
+    const bool full_cell_jump_;
     ThreadPool *const executor_;
     const char *cursor_move_before_;
     const char *cursor_move_after_;

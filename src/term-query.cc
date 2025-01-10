@@ -224,11 +224,12 @@ const char *QueryBackgroundColor() {
 }
 
 TermGraphicsInfo QuerySupportedGraphicsProtocol() {
-    TermGraphicsInfo result;
+    TermGraphicsInfo result{};
     result.preferred_graphics = GraphicsProtocol::kNone;
-    result.known_broken_sixel_cursor_placement =
-        timg::GetBoolenEnv("TIMG_SIXEL_NEWLINE_WORKAROUND");
-    result.in_tmux = false;
+    const int sixel_env_bits = timg::GetIntEnv("TIMG_SIXEL_NEWLINE_WORKAROUND");
+    result.known_broken_sixel_cursor_placement = sixel_env_bits & 0b01;
+    result.sixel_full_cell_jump                = sixel_env_bits & 0b10;
+    result.in_tmux                             = false;
 
     // Environment variables can be changed, so guesses from environment
     // variables are just that: guesses.
@@ -298,6 +299,12 @@ TermGraphicsInfo QuerySupportedGraphicsProtocol() {
                       }
                       if (find_str(data, len, "tmux")) {
                           result.in_tmux = true;
+                      }
+                      if (find_str(data, len, "WindowsTerminal")) {
+                          // TODO: check again once name is established
+                          // https://github.com/microsoft/terminal/issues/18382
+                          result.known_broken_sixel_cursor_placement = true;
+                          result.sixel_full_cell_jump                = true;
                       }
                       // We finish once we found the response to DSR5
                       return find_str(data, len, TERM_CSI "0");

@@ -36,8 +36,11 @@ namespace timg {
 
 SixelCanvas::SixelCanvas(BufferedWriteSequencer *ws, ThreadPool *thread_pool,
                          bool required_cursor_placement_workaround,
-                         const DisplayOptions &opts)
-    : TerminalCanvas(ws), options_(opts), executor_(thread_pool) {
+                         bool full_cell_jump, const DisplayOptions &opts)
+    : TerminalCanvas(ws),
+      options_(opts),
+      full_cell_jump_(full_cell_jump),
+      executor_(thread_pool) {
     // Terminals might have different understanding where the curosr is placed
     // after an image is sent.
     // Apparently the original dec terminal placed it afterwards, but some
@@ -153,11 +156,18 @@ void SixelCanvas::Send(int x, int dy, const Framebuffer &fb_orig,
 int SixelCanvas::cell_height_for_pixels(int pixels) const {
     assert(pixels <= 0);  // Currently only use-case
     pixels = -pixels;
-    // Unlike the other exact pixel canvases where we have to round to the
-    // next even cell_y_px, here we first need to round to the next even 6
-    // first.
-    return -((round_to_sixel(pixels) + options_.cell_y_px - 1) /
-             options_.cell_y_px);
+    if (full_cell_jump_) {
+        // https://github.com/hzeller/timg/issues/145#issuecomment-2579962760
+        // As DEC intended.
+        return -((round_to_sixel(pixels) - 6) / options_.cell_y_px + 1);
+    }
+    else {
+        // Unlike the other exact pixel canvases where we have to round to the
+        // next even cell_y_px, here we first need to round to the next even 6
+        // first.
+        return -((round_to_sixel(pixels) + options_.cell_y_px - 1) /
+                 options_.cell_y_px);
+    }
 }
 
 }  // namespace timg
