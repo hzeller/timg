@@ -39,6 +39,14 @@ float GetFloatEnv(const char *env_var, float default_value) {
     return (*err == '\0' ? result : default_value);
 }
 
+int GetIntEnv(const char *env_name, int default_value) {
+    const char *const value = getenv(env_name);
+    if (!value) return default_value;
+    char *err        = nullptr;
+    const int result = strtol(value, &err, 10);
+    return (*err == '\0' ? result : default_value);
+}
+
 std::string HumanReadableByteValue(int64_t byte_count) {
     float print_bytes = byte_count;
     const char *unit  = "Bytes";

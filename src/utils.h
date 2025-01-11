@@ -26,6 +26,9 @@ bool GetBoolenEnv(const char *env_name, bool default_value = false);
 // Get float value from named environment variable.
 float GetFloatEnv(const char *env_var, float default_value);
 
+// Get float value from named environment variable.
+int GetIntEnv(const char *env_name, int default_value = 0);
+
 // Given number of bytes, return a human-readable version of that
 // (e.g. "13.2 MiB").
 std::string HumanReadableByteValue(int64_t byte_count);
