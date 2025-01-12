@@ -227,8 +227,8 @@ TermGraphicsInfo QuerySupportedGraphicsProtocol() {
     TermGraphicsInfo result{};
     result.preferred_graphics = GraphicsProtocol::kNone;
     const int sixel_env_bits = timg::GetIntEnv("TIMG_SIXEL_NEWLINE_WORKAROUND");
-    result.known_broken_sixel_cursor_placement = sixel_env_bits & 0b01;
-    result.sixel_full_cell_jump                = sixel_env_bits & 0b10;
+    result.sixel.known_broken_cursor_placement = sixel_env_bits & 0b01;
+    result.sixel.full_cell_jump                = sixel_env_bits & 0b10;
     result.in_tmux                             = false;
 
     // Environment variables can be changed, so guesses from environment
@@ -249,7 +249,7 @@ TermGraphicsInfo QuerySupportedGraphicsProtocol() {
     if (term_program && strcmp(term_program, "vscode") == 0) {
         result.preferred_graphics = GraphicsProtocol::kIterm2;
         // In case the user chooses sixel.
-        result.known_broken_sixel_cursor_placement = true;
+        result.sixel.known_broken_cursor_placement = true;
     }
 
     // Note, there is a kitty protocol way to determine if kitty is supported,
@@ -278,7 +278,7 @@ TermGraphicsInfo QuerySupportedGraphicsProtocol() {
                       }
                       if (find_str(data, len, "WezTerm")) {
                           result.preferred_graphics = GraphicsProtocol::kIterm2;
-                          result.known_broken_sixel_cursor_placement = true;
+                          result.sixel.known_broken_cursor_placement = true;
                       }
                       if (find_str(data, len, "kitty")) {
                           result.preferred_graphics = GraphicsProtocol::kKitty;
@@ -291,11 +291,11 @@ TermGraphicsInfo QuerySupportedGraphicsProtocol() {
                       }
                       if (find_str(data, len, "XTerm")) {
                           // Don't know yet if supports sixel, will query below
-                          result.known_broken_sixel_cursor_placement = true;
+                          result.sixel.known_broken_cursor_placement = true;
                       }
                       if (find_str(data, len, "foot")) {
                           result.preferred_graphics = GraphicsProtocol::kSixel;
-                          result.known_broken_sixel_cursor_placement = true;
+                          result.sixel.known_broken_cursor_placement = true;
                       }
                       if (find_str(data, len, "tmux")) {
                           result.in_tmux = true;
@@ -303,8 +303,8 @@ TermGraphicsInfo QuerySupportedGraphicsProtocol() {
                       if (find_str(data, len, "WindowsTerminal")) {
                           // TODO: check again once name is established
                           // https://github.com/microsoft/terminal/issues/18382
-                          result.known_broken_sixel_cursor_placement = true;
-                          result.sixel_full_cell_jump                = true;
+                          result.sixel.known_broken_cursor_placement = true;
+                          result.sixel.full_cell_jump                = true;
                       }
                       // We finish once we found the response to DSR5
                       return find_str(data, len, TERM_CSI "0");

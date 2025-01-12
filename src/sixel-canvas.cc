@@ -26,6 +26,7 @@
 #include "buffered-write-sequencer.h"
 #include "display-options.h"
 #include "framebuffer.h"
+#include "term-query.h"
 #include "terminal-canvas.h"
 #include "thread-pool.h"
 #include "timg-time.h"
@@ -35,11 +36,11 @@
 namespace timg {
 
 SixelCanvas::SixelCanvas(BufferedWriteSequencer *ws, ThreadPool *thread_pool,
-                         bool required_cursor_placement_workaround,
-                         bool full_cell_jump, const DisplayOptions &opts)
+                         const SixelOptions &sixel_options,
+                         const DisplayOptions &display_opts)
     : TerminalCanvas(ws),
-      options_(opts),
-      full_cell_jump_(full_cell_jump),
+      options_(display_opts),
+      full_cell_jump_(sixel_options.full_cell_jump),
       executor_(thread_pool) {
     // Terminals might have different understanding where the curosr is placed
     // after an image is sent.
@@ -62,7 +63,7 @@ SixelCanvas::SixelCanvas(BufferedWriteSequencer *ws, ThreadPool *thread_pool,
     //   * https://vt100.net/dec/ek-vt382-rm-001.pdf#page=112
     //   * https://vt100.net/dec/ek-vt38t-ug-001.pdf#page=132
     // Plese send PR or issue if you know a less ugly way to deal with this.
-    if (!required_cursor_placement_workaround) {
+    if (!sixel_options.known_broken_cursor_placement) {
         //** The default way of doing things; works with most terminals.
         // works: konsole, mlterm, libvte-based, alacritty-sixel
         // breaks: xterm, wezterm

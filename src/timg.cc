@@ -126,9 +126,8 @@ namespace timg {
 // Options configuring how images/videos are arranged and presented.
 struct PresentationOptions {
     // Rendering
-    Pixelation pixelation         = Pixelation::kNotChosen;
-    bool sixel_cursor_workaround  = false;
-    bool sixel_full_cell_jump     = false;
+    Pixelation pixelation = Pixelation::kNotChosen;
+    SixelOptions sixel_options{};
     bool tmux_workaround          = false;
     bool terminal_use_upper_block = false;
     bool use_256_color = false;  // For terminals that don't do 24 bit color
@@ -332,9 +331,9 @@ static int PresentImages(LoadedImageSources *loaded_sources,
 #ifdef WITH_TIMG_SIXEL
     case Pixelation::kSixelGraphics:
         compression_pool.reset(new ThreadPool(sequencer->max_queue_len() + 1));
-        canvas.reset(new timg::SixelCanvas(
-            sequencer, compression_pool.get(), present.sixel_cursor_workaround,
-            present.sixel_full_cell_jump, display_opts));
+        canvas.reset(new timg::SixelCanvas(sequencer, compression_pool.get(),
+                                           present.sixel_options,
+                                           display_opts));
         break;
 #endif
     case Pixelation::kHalfBlock:
@@ -782,11 +781,8 @@ int main(int argc, char *argv[]) {
                 break;
             case timg::GraphicsProtocol::kSixel:
 #ifdef WITH_TIMG_SIXEL
-                present.pixelation = Pixelation::kSixelGraphics;
-                present.sixel_cursor_workaround =
-                    graphics_info.known_broken_sixel_cursor_placement;
-                present.sixel_full_cell_jump =
-                    graphics_info.sixel_full_cell_jump;
+                present.pixelation    = Pixelation::kSixelGraphics;
+                present.sixel_options = graphics_info.sixel;
 #else
                 present.pixelation = Pixelation::kQuarterBlock;
 #endif
@@ -804,10 +800,8 @@ int main(int argc, char *argv[]) {
     // If the user manually choose sixel, we still can't avoid a terminal
     // query, as we have to figure out if it has a broken cursor implementation.
     else if (present.pixelation == Pixelation::kSixelGraphics) {
-        auto graphics_info = timg::QuerySupportedGraphicsProtocol();
-        present.sixel_cursor_workaround =
-            graphics_info.known_broken_sixel_cursor_placement;
-        present.sixel_full_cell_jump = graphics_info.sixel_full_cell_jump;
+        auto graphics_info    = timg::QuerySupportedGraphicsProtocol();
+        present.sixel_options = graphics_info.sixel;
     }
 #endif
 
@@ -1036,11 +1030,12 @@ int main(int argc, char *argv[]) {
 #ifdef WITH_TIMG_SIXEL
         if (present.pixelation == Pixelation::kSixelGraphics) {
             fprintf(stderr, " (%s and %s)",
-                    present.sixel_cursor_workaround
+                    present.sixel_options.known_broken_cursor_placement
                         ? "with cursor placment workaround"
                         : "with default cursor placement",
-                    present.sixel_full_cell_jump ? "full cursor cell jump"
-                                                 : "default cursor cell jump");
+                    present.sixel_options.full_cell_jump
+                        ? "full cursor cell jump"
+                        : "default cursor cell jump");
         }
 #endif
         if (present.pixelation == Pixelation::kKittyGraphics) {

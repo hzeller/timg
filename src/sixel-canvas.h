@@ -19,6 +19,7 @@
 #include "buffered-write-sequencer.h"
 #include "display-options.h"
 #include "framebuffer.h"
+#include "term-query.h"
 #include "terminal-canvas.h"
 #include "timg-time.h"
 
@@ -28,8 +29,8 @@ class ThreadPool;
 class SixelCanvas final : public TerminalCanvas {
 public:
     SixelCanvas(BufferedWriteSequencer *ws, ThreadPool *thread_pool,
-                bool required_cursor_placement_workaround, bool full_cell_jump,
-                const DisplayOptions &opts);
+                const SixelOptions &sixel_options,
+                const DisplayOptions &display_opts);
 
     int cell_height_for_pixels(int pixels) const final;
 

@@ -41,11 +41,16 @@ enum class GraphicsProtocol {
     kKitty,
     kSixel,
 };
+// See SixelCanvas for explanations of these values. The default values
+// are boolean false.
+struct SixelOptions {
+    bool known_broken_cursor_placement = false;
+    bool full_cell_jump                = false;
+};
 struct TermGraphicsInfo {
-    GraphicsProtocol preferred_graphics;
-    bool known_broken_sixel_cursor_placement;  // see SixelCanvas impl. doc
-    bool sixel_full_cell_jump;
-    bool in_tmux;
+    GraphicsProtocol preferred_graphics = GraphicsProtocol::kNone;
+    SixelOptions sixel;
+    bool in_tmux = false;
 };
 
 // Query the terminal if and what graphics protocol it supports.
