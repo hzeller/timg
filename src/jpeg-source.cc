@@ -29,7 +29,6 @@
 #include <unistd.h>
 
 #include <csignal>
-#include <cstdarg>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>

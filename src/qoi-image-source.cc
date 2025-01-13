@@ -20,7 +20,6 @@
 //
 
 #include <csignal>
-#include <cstdarg>
 #include <cstdlib>
 #include <cstring>
 #include <string>

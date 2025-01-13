@@ -15,6 +15,9 @@
 
 #include "image-scaler.h"
 
+#include <cstdint>
+#include <memory>
+
 #ifdef WITH_TIMG_SWS_RESIZE
 extern "C" {  // avutil is missing extern "C"
 #include <libavutil/log.h>
@@ -29,6 +32,8 @@ extern "C" {  // avutil is missing extern "C"
 #define STBIR_DEFAULT_FILTER_UPSAMPLE STBIR_FILTER_BOX
 #include "stb/stb_image_resize2.h"
 #endif
+
+#include "framebuffer.h"
 
 // TODO: there is also zimg.
 

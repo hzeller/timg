@@ -88,8 +88,8 @@ bool PDFImageSource::LoadAndScale(const DisplayOptions &opts, int frame_offset,
 
         const auto kCairoFormat = CAIRO_FORMAT_ARGB32;
         int stride = cairo_format_stride_for_width(kCairoFormat, render_width);
-        std::unique_ptr<timg::Framebuffer> image(
-            new timg::Framebuffer(stride / 4, render_height));
+        auto image =
+            std::make_unique<timg::Framebuffer>(stride / 4, render_height);
 
         cairo_surface_t *surface = cairo_image_surface_create_for_data(
             (uint8_t *)image->begin(), kCairoFormat, render_width,
