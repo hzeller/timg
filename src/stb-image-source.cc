@@ -89,7 +89,10 @@ bool STBImageSource::LoadAndScale(const DisplayOptions &options,
     }
 #endif
 
-    FILE *img_file = stbi__fopen(filename().c_str(), "rb");
+    FILE *img_file = (filename() == "-")
+                         ? fdopen(STDIN_FILENO, "rb")
+                         : stbi__fopen(filename().c_str(), "rb");
+
     if (!img_file) return false;
 
     stbi__context context;
