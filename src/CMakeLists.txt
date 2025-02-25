@@ -73,7 +73,12 @@ endif()
 
 if(WITH_TURBOJPEG)
   target_sources(timg PUBLIC jpeg-source.h jpeg-source.cc)
+  include(CheckIncludeFileCXX)
+  CHECK_INCLUDE_FILE_CXX(jconfig.h JCONFIG_H_AVAILABLE)
   target_compile_definitions(timg PUBLIC WITH_TIMG_JPEG)
+  if (JCONFIG_H_AVAILABLE)
+    target_compile_definitions(timg PUBLIC HAVE_JCONFIG_H)
+  endif()
   target_link_libraries(timg
     PkgConfig::TURBOJPEG
     PkgConfig::EXIF)

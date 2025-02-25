@@ -39,7 +39,7 @@
 #include <poppler.h>
 #endif
 
-#ifdef WITH_TIMG_JPEG
+#if defined(WITH_TIMG_JPEG) && defined(HAVE_JCONFIG_H)
 #include <jconfig.h>
 #endif
 #include <libdeflate.h>
