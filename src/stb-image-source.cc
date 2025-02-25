@@ -16,6 +16,8 @@
 #include "stb-image-source.h"
 
 #define STB_IMAGE_IMPLEMENTATION
+#include <unistd.h>
+
 #include <algorithm>
 #include <csignal>
 #include <cstdint>
@@ -39,9 +41,9 @@ static constexpr int kDesiredChannels = 4;  // RGBA, our framebuffer format
 namespace timg {
 class STBImageSource::PreprocessedFrame {
 public:
-    PreprocessedFrame(const uint8_t *image_data, int source_w, int source_h,
-                      int target_w, int target_h, const Duration &delay,
-                      const DisplayOptions &opt)
+    PreprocessedFrame(const uint8_t *image_data, size_t source_w,
+                      size_t source_h, size_t target_w, size_t target_h,
+                      const Duration &delay, const DisplayOptions &opt)
         : delay_(delay), framebuffer_(target_w, target_h) {
         const size_t len = source_w * source_h * 4;
         Framebuffer source_img(source_w, source_h);  // TODO: avoid copy.
@@ -89,14 +91,26 @@ bool STBImageSource::LoadAndScale(const DisplayOptions &options,
     }
 #endif
 
-    FILE *img_file = (filename() == "-")
-                         ? fdopen(STDIN_FILENO, "rb")
-                         : stbi__fopen(filename().c_str(), "rb");
-
-    if (!img_file) return false;
-
     stbi__context context;
-    stbi__start_file(&context, img_file);
+
+    FILE *img_file = nullptr;
+    std::string mem_buffer;
+
+    if (filename() == "-") {
+        // For stdin, we need to fill a buffer, as stb needs seek functionality.
+        char buffer[4096];
+        ssize_t r;
+        while ((r = read(STDIN_FILENO, buffer, sizeof(buffer))) > 0) {
+            mem_buffer.append(buffer, r);
+        }
+        stbi__start_mem(&context, (const uint8_t *)mem_buffer.data(),
+                        mem_buffer.size());
+    }
+    else {
+        img_file = stbi__fopen(filename().c_str(), "rb");
+        if (!img_file) return false;
+        stbi__start_file(&context, img_file);
+    }
 
     int channels;
     int target_width  = 0;
@@ -108,7 +122,7 @@ bool STBImageSource::LoadAndScale(const DisplayOptions &options,
         memset(&gdata, 0, sizeof(gdata));
         uint8_t *data;
         while ((data = stbi__gif_load_next(&context, &gdata, &channels,
-                                           kDesiredChannels, 0))) {
+                                           kDesiredChannels, nullptr))) {
             if (data == (const uint8_t *)&context) break;
             orig_width_  = gdata.w;
             orig_height_ = gdata.h;
@@ -124,7 +138,8 @@ bool STBImageSource::LoadAndScale(const DisplayOptions &options,
         STBI_FREE(gdata.background);
     }
     else {
-        int w, h;
+        int w         = 0;
+        int h         = 0;
         uint8_t *data = stbi__load_and_postprocess_8bit(
             &context, &w, &h, &channels, kDesiredChannels);
         if (!data) {
@@ -149,7 +164,7 @@ bool STBImageSource::LoadAndScale(const DisplayOptions &options,
                       ? (int)frames_.size()
                       : std::min(frame_count, (int)frames_.size());
 
-    fclose(img_file);
+    if (img_file) fclose(img_file);
 
     return !frames_.empty();
 }
@@ -159,12 +174,13 @@ void STBImageSource::SendFrames(const Duration &duration, int loops,
                                 const Renderer::WriteFramebufferFun &sink) {
     int last_height         = -1;  // First image emit will not have a height.
     const bool is_animation = frames_.size() > 1;
-    if (frames_.size() == 1 || !is_animation)
+    if (frames_.size() == 1 || !is_animation) {
         loops = 1;  // If there is no animation, nothing to repeat.
-
+    }
     // Not initialized or negative value wants us to loop forever.
     // (note, kNotInitialized is actually negative, but here for clarity
-    const bool loop_forever = (loops < 0) || (loops == timg::kNotInitialized);
+    const bool loop_forever =
+        (loops < 0) || (loops == timg::kNotInitialized);  // NOLINT
 
     timg::Duration time_from_first_frame;
     bool is_first = true;
