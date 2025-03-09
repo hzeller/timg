@@ -243,13 +243,20 @@ TermGraphicsInfo QuerySupportedGraphicsProtocol() {
         // Fall through, as we still have to determine if we're in tmux
     }
 
-    // vscode doesn't provide a way to query the terminal, but can do
-    // iterm graphics.
+    // Some terminals with Windows heritage often don't support query of
+    // the terminal, but are set TERM_PROGRAM
     const char *const term_program = getenv("TERM_PROGRAM");
-    if (term_program && strcmp(term_program, "vscode") == 0) {
-        result.preferred_graphics = GraphicsProtocol::kIterm2;
-        // In case the user chooses sixel.
-        result.sixel.known_broken_cursor_placement = true;
+    if (term_program) {
+        if (strcmp(term_program, "vscode") == 0) {
+            result.preferred_graphics = GraphicsProtocol::kIterm2;
+            // In case the user chooses sixel.
+            result.sixel.known_broken_cursor_placement = true;
+        }
+        else if (strcmp(term_program, "WarpTerminal") == 0) {
+            // At least on Mac and Linux according to #151
+            // (Windows support unclear)
+            result.preferred_graphics = GraphicsProtocol::kIterm2;
+        }
     }
 
     // Note, there is a kitty protocol way to determine if kitty is supported,
