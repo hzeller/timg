@@ -27,14 +27,22 @@
 
 namespace timg {
 std::string Renderer::TrimTitle(const std::string &title,
+                                const std::string &url,
                                 int requested_width) const {
     std::string result = title;
     // Columns can be too narrow. We might need to trim what we print.
     if ((int)result.length() > requested_width) {
         result.replace(0, result.length() - requested_width + 3, "...");
     }
-    else if (options_.center_horizontally) {
-        const int start_spaces = (requested_width - result.length()) / 2;
+    // OSC 8 hyperlink format:
+    // https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
+    if (!url.empty()) {
+        result = "\e]8;;" + url + "\e\\" + result + "\e]8;;\e\\";
+    }
+    // This is placed after hyperlink concatenation to prevent terminals
+    // underline the start_spaces
+    if (options_.center_horizontally) {
+        const int start_spaces = (requested_width - title.length()) / 2;
         result.insert(0, std::string(start_spaces, ' '));
     }
     result += "\n";
@@ -49,9 +57,10 @@ public:
                          const DisplayOptions &display_opts, Duration wait_time)
         : Renderer(canvas, display_opts), wait_time_(wait_time) {}
 
-    WriteFramebufferFun render_cb(const std::string &title) final {
+    WriteFramebufferFun render_cb(const std::string &title,
+                                  const std::string &url) final {
         // For single column mode, implementation is straightforward
-        RenderTitle(title);
+        RenderTitle(title, url);
         return [this](int x, int dy, const Framebuffer &fb, SeqType seq_type,
                       const Duration &end_of_frame) {
             canvas_->Send(x, dy, fb, seq_type, end_of_frame);
@@ -65,10 +74,10 @@ public:
     }
 
 private:
-    void RenderTitle(const std::string &title) {
+    void RenderTitle(const std::string &title, const std::string &url) {
         if (!options_.show_title) return;
         const std::string tout =
-            TrimTitle(title, options_.width / options_.cell_x_px);
+            TrimTitle(title, url, options_.width / options_.cell_x_px);
         canvas_->AddPrefixNextSend(tout.data(), tout.size());
     }
 
@@ -100,9 +109,10 @@ public:
         }
     }
 
-    WriteFramebufferFun render_cb(const std::string &title) final {
+    WriteFramebufferFun render_cb(const std::string &title,
+                                  const std::string &url) final {
         AdvanceColumn();
-        PrepareTitle(title);
+        PrepareTitle(title, url);
         first_render_call_ = true;
         return [this](int x, int dy, const Framebuffer &fb, SeqType seq_type,
                       const Duration &end_of_frame) {
@@ -157,9 +167,9 @@ public:
     }
 
 private:
-    void PrepareTitle(const std::string &title) {
+    void PrepareTitle(const std::string &title, const std::string &url) {
         if (!options_.show_title) return;
-        title_ = TrimTitle(title, column_width_ / options_.cell_x_px);
+        title_ = TrimTitle(title, url, column_width_ / options_.cell_x_px);
     }
 
     bool AdvanceColumn() {

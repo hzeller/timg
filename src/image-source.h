@@ -51,6 +51,9 @@ public:
     // Format title according to the format-string.
     virtual std::string FormatTitle(const std::string &format_string) const = 0;
 
+    // Generate file://hostname/absolute/path/to/image.
+    std::string FormatUrl() const;
+
     // Return filename, this ImageSource has loaded.
     const std::string &filename() const { return filename_; }
 
