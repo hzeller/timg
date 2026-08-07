@@ -54,7 +54,8 @@ public:
     // rendered, to be called by whoever provides a framebuffer.
     // The returned call can be used to output multiple frames with the usual
     // (x, dy) positioning.
-    virtual WriteFramebufferFun render_cb(const std::string &title) = 0;
+    virtual WriteFramebufferFun render_cb(const std::string &title,
+                                          const std::string &url) = 0;
 
     // Wait if needed between image sources.
     virtual void MaybeWaitBetweenImageSources() const = 0;
@@ -64,7 +65,8 @@ protected:
 
     // Trim and potentially title for rendering, obeying the column-width
     // and centering constraints. Adds a newline as this needs to be printed.
-    std::string TrimTitle(const std::string &title, int width) const;
+    std::string TrimTitle(const std::string &title, const std::string &url,
+                          int width) const;
 
     timg::TerminalCanvas *const canvas_;
     const DisplayOptions &options_;

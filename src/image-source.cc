@@ -25,6 +25,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <filesystem>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -267,6 +268,17 @@ static std::string Basename(const std::string &filename) {
     return last_slash_pos == std::string::npos
                ? filename
                : filename.substr(last_slash_pos + 1);
+}
+
+std::string ImageSource::FormatUrl() const {
+    // Get hostname for terminals to distinguish local vs. remote files.
+    std::string hostname;
+    // Host names are limited in length ... not including the trailing null, currently 255.
+    hostname.resize(256);
+    gethostname(hostname.data(), 256);
+
+    auto abs_path = std::filesystem::canonical(filename_);
+    return "file://" + hostname + abs_path.string();
 }
 
 std::string ImageSource::FormatFromParameters(const std::string &fmt_string,

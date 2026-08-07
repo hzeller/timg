@@ -127,6 +127,10 @@ Most likely commonly needed options first.
      If no format string is given, this is just the filename (`%f`) or, if
      set, what is provided in the `TIMG_DEFAULT_TITLE` environment variable.
 
+**-\-hyperlink**
+:    Make title a hyperlink to the image file, by wrapping the title with
+     OSC 8 control sequences. This flag must be used together with `--title`.
+
 **-f** &lt;*filelist-file*&gt;
 :    Read a list of image filenames to show from this file. The list needs
      to be newline separated, so one filename per line.

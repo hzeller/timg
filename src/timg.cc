@@ -192,6 +192,8 @@ static int usage(const char *progname, ExitCode exit_code, int width,
         "\t                                    %%D = internal decoder used\n"
         "\t                 If no parameter is given, defaults to \"%%f\"\n"
         "\t                 Env-var override with TIMG_DEFAULT_TITLE%s%s%s\n"
+        "\t--hyperlink    : Make title an OSC 8 hyperlink to the image.\n"
+        "\t                 Requires --title to be active.\n"
         "\t-f<filelist>   : Read newline-separated list of image files to "
         "show.\n"
         "\t                 Relative filenames are relative to current "
@@ -383,10 +385,11 @@ static int PresentImages(LoadedImageSources *loaded_sources,
         valid_images++;
         *any_animations_seen |= source->IsAnimationBeforeFrameLimit();
         before_image_show(is_first);
-        source->SendFrames(present.duration_per_image, present.loops,
-                           interrupt_received,
-                           renderer->render_cb(
-                               source->FormatTitle(display_opts.title_format)));
+        source->SendFrames(
+            present.duration_per_image, present.loops, interrupt_received,
+            renderer->render_cb(
+                source->FormatTitle(display_opts.title_format),
+                display_opts.hyperlink ? source->FormatUrl() : ""));
         after_image_show();
         renderer->MaybeWaitBetweenImageSources();
         is_first = false;
@@ -479,6 +482,7 @@ int main(int argc, char *argv[]) {
         OPT_FRAME_COUNT,
         OPT_FRAME_OFFSET,
         OPT_GRID,
+        OPT_HYPERLINK,
         OPT_PATTERN_SIZE,
         OPT_ROTATE,
         OPT_THREADS,
@@ -505,6 +509,7 @@ int main(int argc, char *argv[]) {
         {"frames",               required_argument, NULL, OPT_FRAME_COUNT   },
         {"grid",                 required_argument, NULL, OPT_GRID          },
         {"help",                 no_argument,       NULL, OPT_MANPAGE_HELP  },
+        {"hyperlink",            no_argument,       NULL, OPT_HYPERLINK     },
         {"loops",                optional_argument, NULL, 'c'               },
         {"pattern-size",         required_argument, NULL, OPT_PATTERN_SIZE  },
         {"pixelation",           required_argument, NULL, 'p'               },
@@ -668,6 +673,7 @@ int main(int argc, char *argv[]) {
             display_opts.show_title = !display_opts.show_title;
             if (optarg) display_opts.title_format = optarg;
             break;
+        case OPT_HYPERLINK: display_opts.hyperlink = true; break;
         case 'o':
             output_fd = open(optarg, O_WRONLY | O_CREAT | O_TRUNC, 0664);
             if (output_fd < 0) {

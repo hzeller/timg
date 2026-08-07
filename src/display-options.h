@@ -64,6 +64,7 @@ struct DisplayOptions {
                                // Done after crop-border has been applied.
     bool exif_rotate = true;   // Rotate image according to exif data found.
     bool show_title  = false;  // show title.
+    bool hyperlink   = false;  // show hyperlink to image file.
 
     // Format for title, can contain %-format like place holders
     //  %f = filename
