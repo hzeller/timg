@@ -236,9 +236,13 @@ TermGraphicsInfo QuerySupportedGraphicsProtocol() {
     // They will help as a fallback if the [>q query does not work.
     // Only testing environment variables with very specific content.
 
+    // Rex is a terminal multiplexer built on top of libghostty, so it
+    // provides the same kitty graphics support. It advertises itself both
+    // with a TERM value and TERM_PROGRAM (see below).
     const char *const term = getenv("TERM");
     if (term && ((strcmp(term, "xterm-kitty") == 0) ||
-                 (strcmp(term, "xterm-ghostty") == 0))) {
+                 (strcmp(term, "xterm-ghostty") == 0) ||
+                 (strcmp(term, "xterm-rex") == 0))) {
         result.preferred_graphics = GraphicsProtocol::kKitty;
         // Fall through, as we still have to determine if we're in tmux
     }
@@ -256,6 +260,12 @@ TermGraphicsInfo QuerySupportedGraphicsProtocol() {
             // At least on Mac and Linux according to #151
             // (Windows support unclear)
             result.preferred_graphics = GraphicsProtocol::kIterm2;
+        }
+        else if (strcmp(term_program, "rex") == 0) {
+            // Rex terminal multiplexer built on libghostty. It handles
+            // kitty graphics itself (no tmux-style passthrough needed),
+            // but still report a possible tmux below.
+            result.preferred_graphics = GraphicsProtocol::kKitty;
         }
     }
 
@@ -291,6 +301,12 @@ TermGraphicsInfo QuerySupportedGraphicsProtocol() {
                           result.preferred_graphics = GraphicsProtocol::kKitty;
                       }
                       if (find_str(data, len, "ghostty")) {
+                          result.preferred_graphics = GraphicsProtocol::kKitty;
+                      }
+                      // Rex multiplexer built on libghostty; it identifies
+                      // as "rex(<version>)".
+                      if (find_str(data, len, "rex") ||
+                          find_str(data, len, "Rex")) {
                           result.preferred_graphics = GraphicsProtocol::kKitty;
                       }
                       if (find_str(data, len, "mlterm")) {
